@@ -1,12 +1,5 @@
-// Diadaptasi dari mangayomi (https://github.com/kodjodevf/mangayomi)
-// Lisensi asal: Apache-2.0 — Copyright 2023 Moustapha Kodjo Amadou
-
 import 'package:flutter/material.dart';
 
-/// Teks judul yang ditampilkan di bawah/atas cover.
-///
-/// - Saat [isComfortableGrid] true -> teks polos di bawah cover (mode "Comfortable").
-/// - Saat false -> teks overlay dengan gradient gelap di atas gambar (mode "Compact").
 class BottomTextWidget extends StatelessWidget {
   final String text;
   final bool isComfortableGrid;

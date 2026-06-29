@@ -1,23 +1,10 @@
-// Diadaptasi & disederhanakan dari mangayomi (https://github.com/kodjodevf/mangayomi)
-// Lisensi asal: Apache-2.0 — Copyright 2023 Moustapha Kodjo Amadou
-//
-// Perbedaan dari versi asli:
-// - Tidak terikat ke model Isar (Manga/Source/MManga) — pakai `Manga` model biasa.
-// - Tidak butuh Riverpod untuk widget ini (cukup callback `onTap`).
-// - Network image langsung pakai Image.network (boleh diganti `cached_network_image`
-//   atau `extended_image` kalau mau caching seperti versi asli).
-
 import 'package:flutter/material.dart';
-import '../models/manga.dart';
+import '../../models/manga.dart';
 import 'cover_view_widget.dart';
 import 'bottom_text_widget.dart';
 
-/// Mode tampilan card di grid.
 enum MangaCardStyle {
-  /// Judul ditumpuk (overlay) di atas cover dengan gradient gelap.
   compact,
-
-  /// Judul ditaruh sebagai teks biasa di bawah cover.
   comfortable,
 }
 
