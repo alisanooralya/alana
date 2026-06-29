@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:alana/example_library_screen.dart';
 
 void main() {
   runApp(const MainApp());
@@ -10,11 +11,12 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      home: Scaffold(
-        body: Center(
-          child: Text('Hello World!'),
-        ),
+      title: 'Alana Demo',
+      theme: ThemeData(
+        colorSheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
       ),
+      home: const ExampleLibraryScreen(),
     );
   }
 }

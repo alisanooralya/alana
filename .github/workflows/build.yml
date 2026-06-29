@@ -21,8 +21,8 @@ jobs:
       - name: Build Debug APK
         run: flutter build apk --debug
 
-      - name: Build Release APK
-        run: flutter build apk --release
+      # - name: Build Release APK
+        # run: flutter build apk --release
 
       - uses: actions/upload-artifact@v4
         with:
