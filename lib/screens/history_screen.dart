@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_header.dart';
 
 /// Tab "History" — riwayat chapter yang sudah dibaca user.
 /// Isi nanti dengan data dari local storage (misalnya Hive/SharedPreferences/SQLite),
@@ -9,7 +10,14 @@ class HistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('History')),
+      appBar: AppHeader(
+        onSearchTap: () {
+          // TODO: arahkan ke halaman search.
+        },
+        onNotificationTap: () {
+          // TODO: arahkan ke halaman notifikasi.
+        },
+      ),
       body: const Center(
         child: Text('Belum ada riwayat baca.'),
       ),

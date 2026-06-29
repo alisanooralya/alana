@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/app_header.dart';
 
 /// Tab "Home" — dashboard utama saat app dibuka (highlight manga, update
 /// terbaru, lanjutkan baca, dsb). Isi nanti sesuai kebutuhan kamu.
@@ -8,7 +9,14 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Home')),
+      appBar: AppHeader(
+        onSearchTap: () {
+          // TODO: arahkan ke halaman search.
+        },
+        onNotificationTap: () {
+          // TODO: arahkan ke halaman notifikasi.
+        },
+      ),
       body: ListView(
         padding: const EdgeInsets.all(12),
         children: [

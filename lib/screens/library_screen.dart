@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/manga.dart';
 import '../widgets/manga_grid_view.dart';
+import '../widgets/app_header.dart';
 
 /// Tab "Library" — daftar manga yang sudah disimpan/diikuti user.
 /// Nanti ganti `_dummyManga` dengan data dari API/local storage kamu.
@@ -17,7 +18,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       id: '1',
       title: 'One Piece',
       coverUrl:
-          'https://cors.caliph.my.id/https://x5.sokuja.uk/uploads/2026/06/marriagetoxin-episode-11-subtitle-indonesia-1781620507423.webp',
+          'https://upload.wikimedia.org/wikipedia/en/9/9b/One_Piece%2C_Volume_61_Cover_%28Japanese%29.jpg',
       isFavorite: true,
       unreadCount: 12,
     ),
@@ -25,21 +26,28 @@ class _LibraryScreenState extends State<LibraryScreen> {
       id: '2',
       title: 'Jujutsu Kaisen',
       coverUrl:
-          'https://cors.caliph.my.id/https://x5.sokuja.uk/uploads/2026/06/marriagetoxin-episode-11-subtitle-indonesia-1781620507423.webp',
+          'https://upload.wikimedia.org/wikipedia/en/6/64/Jujutsu_Kaisen_volume_1_cover.jpg',
       unreadCount: 3,
     ),
     Manga(
       id: '3',
       title: 'Chainsaw Man',
       coverUrl:
-          'https://cors.caliph.my.id/https://x5.sokuja.uk/uploads/2026/06/marriagetoxin-episode-11-subtitle-indonesia-1781620507423.webp',
+          'https://upload.wikimedia.org/wikipedia/en/0/0d/Chainsaw_Man_vol_1_cover.jpg',
     ),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Library')),
+      appBar: AppHeader(
+        onSearchTap: () {
+          // TODO: arahkan ke halaman search.
+        },
+        onNotificationTap: () {
+          // TODO: arahkan ke halaman notifikasi.
+        },
+      ),
       body: MangaGridView(
         mangaList: _dummyManga,
         onTapManga: (manga) {

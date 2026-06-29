@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/manga.dart';
 import '../widgets/manga_grid_view.dart';
+import '../widgets/app_header.dart';
 
 /// Tab "Explore" — katalog/popular/search dari API kamu (1 sumber permanen,
 /// jadi tidak butuh pemilihan "source" seperti mangayomi).
@@ -26,17 +27,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: TextField(
-          controller: _searchController,
-          decoration: const InputDecoration(
-            hintText: 'Cari manga...',
-            border: InputBorder.none,
-          ),
-          onSubmitted: (query) {
-            // TODO: panggil API search dengan `query`.
-          },
-        ),
+      appBar: AppHeader(
+        onSearchTap: () {
+          // TODO: buka search bar / halaman search untuk cari manga.
+        },
+        onNotificationTap: () {
+          // TODO: arahkan ke halaman notifikasi.
+        },
       ),
       body: _results.isEmpty
           ? const Center(child: Text('Belum ada hasil. Coba cari manga.'))
