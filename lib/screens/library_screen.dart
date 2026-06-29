@@ -17,7 +17,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       id: '1',
       title: 'One Piece',
       coverUrl:
-          'https://upload.wikimedia.org/wikipedia/en/9/9b/One_Piece%2C_Volume_61_Cover_%28Japanese%29.jpg',
+          'https://cors.caliph.my.id/https://x5.sokuja.uk/uploads/2026/06/marriagetoxin-episode-11-subtitle-indonesia-1781620507423.webp',
       isFavorite: true,
       unreadCount: 12,
     ),
@@ -25,14 +25,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
       id: '2',
       title: 'Jujutsu Kaisen',
       coverUrl:
-          'https://upload.wikimedia.org/wikipedia/en/6/64/Jujutsu_Kaisen_volume_1_cover.jpg',
+          'https://cors.caliph.my.id/https://x5.sokuja.uk/uploads/2026/06/marriagetoxin-episode-11-subtitle-indonesia-1781620507423.webp',
       unreadCount: 3,
     ),
     Manga(
       id: '3',
       title: 'Chainsaw Man',
       coverUrl:
-          'https://upload.wikimedia.org/wikipedia/en/0/0d/Chainsaw_Man_vol_1_cover.jpg',
+          'https://cors.caliph.my.id/https://x5.sokuja.uk/uploads/2026/06/marriagetoxin-episode-11-subtitle-indonesia-1781620507423.webp',
     ),
   ];
 

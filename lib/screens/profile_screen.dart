@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-/// Tab "More" — menu pengaturan (tema, reader settings, tentang app, dsb).
-class MoreScreen extends StatelessWidget {
-  const MoreScreen({super.key});
+/// Tab "Profile" — menu pengaturan (tema, reader settings, tentang app, dsb).
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('More')),
+      appBar: AppBar(title: const Text('Profile')),
       body: ListView(
         children: const [
           ListTile(
