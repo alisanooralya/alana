@@ -1,7 +1,12 @@
-import 'package:flutter/material.dart';
-import 'package:alana/models/manga.dart';
-import 'package:alana/modules/widgets/manga_card_widget.dart';
+// Diadaptasi & disederhanakan dari mangayomi (https://github.com/kodjodevf/mangayomi)
+// Lisensi asal: Apache-2.0 — Copyright 2023 Moustapha Kodjo Amadou
 
+import 'package:flutter/material.dart';
+import '../models/manga.dart';
+import 'manga_card_widget.dart';
+
+/// Grid sederhana untuk menampilkan daftar manga (mirip tampilan Library
+/// di mangayomi). Atur jumlah kolom lewat [crossAxisCount].
 class MangaGridView extends StatelessWidget {
   final List<Manga> mangaList;
   final int crossAxisCount;
@@ -28,7 +33,7 @@ class MangaGridView extends StatelessWidget {
       padding: const EdgeInsets.all(6),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: crossAxisCount,
-        childAspectRatio: 0.65,
+        childAspectRatio: 0.65, // rasio poster manga (potrait)
         crossAxisSpacing: 4,
         mainAxisSpacing: 4,
       ),
