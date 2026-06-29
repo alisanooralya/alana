@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../models/manga.dart';
-import 'cover_view_widget.dart';
-import 'bottom_text_widget.dart';
+import 'package:alana/models/manga.dart';
+import 'package:alana/modules/widgets/cover_view_widget.dart';
+import 'package:alana/modules/widgets/bottom_text_widget.dart';
 
 enum MangaCardStyle {
   compact,

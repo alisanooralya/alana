@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'models/manga.dart';
-import 'modules/widgets/manga_grid_view.dart';
+import 'package:alana/models/manga.dart';
+import 'package:alana/modules/widgets/manga_grid_view.dart';
+import 'package:alana/modules/widgets/manga_card_view.dart';
 
 class ExampleLibraryScreen extends StatefulWidget {
   const ExampleLibraryScreen({super.key});

@@ -11,11 +11,6 @@ class MainApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
-      title: 'Alana Demo',
-      theme: ThemeData(
-        colorSheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
-      ),
       home: const ExampleLibraryScreen(),
     );
   }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../models/manga.dart';
-import 'manga_card_widget.dart';
+import 'package:alana/models/manga.dart';
+import 'package:alana/modules/widgets/manga_card_widget.dart';
 
 class MangaGridView extends StatelessWidget {
   final List<Manga> mangaList;
