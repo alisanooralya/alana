@@ -4,6 +4,7 @@
 
 import 'package:flutter/material.dart';
 import 'models/manga.dart';
+import 'widgets/manga_card_widget.dart';
 import 'widgets/manga_grid_view.dart';
 
 class ExampleLibraryScreen extends StatefulWidget {

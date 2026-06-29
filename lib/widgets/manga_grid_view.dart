@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import '../models/manga.dart';
 import 'manga_card_widget.dart';
+export 'manga_card_widget.dart' show MangaCardStyle;
 
 /// Grid sederhana untuk menampilkan daftar manga (mirip tampilan Library
 /// di mangayomi). Atur jumlah kolom lewat [crossAxisCount].
