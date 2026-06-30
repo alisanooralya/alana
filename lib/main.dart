@@ -31,9 +31,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
-
-
   @override
   Widget build(BuildContext context) {
     int _selectedIndex = 2;
@@ -41,7 +38,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final List<Widget> _pages = [
       const ExploreScreen(),
       const LibraryScreen(),
-      HomeScreen(counter: _counter),
+      const HomeScreen(),
       const HistoryScreen(),
       const ProfileScreen(),
     ];
