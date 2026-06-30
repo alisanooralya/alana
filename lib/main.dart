@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'screens/explore_screen.dart';
-import 'screens/library_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/history_screen.dart';
-import 'screens/profile_screen.dart';
+import 'package:lib/screens/explore_screen.dart';
+import 'package:lib/screens/library_screen.dart';
+import 'package:lib/screens/home_screen.dart';
+import 'package:lib/screens/history_screen.dart';
+import 'package:lib/screens/profile_screen.dart';
 
 void main() => runApp(const MyApp());
 
@@ -33,11 +33,6 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
 
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +41,7 @@ class _MyHomePageState extends State<MyHomePage> {
     final List<Widget> _pages = [
       const ExploreScreen(),
       const LibraryScreen(),
-      HomeScreen(counter: _counter, incrementCounter: _incrementCounter),
+      HomeScreen(counter: _counter),
       const HistoryScreen(),
       const ProfileScreen(),
     ];
