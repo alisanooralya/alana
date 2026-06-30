@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'screens/explore_screen.dart';
+import 'screens/library_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/history_screen.dart';
+import 'screens/profile_screen.dart';
 
 void main() => runApp(const MyApp());
 
@@ -26,12 +31,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-import 'screens/explore_screen.dart';
-import 'screens/library_screen.dart';
-import 'screens/home_screen.dart';
-import 'screens/history_screen.dart';
-import 'screens/profile_screen.dart';
-
   int _counter = 0;
 
   void _incrementCounter() {
