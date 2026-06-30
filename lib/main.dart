@@ -26,6 +26,12 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+import 'screens/explore_screen.dart';
+import 'screens/library_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/history_screen.dart';
+import 'screens/profile_screen.dart';
+
   int _counter = 0;
 
   void _incrementCounter() {
@@ -37,12 +43,6 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     int _selectedIndex = 2;
-
-    import 'screens/explore_screen.dart';
-    import 'screens/library_screen.dart';
-    import 'screens/home_screen.dart';
-    import 'screens/history_screen.dart';
-    import 'screens/profile_screen.dart';
 
     final List<Widget> _pages = [
       const ExploreScreen(),
