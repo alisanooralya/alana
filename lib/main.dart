@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:lib/screens/explore_screen.dart';
-import 'package:lib/screens/library_screen.dart';
-import 'package:lib/screens/home_screen.dart';
-import 'package:lib/screens/history_screen.dart';
-import 'package:lib/screens/profile_screen.dart';
+import 'package:alana/screens/explore_screen.dart';
+import 'package:alana/screens/library_screen.dart';
+import 'package:alana/screens/home_screen.dart';
+import 'package:alana/screens/history_screen.dart';
+import 'package:alana/screens/profile_screen.dart';
 
 void main() => runApp(const MyApp());
 
