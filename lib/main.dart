@@ -38,21 +38,18 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     int _selectedIndex = 2;
 
+    import 'screens/explore_screen.dart';
+    import 'screens/library_screen.dart';
+    import 'screens/home_screen.dart';
+    import 'screens/history_screen.dart';
+    import 'screens/profile_screen.dart';
+
     final List<Widget> _pages = [
-      Center(child: Text('Explore Page')),
-      Center(child: Text('Library Page')),
-      Center(child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text('You have pushed the button this many times:'),
-          Text(
-            '$_counter',
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-        ],
-      )),
-      Center(child: Text('History Page')),
-      Center(child: Text('Profile Page')),
+      const ExploreScreen(),
+      const LibraryScreen(),
+      HomeScreen(counter: _counter, incrementCounter: _incrementCounter),
+      const HistoryScreen(),
+      const ProfileScreen(),
     ];
 
     void _onItemTapped(int index) {
@@ -62,7 +59,23 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
+      appBar: AppBar(
+        title: const Text('Alana'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: () {
+              // Add search functionality here
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.notifications),
+            onPressed: () {
+              // Add notification functionality here
+            },
+          ),
+        ],
+      ),
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
@@ -91,13 +104,6 @@ class _MyHomePageState extends State<MyHomePage> {
         selectedItemColor: Colors.blue,
         onTap: _onItemTapped,
       ),
-      floatingActionButton: _selectedIndex == 2
-          ? FloatingActionButton(
-              onPressed: _incrementCounter,
-              tooltip: 'Increment',
-              child: const Icon(Icons.add),
-            )
-          : null,
     );
   }
 }
