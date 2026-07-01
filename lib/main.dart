@@ -31,11 +31,11 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  int selectedIndex = 2;
+
   @override
   Widget build(BuildContext context) {
-    int _selectedIndex = 2;
-
-    final List<Widget> _pages = [
+    final List<Widget> pages = [
       const ExploreScreen(),
       const LibraryScreen(),
       const HomeScreen(),
@@ -43,9 +43,9 @@ class _MyHomePageState extends State<MyHomePage> {
       const ProfileScreen(),
     ];
 
-    void _onItemTapped(int index) {
+    void onItemTapped(int index) {
       setState(() {
-        _selectedIndex = index;
+        selectedIndex = index;
       });
     }
 
@@ -67,33 +67,22 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ],
       ),
-      body: _pages[_selectedIndex],
+      body: pages[selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.explore),
-            label: 'Explore',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Explore'),
           BottomNavigationBarItem(
             icon: Icon(Icons.library_books),
             label: 'Library',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'History',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
-        currentIndex: _selectedIndex,
+        currentIndex: selectedIndex,
         selectedItemColor: Colors.blue,
-        onTap: _onItemTapped,
+        unselectedItemColor: Colors.grey,
+        onTap: onItemTapped,
       ),
     );
   }
