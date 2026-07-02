@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
 import 'package:alana/screens/explore_screen.dart';
 import 'package:alana/screens/library_screen.dart';
 import 'package:alana/screens/home_screen.dart';
@@ -13,18 +15,19 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(colorSchemeSeed: Colors.blue),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      theme: ThemeData(
+        colorSchemeSeed: Colors.blue,
+        textTheme: GoogleFonts.interTextTheme(
+          Theme.of(context).textTheme,
+        ),
+      ),
+      home: const MyHomePage(),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  final String title;
-
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({super.key});
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
