@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:alana/models/manga_types.dart';
 import 'package:alana/services/manga_api.dart';
 import 'package:alana/widgets/top_manhwa_carousel.dart';
+import 'package:alana/widgets/manhwa_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,25 +16,32 @@ class _HomeScreenState extends State<HomeScreen> {
   final MangaApiService _service = MangaApiService();
 
   List<Manga> _topMangas = [];
+  List<Manga> _newReleases = [];
+
   bool _isLoading = true;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _loadTopManga();
+    _loadHomeData();
   }
 
-  Future<void> _loadTopManga() async {
+  Future<void> _loadHomeData() async {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
 
     try {
-      final result = await _service.getPopularManga();
+      final results = await Future.wait([
+        _service.getPopularManga(),
+        _service.getLatestUpdates(),
+      ]);
+
       setState(() {
-        _topMangas = result.mangas.take(10).toList();
+        _topMangas = results[0].mangas.take(10).toList();
+        _newReleases = results[1].mangas.take(10).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -47,21 +55,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Home')),
       body: RefreshIndicator(
-        onRefresh: _loadTopManga,
+        onRefresh: _loadHomeData,
         child: ListView(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Top Manhwa',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-            ),
-            const SizedBox(height: 12),
-
             if (_isLoading)
               const SizedBox(
                 height: 220,
@@ -88,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
             else
               TopManhwaCarousel(
                 mangas: _topMangas,
-                autoScrollInterval: const Duration(seconds: 4),
+                autoScrollInterval: const Duration(seconds: 3),
                 height: 220,
                 onTap: (manga) {
                   // TODO: ganti dengan navigasi ke halaman detail manga kamu
@@ -99,10 +97,125 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
 
             const SizedBox(height: 24),
-            // TODO: tambahkan section lain di sini, misal "Latest Updates"
+
+            if (!_isLoading && _errorMessage == null && _newReleases.isNotEmpty)
+              _NewReleaseSection(
+                mangas: _newReleases,
+                onSeeAll: () {
+                  // TODO: navigasi ke halaman "See All" new release
+                },
+                onCardTap: (manga) {
+                  // TODO: navigasi ke halaman detail manga
+                },
+              ),
+
+            const SizedBox(height: 24),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _NewReleaseSection extends StatelessWidget {
+  final List<Manga> mangas;
+  final VoidCallback? onSeeAll;
+  final void Function(Manga manga)? onCardTap;
+
+  const _NewReleaseSection({
+    required this.mangas,
+    this.onSeeAll,
+    this.onCardTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            children: [
+              Container(
+                width: 4,
+                height: 20,
+                decoration: BoxDecoration(color: Colors.blue),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'New Release',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'Baru Terbit',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.blue,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: onSeeAll,
+                child: const Row(
+                  children: [
+                    Text(
+                      'See All',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.blue,
+                      ),
+                    ),
+                    SizedBox(width: 2),
+                    Icon(Icons.arrow_forward, size: 14, color: Colors.blue),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        LayoutBuilder(
+          builder: (context, constraints) {
+            const spacing = 12.0;
+            const sidePadding = 8.0;
+            const peekFraction = 0.12;
+
+            final cardWidth =
+                (constraints.maxWidth - sidePadding * 2 - spacing * 2) /
+                (3 + peekFraction);
+
+            return SizedBox(
+              height: cardWidth / (2 / 3) + 44,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: sidePadding),
+                itemCount: mangas.length,
+                separatorBuilder: (_, _) => const SizedBox(width: spacing),
+                itemBuilder: (context, index) {
+                  final manga = mangas[index];
+                  return ManhwaCard(
+                    manga: manga,
+                    width: cardWidth,
+                    onTap: () => onCardTap?.call(manga),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }

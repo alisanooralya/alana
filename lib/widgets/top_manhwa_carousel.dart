@@ -14,7 +14,7 @@ class TopManhwaCarousel extends StatefulWidget {
     super.key,
     required this.mangas,
     this.autoScrollInterval = const Duration(seconds: 4),
-    this.height = 220,
+    this.height = 200,
     this.onTap,
   });
 
@@ -30,7 +30,7 @@ class _TopManhwaCarouselState extends State<TopManhwaCarousel> {
   @override
   void initState() {
     super.initState();
-    _controller = PageController(viewportFraction: 0.86);
+    _controller = PageController();
     _startAutoScroll();
   }
 
@@ -67,111 +67,115 @@ class _TopManhwaCarouselState extends State<TopManhwaCarousel> {
       return const SizedBox.shrink();
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(
-          height: widget.height,
-          child: NotificationListener<ScrollNotification>(
-            onNotification: (notification) {
-              if (notification is UserScrollNotification) {
-                _resetAutoScroll();
-              }
-              return false;
-            },
-            child: PageView.builder(
-              controller: _controller,
-              itemCount: widget.mangas.length,
-              onPageChanged: (index) {
-                setState(() => _currentPage = index);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: SizedBox(
+        height: widget.height,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            NotificationListener<ScrollNotification>(
+              onNotification: (notification) {
+                if (notification is UserScrollNotification) {
+                  _resetAutoScroll();
+                }
+                return false;
               },
-              itemBuilder: (context, index) {
-                final manga = widget.mangas[index];
-                return _CarouselCard(
-                  manga: manga,
-                  onTap: () => widget.onTap?.call(manga),
-                );
-              },
+              child: PageView.builder(
+                controller: _controller,
+                itemCount: widget.mangas.length,
+                onPageChanged: (index) {
+                  setState(() => _currentPage = index);
+                },
+                itemBuilder: (context, index) {
+                  final manga = widget.mangas[index];
+                  return _CarouselSlide(
+                    manga: manga,
+                    onTap: () => widget.onTap?.call(manga),
+                  );
+                },
+              ),
             ),
-          ),
+            Positioned(
+              top: 12,
+              right: 14,
+              child: _DotsIndicator(
+                count: widget.mangas.length,
+                currentIndex: _currentPage,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 12),
-        _DotsIndicator(count: widget.mangas.length, currentIndex: _currentPage),
-      ],
+      ),
     );
   }
 }
 
-class _CarouselCard extends StatelessWidget {
+class _CarouselSlide extends StatelessWidget {
   final Manga manga;
   final VoidCallback? onTap;
 
-  const _CarouselCard({required this.manga, this.onTap});
+  const _CarouselSlide({required this.manga, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      child: GestureDetector(
-        onTap: onTap,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Image.network(
-                manga.thumbnail,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: Colors.grey.shade800,
-                  child: const Icon(
-                    Icons.broken_image,
-                    color: Colors.white54,
-                    size: 40,
-                  ),
-                ),
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return Container(
-                    color: Colors.grey.shade900,
-                    child: const Center(
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  );
-                },
+    return GestureDetector(
+      onTap: onTap,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.network(
+            manga.thumbnail,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Container(
+              color: Colors.grey.shade800,
+              child: const Icon(
+                Icons.broken_image,
+                color: Colors.white54,
+                size: 40,
               ),
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withValues(alpha: 0.75),
-                    ],
-                    stops: const [0.5, 1.0],
-                  ),
+            ),
+            loadingBuilder: (context, child, progress) {
+              if (progress == null) return child;
+              return Container(
+                color: Colors.grey.shade900,
+                child: const Center(
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 ),
-              ),
-              Positioned(
-                left: 14,
-                right: 14,
-                bottom: 14,
-                child: Text(
-                  manga.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    height: 1.2,
-                  ),
-                ),
-              ),
-            ],
+              );
+            },
           ),
-        ),
+
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  Colors.black.withValues(alpha: 0.75),
+                ],
+                stops: const [0.45, 1.0],
+              ),
+            ),
+          ),
+
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 14,
+            child: Text(
+              manga.title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -186,20 +190,18 @@ class _DotsIndicator extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: List.generate(count, (index) {
         final isActive = index == currentIndex;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeOut,
-          margin: const EdgeInsets.symmetric(horizontal: 3),
-          width: isActive ? 20 : 6,
+          margin: const EdgeInsets.symmetric(horizontal: 2),
+          width: isActive ? 12 : 6,
           height: 6,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(3),
-            color: isActive
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.primary.withValues(alpha: 0.25),
+            borderRadius: BorderRadius.circular(6),
+            color: isActive ? Colors.blue : Colors.white.withValues(alpha: 0.6),
           ),
         );
       }),

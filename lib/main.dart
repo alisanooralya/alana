@@ -16,6 +16,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(
+        useMaterial3: true,
         colorSchemeSeed: Colors.blue,
         textTheme: GoogleFonts.interTextTheme(Theme.of(context).textTheme),
       ),
@@ -34,32 +35,40 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int selectedIndex = 2;
 
+  static const List<Widget> _pages = [
+    ExploreScreen(),
+    LibraryScreen(),
+    HomeScreen(),
+    HistoryScreen(),
+    ProfileScreen(),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      selectedIndex = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final List<Widget> pages = [
-      const ExploreScreen(),
-      const LibraryScreen(),
-      const HomeScreen(),
-      const HistoryScreen(),
-      const ProfileScreen(),
-    ];
-
-    void onItemTapped(int index) {
-      setState(() {
-        selectedIndex = index;
-      });
-    }
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text.rich(
+        title: Text.rich(
           TextSpan(
             text: 'AL',
-            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+            style: GoogleFonts.poppins(
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
+              color: Colors.blue,
+            ),
             children: [
               TextSpan(
                 text: 'ANA',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                style: GoogleFonts.poppins(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.black,
+                ),
               ),
             ],
           ),
@@ -79,22 +88,41 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ],
       ),
-      body: pages[selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Explore'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.collections_bookmark),
+      body: IndexedStack(index: selectedIndex, children: _pages),
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: selectedIndex,
+        onDestinationSelected: _onItemTapped,
+        backgroundColor: Colors.white,
+        indicatorColor: Colors.blue.withValues(alpha: 0.15),
+        elevation: 3,
+        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.explore_outlined),
+            selectedIcon: Icon(Icons.explore, color: Colors.blue),
+            label: 'Explore',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.collections_bookmark_outlined),
+            selectedIcon: Icon(Icons.collections_bookmark, color: Colors.blue),
             label: 'Library',
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home, color: Colors.blue),
+            label: 'Home',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.history_outlined),
+            selectedIcon: Icon(Icons.history, color: Colors.blue),
+            label: 'History',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person, color: Colors.blue),
+            label: 'Profile',
+          ),
         ],
-        currentIndex: selectedIndex,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey,
-        onTap: onItemTapped,
       ),
     );
   }
