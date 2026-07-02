@@ -17,9 +17,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       theme: ThemeData(
         colorSchemeSeed: Colors.blue,
-        textTheme: GoogleFonts.interTextTheme(
-          Theme.of(context).textTheme,
-        ),
+        textTheme: GoogleFonts.interTextTheme(Theme.of(context).textTheme),
       ),
       home: const MyHomePage(),
     );
@@ -54,7 +52,18 @@ class _MyHomePageState extends State<MyHomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Alana'),
+        title: const Text.rich(
+          TextSpan(
+            text: 'AL',
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+            children: [
+              TextSpan(
+                text: 'ANA',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -75,7 +84,7 @@ class _MyHomePageState extends State<MyHomePage> {
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Explore'),
           BottomNavigationBarItem(
-            icon: Icon(Icons.library_books),
+            icon: Icon(Icons.collections_bookmark),
             label: 'Library',
           ),
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
