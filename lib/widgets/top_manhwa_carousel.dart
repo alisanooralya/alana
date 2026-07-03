@@ -16,9 +16,9 @@ class TopManhwaCarousel extends StatefulWidget {
   const TopManhwaCarousel({
     super.key,
     required this.mangas,
-    this.autoScrollInterval = const Duration(seconds: 4),
-    this.fadeDuration = const Duration(milliseconds: 500),
-    this.height = 320,
+    this.autoScrollInterval = const Duration(seconds: 5),
+    this.fadeDuration = const Duration(milliseconds: 750),
+    this.height = 220,
     this.onTap,
   });
 
@@ -50,11 +50,6 @@ class _TopManhwaCarouselState extends State<TopManhwaCarousel> {
     setState(() => _currentIndex = index);
   }
 
-  void _onDotTap(int index) {
-    _goToIndex(index);
-    _startAutoScroll();
-  }
-
   @override
   void dispose() {
     _timer?.cancel();
@@ -81,9 +76,8 @@ class _TopManhwaCarouselState extends State<TopManhwaCarousel> {
               child: Image.network(
                 manga.thumbnail,
                 key: ValueKey('${manga.url}-bg'),
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) =>
-                    Container(color: Colors.grey.shade900),
+                fit: BoxFit.fitWidth,
+                errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade900),
               ),
             ),
             Positioned.fill(
@@ -99,23 +93,12 @@ class _TopManhwaCarouselState extends State<TopManhwaCarousel> {
                 onTap: () => widget.onTap?.call(manga),
                 child: AnimatedSwitcher(
                   duration: widget.fadeDuration,
-                  transitionBuilder: (child, animation) =>
-                      FadeTransition(opacity: animation, child: child),
+                  transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
                   child: _CarouselContent(
                     key: ValueKey(manga.url),
                     manga: manga,
                   ),
                 ),
-              ),
-            ),
-
-            Positioned(
-              left: 20,
-              bottom: 16,
-              child: _DotsIndicator(
-                count: widget.mangas.length,
-                currentIndex: _currentIndex,
-                onDotTap: _onDotTap,
               ),
             ),
           ],
@@ -132,6 +115,60 @@ class _CarouselContent extends StatelessWidget {
     super.key,
     required this.manga,
   });
+
+  String _formatTimeAgoLabel(String shortFormat) {
+  if (shortFormat.isEmpty) return "-";
+
+  final match = RegExp(r'^(\d+)([a-zA-Z])$').firstMatch(shortFormat.trim());
+  if (match == null) return shortFormat;
+
+  final value = int.tryParse(match.group(1) ?? '') ?? 0;
+  final unit = match.group(2) ?? '';
+
+  String unitLabel;
+    switch (unit) {
+      case 'm':
+        unitLabel = 'minute';
+        break;
+      case 'H':
+        unitLabel = 'hour';
+        break;
+      case 'D':
+        unitLabel = 'day';
+        break;
+      case 'W':
+        unitLabel = 'week';
+        break;
+      case 'M':
+        unitLabel = 'month';
+        break;
+      case 'Y':
+        unitLabel = 'year';
+        break;
+      default:
+        return shortFormat;
+    }
+
+    return '$value $unitLabel${value > 1 ? 's' : ''} ago';
+  }
+
+  String _formatCount(int value) {
+    if (value < 1000) return '$value';
+
+    if (value < 1000000) {
+      final k = value / 1000;
+      final formatted = k == k.roundToDouble()
+          ? k.toStringAsFixed(0)
+          : k.toStringAsFixed(1);
+      return '${formatted}k';
+    }
+
+    final m = value / 1000000;
+    final formatted = m == m.roundToDouble()
+        ? m.toStringAsFixed(0)
+        : m.toStringAsFixed(1);
+    return '${formatted}m';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -172,7 +209,7 @@ class _CarouselContent extends StatelessWidget {
               _InfoLine(
                 label: 'Latest update',
                 value: manga.latestChapterDate.isNotEmpty
-                    ? manga.latestChapterDate
+                    ? _formatTimeAgoLabel(manga.latestChapterDate)
                     : '-',
               ),
               const SizedBox(height: 14),
@@ -183,7 +220,9 @@ class _CarouselContent extends StatelessWidget {
               const SizedBox(height: 14),
               _InfoLine(
                 label: 'View count',
-                value: manga.viewCount > 0 ? '${manga.viewCount}' : '-',
+                value: manga.viewCount > 0
+                    ? _formatCount(manga.viewCount)
+                    : '-',
               ),
               const SizedBox(height: 14),
               _InfoLine(
@@ -228,44 +267,6 @@ class _InfoLine extends StatelessWidget {
       ),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-    );
-  }
-}
-
-class _DotsIndicator extends StatelessWidget {
-  final int count;
-  final int currentIndex;
-  final void Function(int index)? onDotTap;
-
-  const _DotsIndicator({
-    required this.count,
-    required this.currentIndex,
-    this.onDotTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: List.generate(count, (index) {
-        final isActive = index == currentIndex;
-        return GestureDetector(
-          onTap: () => onDotTap?.call(index),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOut,
-            margin: const EdgeInsets.symmetric(horizontal: 3),
-            width: isActive ? 22 : 8,
-            height: 8,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(4),
-              color: isActive
-                  ? Colors.blue
-                  : Colors.white.withValues(alpha: 0.6),
-            ),
-          ),
-        );
-      }),
     );
   }
 }

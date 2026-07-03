@@ -104,7 +104,7 @@ class MangaApiService {
       if (minutes < 1) {
         return 'Now';
       } else if (hours < 1) {
-        return '${minutes}M';
+        return '${minutes}m';
       } else if (days < 1) {
         return '${hours}H';
       } else if (days < 7) {
