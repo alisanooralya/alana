@@ -76,7 +76,7 @@ class NewReleaseCard extends StatelessWidget {
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white, width: 1.5),
                         image: DecorationImage(
-                          image: AssetImage(flagAsset),
+                          image: _flagAsset(manga.country),
                           fit: BoxFit.cover,
                         ),
                       ),

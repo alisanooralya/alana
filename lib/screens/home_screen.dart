@@ -394,7 +394,7 @@ class _NewReleaseGrid extends StatelessWidget {
       ),
       itemBuilder: (context, index) {
         final manga = mangas[index];
-        return _NewReleaseCard(
+        return NewReleaseCard(
           manga: manga,
           onTap: () => onCardTap?.call(manga),
         );
