@@ -5,7 +5,7 @@ class Manga {
   final String latestChapterDate;
   final String country;
   final int viewCount;
-  final double rating;
+  final num rating;
 
   Manga({
     required this.title,
@@ -14,7 +14,7 @@ class Manga {
     this.latestChapterDate = '',
     this.country = '',
     this.viewCount = 0,
-    this.rating = 0.0,
+    this.rating = 0,
   });
 }
 
