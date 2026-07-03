@@ -12,14 +12,19 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
+enum _ViewMode { grid, list }
+
 class _HomeScreenState extends State<HomeScreen> {
   final MangaApiService _service = MangaApiService();
 
   List<Manga> _topMangas = [];
   List<Manga> _recommendationMangas = [];
+  List<Manga> _newReleaseMangas = [];
 
   bool _isLoading = true;
   String? _errorMessage;
+
+  _ViewMode _newReleaseMode = _ViewMode.grid;
 
   @override
   void initState() {
@@ -37,11 +42,13 @@ class _HomeScreenState extends State<HomeScreen> {
       final results = await Future.wait([
         _service.getPopularManga(),
         _service.getRecommendedManga(),
+        _service.getLatestUpdates(),
       ]);
 
       setState(() {
         _topMangas = results[0].mangas.take(10).toList();
         _recommendationMangas = results[1].mangas.take(5).toList();
+        _newReleaseMangas = results[2].mangas;
         _isLoading = false;
       });
     } catch (e) {
@@ -50,6 +57,12 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  void _setNewReleaseMode(_ViewMode mode) {
+    setState(() {
+      _newReleaseMode = mode;
+    });
   }
 
   @override
@@ -110,6 +123,18 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
 
             const SizedBox(height: 24),
+
+            if (!_isLoading && _errorMessage == null && _newReleaseMangas.isNotEmpty)
+              _NewReleaseSection(
+                mangas: _newReleaseMangas,
+                mode: _newReleaseMode,
+                onModeChanged: _setNewReleaseMode,
+                onCardTap: (manga) {
+                  // TODO: navigasi ke halaman detail manga
+                },
+              ),
+
+            const SizedBox(height: 24),
           ],
         ),
       ),
@@ -151,7 +176,7 @@ class _RecommendationMangasSection extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withValues(alpha: 0.1),
+                  color: Colors.blue.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Text(
@@ -216,6 +241,163 @@ class _RecommendationMangasSection extends StatelessWidget {
           },
         ),
       ],
+    );
+  }
+}
+
+class _NewReleaseSection extends StatelessWidget {
+  final List<Manga> mangas;
+  final _ViewMode mode;
+  final void Function(_ViewMode mode) onModeChanged;
+  final void Function(Manga manga)? onCardTap;
+
+  const _NewReleaseSection({
+    required this.mangas,
+    required this.mode,
+    required this.onModeChanged,
+    this.onCardTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8),
+          child: Row(
+            children: [
+              Container(
+                width: 4,
+                height: 20,
+                decoration: BoxDecoration(color: Colors.blue),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'New release',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
+              ),
+              const Spacer(),
+              _ViewModeToggle(
+                mode: mode,
+                onChanged: onModeChanged,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (mode == _ViewMode.grid)
+          _NewReleaseGrid(mangas: mangas, onCardTap: onCardTap)
+        else
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 40),
+            child: Center(
+              child: Text(
+                'Mode list segera hadir',
+                style: TextStyle(color: Colors.white54),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ViewModeToggle extends StatelessWidget {
+  final _ViewMode mode;
+  final void Function(_ViewMode mode) onChanged;
+
+  const _ViewModeToggle({required this.mode, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.blue.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ToggleButton(
+            icon: Icons.grid_view_rounded,
+            isActive: mode == _ViewMode.grid,
+            onTap: () => onChanged(_ViewMode.grid),
+          ),
+          const SizedBox(width: 4),
+          _ToggleButton(
+            icon: Icons.view_agenda_outlined,
+            isActive: mode == _ViewMode.list,
+            onTap: () => onChanged(_ViewMode.list),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToggleButton extends StatelessWidget {
+  final IconData icon;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _ToggleButton({
+    required this.icon,
+    required this.isActive,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 32,
+        decoration: BoxDecoration(
+          color: isActive ? Colors.blue : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          icon,
+          size: 18,
+          color: isActive ? Colors.white : Colors.white54,
+        ),
+      ),
+    );
+  }
+}
+
+class _NewReleaseGrid extends StatelessWidget {
+  final List<Manga> mangas;
+  final void Function(Manga manga)? onCardTap;
+
+  const _NewReleaseGrid({required this.mangas, this.onCardTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final sidePadding = 8.0;
+    final spacing = 12.0;
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: EdgeInsets.symmetric(horizontal: sidePadding),
+      itemCount: mangas.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 24,
+        childAspectRatio: 0.56,
+      ),
+      itemBuilder: (context, index) {
+        final manga = mangas[index];
+        return _NewReleaseCard(
+          manga: manga,
+          onTap: () => onCardTap?.call(manga),
+        );
+      },
     );
   }
 }

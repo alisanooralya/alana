@@ -78,7 +78,7 @@ class _TopManhwaCarouselState extends State<TopManhwaCarousel> {
                   manga.thumbnail,
                   key: ValueKey('${manga.url}-bg'),
                   fit: BoxFit.cover,
-                  errorBuilder: () => Container(color: Colors.grey.shade900),
+                  errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey.shade900),
                 ),
               ),
             ),
@@ -187,7 +187,7 @@ class _CarouselContent extends StatelessWidget {
                 Image.network(
                   manga.thumbnail,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+                  errorBuilder: (context, error, stackTrace) => Container(
                     color: Colors.grey.shade800,
                     child: const Icon(
                       Icons.broken_image,
