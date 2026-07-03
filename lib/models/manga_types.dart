@@ -11,10 +11,10 @@ class Manga {
     required this.title,
     required this.thumbnail,
     required this.url,
-    required this.latestChapterDate = '',
-    required this.country = '',
-    required this.viewCount = 0,
-    required this.rating = 0,
+    required this.latestChapterDate,
+    required this.country,
+    required this.viewCount,
+    required this.rating,
   });
 }
 
