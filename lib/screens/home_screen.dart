@@ -4,6 +4,7 @@ import 'package:alana/models/manga_types.dart';
 import 'package:alana/services/manga_api.dart';
 import 'package:alana/widgets/top_manhwa_carousel.dart';
 import 'package:alana/widgets/manhwa_card.dart';
+import 'package:alana/widgets/new_release_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
