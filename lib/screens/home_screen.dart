@@ -41,7 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
       setState(() {
         _topMangas = results[0].mangas.take(10).toList();
-        _recommendationMangas = results[1].mangas.take(10).toList();
+        _recommendationMangas = results[1].mangas.take(5).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -144,7 +144,7 @@ class _RecommendationMangasSection extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               const Text(
-                'New Release',
+                'Recommendations for you',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
               ),
               const SizedBox(width: 8),
@@ -155,7 +155,7 @@ class _RecommendationMangasSection extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Text(
-                  'Baru Terbit',
+                  'Daily',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
