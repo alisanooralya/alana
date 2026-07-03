@@ -74,7 +74,7 @@ class ManhwaCard extends StatelessWidget {
                       top: 8,
                       left: 8,
                       child: Icon(
-                        Icons.time,
+                        Icons.access_time,
                         color: Colors.white70,
                         size: 20,
                       ),
