@@ -16,7 +16,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final MangaApiService _service = MangaApiService();
 
   List<Manga> _topMangas = [];
-  List<Manga> _newReleases = [];
+  List<Manga> _recommendationMangas = [];
 
   bool _isLoading = true;
   String? _errorMessage;
@@ -36,12 +36,12 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final results = await Future.wait([
         _service.getPopularManga(),
-        _service.getLatestUpdates(),
+        _service.getRecommendedManga(),
       ]);
 
       setState(() {
         _topMangas = results[0].mangas.take(10).toList();
-        _newReleases = results[1].mangas.take(10).toList();
+        _recommendationMangas = results[1].mangas.take(10).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -98,9 +98,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SizedBox(height: 24),
 
-            if (!_isLoading && _errorMessage == null && _newReleases.isNotEmpty)
-              _NewReleaseSection(
-                mangas: _newReleases,
+            if (!_isLoading && _errorMessage == null && _recommendationMangas.isNotEmpty)
+              _RecommendationMangasSection(
+                mangas: _recommendationMangas,
                 onSeeAll: () {
                   // TODO: navigasi ke halaman "See All" new release
                 },
@@ -117,12 +117,12 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-class _NewReleaseSection extends StatelessWidget {
+class _RecommendationMangasSection extends StatelessWidget {
   final List<Manga> mangas;
   final VoidCallback? onSeeAll;
   final void Function(Manga manga)? onCardTap;
 
-  const _NewReleaseSection({
+  const _RecommendationMangasSection({
     required this.mangas,
     this.onSeeAll,
     this.onCardTap,
