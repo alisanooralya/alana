@@ -18,6 +18,43 @@ class ManhwaCard extends StatelessWidget {
   });
 
   @override
+  Widget _buildCountryIcon(String country) {
+    switch (country.toLowerCase()) {
+      case 'korea':
+        return Image.asset(
+          'assets/icons/korea.png',
+          width: 20,
+          height: 20,
+          fit: BoxFit.contain,
+        );
+      case 'china':
+        return Image.asset(
+          'assets/icons/china.png',
+          width: 20,
+          height: 20,
+          fit: BoxFit.contain,
+        );
+      case 'english':
+        return Image.asset(
+          'assets/icons/english.png',
+          width: 20,
+          height: 20,
+          fit: BoxFit.contain,
+        );
+      case 'japan':
+      case 'jepang':
+        return Image.asset(
+          'assets/icons/japan.png',
+          width: 20,
+          height: 20,
+          fit: BoxFit.contain,
+        );
+      default:
+        return const SizedBox.shrink();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
@@ -33,6 +70,20 @@ class ManhwaCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Icon(
+                        Icons.time,
+                        color: Colors.white70,
+                        size: 20,
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: _buildCountryIcon(manga.country),
+                    ),
                     Image.network(
                       manga.thumbnail,
                       fit: BoxFit.cover,
