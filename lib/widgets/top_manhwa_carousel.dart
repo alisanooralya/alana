@@ -71,19 +71,21 @@ class _TopManhwaCarouselState extends State<TopManhwaCarousel> {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            AnimatedSwitcher(
-              duration: widget.fadeDuration,
-              child: Image.network(
-                manga.thumbnail,
-                key: ValueKey('${manga.url}-bg'),
-                fit: BoxFit.fitWidth,
-                errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade900),
+            Positioned.fill(
+              child: AnimatedSwitcher(
+                duration: widget.fadeDuration,
+                child: Image.network(
+                  manga.thumbnail,
+                  key: ValueKey('${manga.url}-bg'),
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade900),
+                ),
               ),
             ),
             Positioned.fill(
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: Container(color: Colors.black.withValues(alpha: 0.55)),
+                child: const SizedBox.expand(),
               ),
             ),
 
@@ -197,7 +199,7 @@ class _CarouselContent extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(width: 20),
+        const SizedBox(width: 12),
 
         Expanded(
           child: Column(

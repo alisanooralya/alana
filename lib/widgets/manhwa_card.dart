@@ -70,20 +70,6 @@ class ManhwaCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Icon(
-                        Icons.access_time,
-                        color: Colors.white70,
-                        size: 20,
-                      ),
-                    ),
-                    Positioned(
-                      top: 8,
-                      right: 8,
-                      child: _buildCountryIcon(manga.country),
-                    ),
                     Image.network(
                       manga.thumbnail,
                       fit: BoxFit.cover,
@@ -104,6 +90,20 @@ class ManhwaCard extends StatelessWidget {
                           ),
                         );
                       },
+                    ),
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Icon(
+                        Icons.access_time,
+                        color: Colors.white70,
+                        size: 20,
+                      ),
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: _buildCountryIcon(manga.country),
                     ),
                   ],
                 ),
