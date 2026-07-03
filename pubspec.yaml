@@ -19,3 +19,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/icons/korea.png
+    - assets/icons/china.png
+    - assets/icons/english.png
+    - assets/icons/japan.png
