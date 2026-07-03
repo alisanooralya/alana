@@ -21,15 +21,15 @@ jobs:
       - name: Build Debug APK
         run: flutter build apk --debug
 
-      # - name: Build Release APK
-        # run: flutter build apk --release
+      - name: Build Release APK
+        run: flutter build apk --release
 
       - uses: actions/upload-artifact@v4
         with:
           name: app-debug
           path: build/app/outputs/flutter-apk/app-debug.apk
 
-      # - uses: actions/upload-artifact@v4
-        # with:
-          # name: app-release
-          # path: build/app/outputs/flutter-apk/app-release.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: build/app/outputs/flutter-apk/app-release.apk

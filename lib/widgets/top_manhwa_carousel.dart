@@ -78,16 +78,16 @@ class _TopManhwaCarouselState extends State<TopManhwaCarousel> {
                   manga.thumbnail,
                   key: ValueKey('${manga.url}-bg'),
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade900),
+                  errorBuilder: () => Container(color: Colors.grey.shade900),
                 ),
               ),
             ),
-            Positioned.fill(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: const SizedBox.expand(),
-              ),
-            ),
+            // Positioned.fill(
+              // child: BackdropFilter(
+                // filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                // child: const SizedBox.expand(),
+              // ),
+            // ),
 
             Padding(
               padding: const EdgeInsets.all(20),
