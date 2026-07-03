@@ -2,13 +2,15 @@ class Manga {
   final String title;
   final String thumbnail;
   final String url;
-  final String mangaUrl;
+  final String latestChapterDate;
+  final String country;
 
   Manga({
     required this.title,
     required this.thumbnail,
     required this.url,
-    required this.mangaUrl,
+    this.latestChapterDate = '',
+    this.country = '',
   });
 }
 
@@ -16,7 +18,10 @@ class MangaListResponse {
   final List<Manga> mangas;
   final bool hasNextPage;
 
-  MangaListResponse({required this.mangas, required this.hasNextPage});
+  MangaListResponse({
+    required this.mangas,
+    required this.hasNextPage,
+  });
 }
 
 class MangaDetails {
@@ -57,5 +62,8 @@ class Page {
   final int index;
   final String imageUrl;
 
-  Page({required this.index, required this.imageUrl});
+  Page({
+    required this.index,
+    required this.imageUrl,
+  });
 }
