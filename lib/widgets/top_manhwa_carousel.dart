@@ -148,7 +148,7 @@ class _CarouselContent extends StatelessWidget {
                 Image.network(
                   manga.thumbnail,
                   fit: BoxFit.cover,
-                  errorBuilder: (_) => Container(
+                  errorBuilder: (_, __, ___) => Container(
                     color: Colors.grey.shade800,
                     child: const Icon(
                       Icons.broken_image,
