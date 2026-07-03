@@ -4,13 +4,17 @@ class Manga {
   final String url;
   final String latestChapterDate;
   final String country;
+  final int viewCount;
+  final double rating;
 
   Manga({
     required this.title,
     required this.thumbnail,
     required this.url,
-    this.latestChapterDate = '',
-    this.country = '',
+    required this.latestChapterDate = '',
+    required this.country = '',
+    required this.viewCount = 0,
+    required this.rating = 0,
   });
 }
 

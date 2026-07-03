@@ -134,6 +134,8 @@ class MangaApiService {
         url: mangaId,
         latestChapterDate: _formatChapterDate(map['latest_chapter_time']),
         country: _mapCountry(map['country_id']),
+        viewCount: map['view_count'],
+        rating: map['user_rate'],
       );
     }).toList();
   }
