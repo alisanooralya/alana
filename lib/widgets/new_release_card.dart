@@ -52,8 +52,6 @@ class NewReleaseCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final flagAsset = _flagAsset(manga.country);
-
     return GestureDetector(
       onTap: onTap,
       child: Column(
