@@ -8,19 +8,40 @@ class NewReleaseCard extends StatelessWidget {
 
   const NewReleaseCard({required this.manga, this.onTap});
 
-  String? _flagAsset(String country) {
+  @override
+  Widget _buildCountryIcon(String country) {
     switch (country.toLowerCase()) {
       case 'korea':
-        return 'assets/icon/korea.png';
+        return Image.asset(
+          'assets/icons/korea.png',
+          width: 20,
+          height: 20,
+          fit: BoxFit.contain,
+        );
       case 'china':
-        return 'assets/icon/china.png';
+        return Image.asset(
+          'assets/icons/china.png',
+          width: 20,
+          height: 20,
+          fit: BoxFit.contain,
+        );
       case 'english':
-        return 'assets/icon/english.png';
+        return Image.asset(
+          'assets/icons/english.png',
+          width: 20,
+          height: 20,
+          fit: BoxFit.contain,
+        );
       case 'japan':
       case 'jepang':
-        return 'assets/icon/japan.png';
+        return Image.asset(
+          'assets/icons/japan.png',
+          width: 20,
+          height: 20,
+          fit: BoxFit.contain,
+        );
       default:
-        return null;
+        return const SizedBox.shrink();
     }
   }
 
@@ -69,18 +90,7 @@ class NewReleaseCard extends StatelessWidget {
                   Positioned(
                     bottom: 8,
                     right: 8,
-                    child: Container(
-                      width: 22,
-                      height: 22,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 1.5),
-                        image: DecorationImage(
-                          image: _flagAsset(manga.country),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
+                    child: _buildCountryIcon(manga.country)
                   ),
                 ],
               ),
