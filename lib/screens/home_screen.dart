@@ -276,7 +276,23 @@ class _NewReleaseSection extends StatelessWidget {
               const SizedBox(width: 8),
               const Text(
                 'New release',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: Colors.white),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'Project',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.blue,
+                  ),
+                ),
               ),
               const Spacer(),
               _ViewModeToggle(
@@ -363,7 +379,7 @@ class _ToggleButton extends StatelessWidget {
         child: Icon(
           icon,
           size: 18,
-          color: isActive ? Colors.white : Colors.white54,
+          color: isActive ? Colors.white : Colors.black,
         ),
       ),
     );

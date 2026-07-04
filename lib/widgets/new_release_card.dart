@@ -71,7 +71,7 @@ class NewReleaseCard extends StatelessWidget {
                       color: Colors.grey.shade800,
                       child: const Icon(
                         Icons.broken_image,
-                        color: Colors.white54,
+                        color: Colors.black,
                       ),
                     ),
                     loadingBuilder: (context, child, progress) {
@@ -102,9 +102,8 @@ class NewReleaseCard extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
                 height: 1.25,
               ),
             ),
@@ -147,11 +146,11 @@ class _ChapterRow extends StatelessWidget {
         children: [
           Text(
             chapter.name,
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
+            style: const TextStyle(fontSize: 12),
           ),
           Text(
             chapter.time,
-            style: const TextStyle(color: Colors.white38, fontSize: 12),
+            style: const TextStyle(fontSize: 12),
           ),
         ],
       ),

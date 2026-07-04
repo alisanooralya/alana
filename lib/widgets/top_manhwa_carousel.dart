@@ -74,6 +74,16 @@ class _TopManhwaCarouselState extends State<TopManhwaCarousel> {
             Positioned.fill(
               child: AnimatedSwitcher(
                 duration: widget.fadeDuration,
+                layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
+                  return Stack(
+                    fit: StackFit.expand,
+                    alignment: Alignment.center,
+                    children: <Widget>[
+                      ...previousChildren,
+                      if (currentChild != null) currentChild,
+                    ],
+                  );
+                },
                 child: Image.network(
                   manga.thumbnail,
                   key: ValueKey('${manga.url}-bg'),
@@ -82,12 +92,12 @@ class _TopManhwaCarouselState extends State<TopManhwaCarousel> {
                 ),
               ),
             ),
-            // Positioned.fill(
-              // child: BackdropFilter(
-                // filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                // child: const SizedBox.expand(),
-              // ),
-            // ),
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                child: const SizedBox.expand(),
+              ),
+            ),
 
             Padding(
               padding: const EdgeInsets.all(20),
@@ -255,14 +265,12 @@ class _InfoLine extends StatelessWidget {
             text: '$label: ',
             style: const TextStyle(
               fontWeight: FontWeight.w400,
-              color: Colors.white,
             ),
           ),
           TextSpan(
             text: value,
             style: const TextStyle(
               fontWeight: FontWeight.w600,
-              color: Colors.white,
             ),
           ),
         ],
