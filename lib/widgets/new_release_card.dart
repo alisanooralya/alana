@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:alana/models/manga_types.dart';
 
@@ -64,25 +65,22 @@ class NewReleaseCard extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    manga.thumbnail,
+                  CachedNetworkImage(
+                    imageUrl: manga.thumbnail,
                     fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
+                    placeholder: (context, url) => Container(
+                      color: Colors.grey.shade900,
+                      child: const Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
                       color: Colors.grey.shade800,
                       child: const Icon(
                         Icons.broken_image,
                         color: Colors.black,
                       ),
                     ),
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-                      return Container(
-                        color: Colors.grey.shade900,
-                        child: const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      );
-                    },
                   ),
 
                   Positioned(
@@ -105,6 +103,7 @@ class NewReleaseCard extends StatelessWidget {
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 height: 1.25,
+                colors: Colors.black
               ),
             ),
           ),

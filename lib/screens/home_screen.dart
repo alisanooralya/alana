@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:alana/models/manga_types.dart';
 import 'package:alana/services/manga_api.dart';
 import 'package:alana/widgets/top_manhwa_carousel.dart';
-import 'package:alana/widgets/manhwa_card.dart';
+import 'package:alana/widgets/recommendation_card.dart';
 import 'package:alana/widgets/new_release_card.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -231,7 +231,7 @@ class _RecommendationMangasSection extends StatelessWidget {
                 separatorBuilder: (_, _) => const SizedBox(width: spacing),
                 itemBuilder: (context, index) {
                   final manga = mangas[index];
-                  return ManhwaCard(
+                  return RecommendationCard(
                     manga: manga,
                     width: cardWidth,
                     onTap: () => onCardTap?.call(manga),

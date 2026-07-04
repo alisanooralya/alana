@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:alana/models/manga_types.dart';
 
-class ManhwaCard extends StatelessWidget {
+class RecommendationCard extends StatelessWidget {
   final Manga manga;
   final double width;
   final double aspectRatio;
 
   final VoidCallback? onTap;
 
-  const ManhwaCard({
+  const RecommendationCard({
     super.key,
     required this.manga,
     this.width = 130,
@@ -70,10 +71,16 @@ class ManhwaCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.network(
-                      manga.thumbnail,
+                    CachedNetworkImage(
+                      imageUrl: manga.thumbnail,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey.shade900,
+                        child: const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
                         color: Colors.grey.shade800,
                         child: const Icon(
                           Icons.broken_image,
@@ -81,15 +88,6 @@ class ManhwaCard extends StatelessWidget {
                           size: 28,
                         ),
                       ),
-                      loadingBuilder: (context, child, progress) {
-                        if (progress == null) return child;
-                        return Container(
-                          color: Colors.grey.shade900,
-                          child: const Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        );
-                      },
                     ),
                     Positioned(
                       top: 8,

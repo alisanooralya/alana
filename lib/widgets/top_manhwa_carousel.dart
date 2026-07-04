@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:alana/models/manga_types.dart';
 
@@ -84,11 +85,11 @@ class _TopManhwaCarouselState extends State<TopManhwaCarousel> {
                     ],
                   );
                 },
-                child: Image.network(
-                  manga.thumbnail,
+                child: CachedNetworkImage(
+                  imageUrl: manga.thumbnail,
                   key: ValueKey('${manga.url}-bg'),
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(color: Colors.grey.shade900),
+                  errorWidget: (context, url, error) => Container(color: Colors.grey.shade900),
                 ),
               ),
             ),
@@ -194,10 +195,16 @@ class _CarouselContent extends StatelessWidget {
             child: Stack(
               fit: StackFit.expand,
               children: [
-                Image.network(
-                  manga.thumbnail,
+                CachedNetworkImage(
+                  imageUrl: manga.thumbnail,
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
+                  placeholder: (context, url) => Container(
+                    color: Colors.grey.shade900,
+                    child: const Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                  errorWidget: (context, url, error) => Container(
                     color: Colors.grey.shade800,
                     child: const Icon(
                       Icons.broken_image,
