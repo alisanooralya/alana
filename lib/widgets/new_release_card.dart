@@ -103,7 +103,7 @@ class NewReleaseCard extends StatelessWidget {
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
                 height: 1.25,
-                colors: Colors.black
+                color: Colors.black
               ),
             ),
           ),
