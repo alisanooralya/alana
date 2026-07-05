@@ -93,14 +93,18 @@ class NewReleaseCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-          Text(
-            manga.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              height: 1.25,
+          SizedBox(
+            height: 34,
+            width: double.infinity,
+            child: Text(
+              manga.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                height: 1.25,
+              ),
             ),
           ),
           const SizedBox(height: 10),
@@ -110,6 +114,7 @@ class NewReleaseCard extends StatelessWidget {
               child: _ChapterRow(chapter: chapter),
             ),
           ),
+          const SizedBox(height: 10),
         ],
       ),
     );
