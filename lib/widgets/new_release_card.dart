@@ -46,11 +46,6 @@ class NewReleaseCard extends StatelessWidget {
     }
   }
 
-  List<_DummyChapter> get _dummyChapters => const [
-        _DummyChapter(name: 'Chapter 11', time: '10 mnt'),
-        _DummyChapter(name: 'Chapter 10', time: '6 hari'),
-      ];
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -108,7 +103,7 @@ class NewReleaseCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          ..._dummyChapters.map(
+          ...(manga.chapters ?? []).take(2).map(
             (chapter) => Padding(
               padding: const EdgeInsets.only(bottom: 6),
               child: _ChapterRow(chapter: chapter),
@@ -120,20 +115,20 @@ class NewReleaseCard extends StatelessWidget {
   }
 }
 
-class _DummyChapter {
-  final String name;
-  final String time;
-
-  const _DummyChapter({required this.name, required this.time});
-}
-
 class _ChapterRow extends StatelessWidget {
-  final _DummyChapter chapter;
+  final Map<String, dynamic> chapter;
 
   const _ChapterRow({required this.chapter});
 
   @override
   Widget build(BuildContext context) {
+    final number = chapter['chapter_number'] ?? 0;
+    final numStr = number is double && number % 1 == 0
+        ? number.toInt().toString()
+        : number.toString().replaceAll('.0', '');
+    final name = 'Chapter $numStr';
+    final time = chapter['created_at'] ?? '';
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
@@ -144,11 +139,11 @@ class _ChapterRow extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            chapter.name,
+            name,
             style: const TextStyle(fontSize: 12),
           ),
           Text(
-            chapter.time,
+            time,
             style: const TextStyle(fontSize: 12),
           ),
         ],

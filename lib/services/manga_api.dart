@@ -200,7 +200,7 @@ class MangaApiService {
               chaptersList.add({
                 'chapter_id': c['chapter_id']?.toString() ?? '',
                 'chapter_number': c['chapter_number'] ?? 0,
-                'created_at': c['created_at']?.toString() ?? '',
+                'created_at': _formatChapterDate(c['created_at']?.toString()),
               });
             }
           }
