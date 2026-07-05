@@ -93,27 +93,23 @@ class NewReleaseCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
-
-          Expanded(
-            child: Text(
-              manga.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                height: 1.25,
-                color: Colors.black
-              ),
+          Text(
+            manga.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              height: 1.25,
             ),
           ),
           const SizedBox(height: 10),
-          // ..._dummyChapters.map(
-            // (chapter) => Padding(
-              // padding: const EdgeInsets.only(bottom: 6),
-              // child: _ChapterRow(chapter: chapter),
-            // ),
-          // ),
+          ..._dummyChapters.map(
+            (chapter) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: _ChapterRow(chapter: chapter),
+            ),
+          ),
         ],
       ),
     );
