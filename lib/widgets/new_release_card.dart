@@ -15,30 +15,30 @@ class NewReleaseCard extends StatelessWidget {
       case 'korea':
         return Image.asset(
           'assets/icons/korea.png',
-          width: 20,
-          height: 20,
+          width: 22,
+          height: 22,
           fit: BoxFit.contain,
         );
       case 'china':
         return Image.asset(
           'assets/icons/china.png',
-          width: 20,
-          height: 20,
+          width: 22,
+          height: 22,
           fit: BoxFit.contain,
         );
       case 'english':
         return Image.asset(
           'assets/icons/english.png',
-          width: 20,
-          height: 20,
+          width: 22,
+          height: 22,
           fit: BoxFit.contain,
         );
       case 'japan':
       case 'jepang':
         return Image.asset(
           'assets/icons/japan.png',
-          width: 20,
-          height: 20,
+          width: 22,
+          height: 22,
           fit: BoxFit.contain,
         );
       default:
@@ -107,14 +107,13 @@ class NewReleaseCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           ..._dummyChapters.map(
             (chapter) => Padding(
               padding: const EdgeInsets.only(bottom: 6),
               child: _ChapterRow(chapter: chapter),
             ),
           ),
-          const SizedBox(height: 10),
         ],
       ),
     );

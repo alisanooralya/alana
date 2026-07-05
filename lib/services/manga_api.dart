@@ -171,7 +171,14 @@ class MangaApiService {
     try {
       final response = await _client.get(
         '$apiUrl/v1/manga/list',
-        queryParameters: {'page': page, 'page_size': 30, 'sort': 'latest'},
+        queryParameters: {
+          'type': 'project',
+          'page': page,
+          'page_size': 20,
+          'is_update': true,
+          'sort': 'latest',
+          'sort_order': 'desc',
+        },
       );
 
       final body = response.data;
@@ -179,7 +186,28 @@ class MangaApiService {
         throw Exception('Invalid response from API');
       }
 
-      final mangas = _mapMangaList(body['data'] as List<dynamic>);
+      final rawList = body['data'] as List<dynamic>;
+      final baseMangas = _mapMangaList(rawList);
+      final mangas = List<Manga>.generate(baseMangas.length, (index) {
+        final manga = baseMangas[index];
+        final rawItem = rawList[index] as Map<String, dynamic>;
+        final rawChapters = rawItem['chapters'] as List<dynamic>?;
+
+        final chaptersList = <Map<String, dynamic>>[];
+        if (rawChapters != null) {
+          for (var c in rawChapters) {
+            if (c is Map<String, dynamic>) {
+              chaptersList.add({
+                'chapter_id': c['chapter_id']?.toString() ?? '',
+                'chapter_number': c['chapter_number'] ?? 0,
+                'created_at': c['created_at']?.toString() ?? '',
+              });
+            }
+          }
+        }
+
+        return manga.copyWith(chapters: chaptersList);
+      });
 
       final meta = body['meta'];
       final currentPage = meta?['page'];

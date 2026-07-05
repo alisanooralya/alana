@@ -49,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _topMangas = results[0].mangas.take(10).toList();
         _recommendationMangas = results[1].mangas.take(5).toList();
-        _newReleaseMangas = results[2].mangas;
+        _newReleaseMangas = results[2].mangas.take(14).toList();
         _isLoading = false;
       });
     } catch (e) {
@@ -302,7 +302,7 @@ class _NewReleaseSection extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         if (mode == _ViewMode.grid)
           _NewReleaseGrid(mangas: mangas, onCardTap: onCardTap)
         else
@@ -311,7 +311,7 @@ class _NewReleaseSection extends StatelessWidget {
             child: Center(
               child: Text(
                 'Mode list segera hadir',
-                style: TextStyle(color: Colors.white54),
+                style: TextStyle(color: Colors.black),
               ),
             ),
           ),
@@ -394,18 +394,15 @@ class _NewReleaseGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sidePadding = 8.0;
-    final spacing = 12.0;
-
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.symmetric(horizontal: sidePadding),
+      padding: EdgeInsets.symmetric(horizontal: 8),
       itemCount: mangas.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
         crossAxisSpacing: 16,
-        mainAxisSpacing: 24,
+        mainAxisSpacing: 34,
         childAspectRatio: 0.56,
       ),
       itemBuilder: (context, index) {

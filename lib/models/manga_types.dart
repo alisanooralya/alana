@@ -6,6 +6,7 @@ class Manga {
   final String country;
   final int viewCount;
   final num rating;
+  final List<Map<String, dynamic>>? chapters;
 
   Manga({
     required this.title,
@@ -15,7 +16,30 @@ class Manga {
     this.country = '',
     this.viewCount = 0,
     this.rating = 0,
+    this.chapters,
   });
+
+  Manga copyWith({
+    String? title,
+    String? thumbnail,
+    String? url,
+    String? latestChapterDate,
+    String? country,
+    int? viewCount,
+    num? rating,
+    List<Map<String, dynamic>>? chapters,
+  }) {
+    return Manga(
+      title: title ?? this.title,
+      thumbnail: thumbnail ?? this.thumbnail,
+      url: url ?? this.url,
+      latestChapterDate: latestChapterDate ?? this.latestChapterDate,
+      country: country ?? this.country,
+      viewCount: viewCount ?? this.viewCount,
+      rating: rating ?? this.rating,
+      chapters: chapters ?? this.chapters,
+    );
+  }
 }
 
 class MangaListResponse {
