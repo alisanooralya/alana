@@ -18,7 +18,6 @@ class RecommendationCard extends StatelessWidget {
     this.onTap,
   });
 
-  @override
   Widget _buildCountryIcon(String country) {
     switch (country.toLowerCase()) {
       case 'korea':

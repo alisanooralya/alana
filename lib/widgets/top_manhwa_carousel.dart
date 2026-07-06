@@ -75,21 +75,20 @@ class _TopManhwaCarouselState extends State<TopManhwaCarousel> {
             Positioned.fill(
               child: AnimatedSwitcher(
                 duration: widget.fadeDuration,
-                layoutBuilder: (Widget? currentChild, List<Widget> previousChildren) {
-                  return Stack(
-                    fit: StackFit.expand,
-                    alignment: Alignment.center,
-                    children: <Widget>[
-                      ...previousChildren,
-                      if (currentChild != null) currentChild,
-                    ],
-                  );
-                },
+                layoutBuilder:
+                    (Widget? currentChild, List<Widget> previousChildren) {
+                      return Stack(
+                        fit: StackFit.expand,
+                        alignment: Alignment.center,
+                        children: <Widget>[...previousChildren, ?currentChild],
+                      );
+                    },
                 child: CachedNetworkImage(
                   imageUrl: manga.thumbnail,
                   key: ValueKey('${manga.url}-bg'),
                   fit: BoxFit.cover,
-                  errorWidget: (context, url, error) => Container(color: Colors.grey.shade900),
+                  errorWidget: (context, url, error) =>
+                      Container(color: Colors.grey.shade900),
                 ),
               ),
             ),
@@ -106,7 +105,8 @@ class _TopManhwaCarouselState extends State<TopManhwaCarousel> {
                 onTap: () => widget.onTap?.call(manga),
                 child: AnimatedSwitcher(
                   duration: widget.fadeDuration,
-                  transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
+                  transitionBuilder: (child, animation) =>
+                      FadeTransition(opacity: animation, child: child),
                   child: _CarouselContent(
                     key: ValueKey(manga.url),
                     manga: manga,
@@ -124,21 +124,18 @@ class _TopManhwaCarouselState extends State<TopManhwaCarousel> {
 class _CarouselContent extends StatelessWidget {
   final Manga manga;
 
-  const _CarouselContent({
-    super.key,
-    required this.manga,
-  });
+  const _CarouselContent({super.key, required this.manga});
 
   String _formatTimeAgoLabel(String shortFormat) {
-  if (shortFormat.isEmpty) return "-";
+    if (shortFormat.isEmpty) return "-";
 
-  final match = RegExp(r'^(\d+)([a-zA-Z])$').firstMatch(shortFormat.trim());
-  if (match == null) return shortFormat;
+    final match = RegExp(r'^(\d+)([a-zA-Z])$').firstMatch(shortFormat.trim());
+    if (match == null) return shortFormat;
 
-  final value = int.tryParse(match.group(1) ?? '') ?? 0;
-  final unit = match.group(2) ?? '';
+    final value = int.tryParse(match.group(1) ?? '') ?? 0;
+    final unit = match.group(2) ?? '';
 
-  String unitLabel;
+    String unitLabel;
     switch (unit) {
       case 'm':
         unitLabel = 'minute';
@@ -270,15 +267,11 @@ class _InfoLine extends StatelessWidget {
         children: [
           TextSpan(
             text: '$label: ',
-            style: const TextStyle(
-              fontWeight: FontWeight.w400,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.w400),
           ),
           TextSpan(
             text: value,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ],
       ),

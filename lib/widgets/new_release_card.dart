@@ -7,9 +7,8 @@ class NewReleaseCard extends StatelessWidget {
   final Manga manga;
   final VoidCallback? onTap;
 
-  const NewReleaseCard({required this.manga, this.onTap});
+  const NewReleaseCard({super.key, required this.manga, this.onTap});
 
-  @override
   Widget _buildCountryIcon(String country) {
     switch (country.toLowerCase()) {
       case 'korea':
@@ -77,17 +76,16 @@ class NewReleaseCard extends StatelessWidget {
                       ),
                     ),
                   ),
-
                   Positioned(
                     bottom: 8,
                     right: 8,
-                    child: _buildCountryIcon(manga.country)
+                    child: _buildCountryIcon(manga.country),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           SizedBox(
             height: 34,
             width: double.infinity,
@@ -102,13 +100,14 @@ class NewReleaseCard extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 6),
-          ...(manga.chapters ?? []).take(2).map(
-            (chapter) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: _ChapterRow(chapter: chapter),
-            ),
-          ),
+          ...(manga.chapters ?? [])
+              .take(2)
+              .map(
+                (chapter) => Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: _ChapterRow(chapter: chapter),
+                ),
+              ),
         ],
       ),
     );
@@ -138,14 +137,8 @@ class _ChapterRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            name,
-            style: const TextStyle(fontSize: 12),
-          ),
-          Text(
-            time,
-            style: const TextStyle(fontSize: 12),
-          ),
+          Text(name, style: const TextStyle(fontSize: 12)),
+          Text(time, style: const TextStyle(fontSize: 12)),
         ],
       ),
     );

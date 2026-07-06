@@ -112,7 +112,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SizedBox(height: 24),
 
-            if (!_isLoading && _errorMessage == null && _recommendationMangas.isNotEmpty)
+            if (!_isLoading &&
+                _errorMessage == null &&
+                _recommendationMangas.isNotEmpty)
               _RecommendationMangasSection(
                 mangas: _recommendationMangas,
                 onSeeAll: () {
@@ -125,7 +127,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
             const SizedBox(height: 24),
 
-            if (!_isLoading && _errorMessage == null && _newReleaseMangas.isNotEmpty)
+            if (!_isLoading &&
+                _errorMessage == null &&
+                _newReleaseMangas.isNotEmpty)
               _NewReleaseSection(
                 mangas: _newReleaseMangas,
                 mode: _newReleaseMode,
@@ -177,7 +181,7 @@ class _RecommendationMangasSection extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Text(
@@ -282,7 +286,7 @@ class _NewReleaseSection extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Text(
@@ -295,10 +299,7 @@ class _NewReleaseSection extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              _ViewModeToggle(
-                mode: mode,
-                onChanged: onModeChanged,
-              ),
+              _ViewModeToggle(mode: mode, onChanged: onModeChanged),
             ],
           ),
         ),
@@ -401,8 +402,8 @@ class _NewReleaseGrid extends StatelessWidget {
       itemCount: mangas.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 34,
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 44,
         childAspectRatio: 0.56,
       ),
       itemBuilder: (context, index) {

@@ -20,6 +20,7 @@ class MyApp extends StatelessWidget {
         colorSchemeSeed: Colors.blue,
         textTheme: GoogleFonts.interTextTheme(Theme.of(context).textTheme),
       ),
+      debugShowCheckedModeBanner: false,
       home: const MyHomePage(),
     );
   }
