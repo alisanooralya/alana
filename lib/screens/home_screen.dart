@@ -313,109 +313,6 @@ class _NewReleaseSection extends StatelessWidget {
   }
 }
 
-class _NewReleaseList extends StatelessWidget {
-  final List<Manga> mangas;
-  final void Function(Manga manga)? onCardTap;
-
-  const _NewReleaseList({required this.mangas, this.onCardTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      itemCount: mangas.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final manga = mangas[index];
-        return GestureDetector(
-          onTap: () => onCardTap?.call(manga),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Image.network(
-                  manga.thumbnail,
-                  width: 84,
-                  height: 112,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => Container(
-                    width: 84,
-                    height: 112,
-                    color: Colors.grey.shade800,
-                    child: const Icon(Icons.broken_image, color: Colors.black),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      manga.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ...((manga.chapters ?? [])
-                            .take(3)
-                            .map(
-                              (c) => Padding(
-                                padding: const EdgeInsets.only(bottom: 6),
-                                child: _ListChapterRow(chapter: c),
-                              ),
-                            )
-                            .toList())
-                        .cast<Widget>(),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _ListChapterRow extends StatelessWidget {
-  final Map<String, dynamic> chapter;
-
-  const _ListChapterRow({required this.chapter});
-
-  @override
-  Widget build(BuildContext context) {
-    final number = chapter['chapter_number'] ?? 0;
-    final numStr = number is double && number % 1 == 0
-        ? number.toInt().toString()
-        : number.toString().replaceAll('.0', '');
-    final name = 'Chapter $numStr';
-    final time = chapter['created_at'] ?? '';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.blue.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(name, style: const TextStyle(fontSize: 12)),
-          Text(time, style: const TextStyle(fontSize: 12)),
-        ],
-      ),
-    );
-  }
-}
-
 class _ViewModeToggle extends StatelessWidget {
   final _ViewMode mode;
   final void Function(_ViewMode mode) onChanged;
@@ -503,7 +400,32 @@ class _NewReleaseGrid extends StatelessWidget {
       ),
       itemBuilder: (context, index) {
         final manga = mangas[index];
-        return NewReleaseCard(
+        return NewReleaseGridCard(
+          manga: manga,
+          onTap: () => onCardTap?.call(manga),
+        );
+      },
+    );
+  }
+}
+
+class _NewReleaseList extends StatelessWidget {
+  final List<Manga> mangas;
+  final void Function(Manga manga)? onCardTap;
+
+  const _NewReleaseList({required this.mangas, this.onCardTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      itemCount: mangas.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 14),
+      itemBuilder: (context, index) {
+        final manga = mangas[index];
+        return NewReleaseListCard(
           manga: manga,
           onTap: () => onCardTap?.call(manga),
         );

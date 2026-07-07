@@ -3,11 +3,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:alana/models/manga_types.dart';
 
-class NewReleaseCard extends StatelessWidget {
+class NewReleaseGridCard extends StatelessWidget {
   final Manga manga;
   final VoidCallback? onTap;
 
-  const NewReleaseCard({super.key, required this.manga, this.onTap});
+  const NewReleaseGridCard({super.key, required this.manga, this.onTap});
 
   Widget _buildCountryIcon(String country) {
     switch (country.toLowerCase()) {
@@ -108,6 +108,84 @@ class NewReleaseCard extends StatelessWidget {
                   child: _ChapterRow(chapter: chapter),
                 ),
               ),
+        ],
+      ),
+    );
+  }
+}
+
+class NewReleaseListCard extends StatelessWidget {
+  final Manga manga;
+  final VoidCallback? onTap;
+
+  const NewReleaseListCard({super.key, required this.manga, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: AspectRatio(
+              aspectRatio: 3 / 4,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CachedNetworkImage(
+                      imageUrl: manga.thumbnail,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey.shade900,
+                        child: const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: Colors.grey.shade800,
+                        child: const Icon(
+                          Icons.broken_image,
+                          color: Colors.black,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  height: 42,
+                  width: double.infinity,
+                  child: Text(
+                    manga.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      height: 1.25,
+                    ),
+                  ),
+                ),
+                ...(manga.chapters ?? []).map(
+                  (chapter) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: _ChapterRow(chapter: chapter),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
