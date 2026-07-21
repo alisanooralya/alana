@@ -3,7 +3,7 @@ class Manga {
   final String thumbnail;
   final String url;
   final String latestChapterDate;
-  final String latestChapterNumber;
+  final int latestChapterNumber;
   final String country;
   final int viewCount;
   final num rating;

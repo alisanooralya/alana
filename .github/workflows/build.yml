@@ -18,6 +18,8 @@ jobs:
 
       - run: flutter pub get
 
+      - run: flutter pub outdated
+
       # - name: Build Debug APK
         # run: flutter build apk --debug
 
