@@ -84,12 +84,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
               if (_isLoading)
                 const SliverFillRemaining(
-                  hasScrollBar: false,
+                  hasScrollBody: false,
                   child: Center(child: CircularProgressIndicator()),
                 )
               else if (_errorMessage != null)
                 SliverFillRemaining(
-                  hasScrollBar: false,
+                  hasScrollBody: false,
                   child: Center(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -103,7 +103,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 )
               else if (_mangas.isEmpty)
                 const SliverFillRemaining(
-                  hasScrollBar: false,
+                  hasScrollBody: false,
                   child: Center(child: Text('Tidak ada hasil')),
                 )
               else if (_mode == _ViewMode.grid)
@@ -132,7 +132,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 )
               else
                 const SliverFillRemaining(
-                  hasScrollBar: false,
+                  hasScrollBody: false,
                   child: Center(
                     child: Text(
                       'Mode list segera hadir',
