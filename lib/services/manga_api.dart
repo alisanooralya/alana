@@ -133,6 +133,7 @@ class MangaApiService {
         thumbnail: map['cover_image_url'] ?? map['cover_portrait_url'] ?? '',
         url: mangaId,
         latestChapterDate: _formatChapterDate(map['latest_chapter_time']),
+        latestChapterNumber: map['latest_chapter_number'],
         country: _mapCountry(map['country_id']),
         viewCount: map['view_count'],
         rating: map['user_rate'],
@@ -258,11 +259,8 @@ class MangaApiService {
 
   Future<MangaListResponse> searchManga(String query, {int page = 1}) async {
     try {
-      final params = <String, dynamic>{'page': page, 'page_size': 30};
-
-      if (query.isNotEmpty) {
-        params['q'] = query;
-      }
+      final params = <String, dynamic>{'page': page, 'page_size': 24, 'genre_include_mode': 'or', 'genre_exclude_mode': 'or', 'sort': 'latest', 'sort_order': 'desc'};
+      if (query.isNotEmpty) params['q'] = query;
 
       final response = await _client.get(
         '$apiUrl/v1/manga/list',

@@ -3,6 +3,7 @@ class Manga {
   final String thumbnail;
   final String url;
   final String latestChapterDate;
+  final String latestChapterNumber;
   final String country;
   final int viewCount;
   final num rating;
@@ -13,6 +14,7 @@ class Manga {
     required this.thumbnail,
     required this.url,
     this.latestChapterDate = '',
+    this.latestChapterNumber = 0,
     this.country = '',
     this.viewCount = 0,
     this.rating = 0,
@@ -24,6 +26,7 @@ class Manga {
     String? thumbnail,
     String? url,
     String? latestChapterDate,
+    int? latestChapterNumber,
     String? country,
     int? viewCount,
     num? rating,
@@ -34,6 +37,7 @@ class Manga {
       thumbnail: thumbnail ?? this.thumbnail,
       url: url ?? this.url,
       latestChapterDate: latestChapterDate ?? this.latestChapterDate,
+      latestChapterNumber: latestChapterNumber ?? this.latestChapterNumber,
       country: country ?? this.country,
       viewCount: viewCount ?? this.viewCount,
       rating: rating ?? this.rating,
