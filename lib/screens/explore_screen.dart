@@ -61,7 +61,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue.withValues(alpha: 0.1),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () => _loadMangas(query: _searchController.text.trim()),
@@ -69,7 +68,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
             slivers: [
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: _ExploreToolbar(
                     mode: _mode,
                     searchController: _searchController,
@@ -108,26 +107,27 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 )
               else if (_mode == _ViewMode.grid)
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   sliver: SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 3,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 16,
-                      childAspectRatio: 0.62,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final manga = _mangas[index];
-                        return _ExploreGridCard(
-                          manga: manga,
-                          onTap: () {
-                            // TODO: navigasi ke halaman detail manga
-                          },
-                        );
-                      },
-                      childCount: _mangas.length,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: 0.62,
+                        ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final manga = _mangas[index];
+                      return _ExploreGridCard(
+                        manga: manga,
+                        onTap: () {
+                          // TODO: navigasi ke halaman detail manga
+                        },
+                      );
+                    }, childCount: _mangas.length),
                   ),
                 )
               else
@@ -274,12 +274,9 @@ class _ExploreGridCard extends StatelessWidget {
               child: Image.network(
                 manga.thumbnail,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (_, _, _) => Container(
                   color: Colors.grey.shade300,
-                  child: Icon(
-                    Icons.broken_image,
-                    color: Colors.grey.shade500,
-                  ),
+                  child: Icon(Icons.broken_image, color: Colors.grey.shade500),
                 ),
                 loadingBuilder: (context, child, progress) {
                   if (progress == null) return child;

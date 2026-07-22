@@ -390,7 +390,7 @@ class _NewReleaseGrid extends StatelessWidget {
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      padding: EdgeInsets.symmetric(horizontal: 8),
+      padding: EdgeInsets.fromLTRB(8, 0, 8, 16),
       itemCount: mangas.length,
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
@@ -422,7 +422,7 @@ class _NewReleaseList extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 8),
       itemCount: mangas.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 14),
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final manga = mangas[index];
         return NewReleaseListCard(
