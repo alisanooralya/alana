@@ -289,15 +289,22 @@ class MangaApiService {
 
   Future<List<Genre>> getGenreList() async {
     try {
-      final response = await _client.get('$apiUrl/v1/genre/list');
+      final response = await _client.get(
+        '$apiUrl/v1/genre/list',
+      );
 
       final body = response.data;
       if (body == null) {
         throw Exception('Invalid response from API');
       }
 
-      final data = body['data'] as Map<String, dynamic>;
-      return data
+      final dynamic rawData = body is Map ? (body['data'] ?? body) : body;
+      if (rawData is! List) {
+        throw Exception('Invalid response structure from API');
+      }
+
+      final list = rawData as List<dynamic>;
+      return list
           .map((item) => Genre.fromJson(item as Map<String, dynamic>))
           .toList();
     } catch (error) {
