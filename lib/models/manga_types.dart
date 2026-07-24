@@ -108,4 +108,11 @@ class Genre {
     required this.slug,
     required this.name,
   });
+
+  factory Genre.fromJson(Map<String, dynamic> json) {
+    return Genre(
+      slug: json['slug'] ?? '',
+      name: json['name'] ?? '',
+    );
+  }
 }

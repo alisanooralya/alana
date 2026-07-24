@@ -298,7 +298,7 @@ class MangaApiService {
 
       final data = body['data'] as Map<String, dynamic>;
       return data
-          .map((item) => Genre(item as Map<String, dynamic>))
+          .map((item) => Genre.fromJson(item as Map<String, dynamic>))
           .toList();
     } catch (error) {
       throw _buildError('get genre list', error);
