@@ -99,3 +99,13 @@ class Page {
     required this.imageUrl,
   });
 }
+
+class Genre {
+  final String slug;
+  final String name;
+
+  Genre({
+    required this.slug,
+    required this.name,
+  });
+}

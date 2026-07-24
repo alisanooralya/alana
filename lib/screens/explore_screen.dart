@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'package:alana/models/manga_types.dart';
 import 'package:alana/services/manga_api.dart';
+import 'package:alana/widgets/explore_grid_card.dart';
+import 'package:alana/widgets/explore_toolbar.dart';
+import 'package:alana/widgets/explore_filter_sheet.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -10,13 +13,12 @@ class ExploreScreen extends StatefulWidget {
   State<ExploreScreen> createState() => _ExploreScreenState();
 }
 
-enum _ViewMode { grid, list }
-
 class _ExploreScreenState extends State<ExploreScreen> {
   final MangaApiService _service = MangaApiService();
   final TextEditingController _searchController = TextEditingController();
 
-  _ViewMode _mode = _ViewMode.grid;
+  ExploreViewMode _mode = ExploreViewMode.grid;
+  ExploreFilterResult _activeFilter = const ExploreFilterResult();
 
   List<Manga> _mangas = [];
   bool _isLoading = true;
@@ -41,6 +43,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
     });
 
     try {
+      // TODO: kalau searchManga sudah support parameter genre/format/status,
+      // kirim _activeFilter di sini juga. Untuk sekarang query text saja.
       final result = await _service.searchManga(query);
       setState(() {
         _mangas = result.mangas;
@@ -58,6 +62,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
     _loadMangas(query: value.trim());
   }
 
+  Future<void> _onFilterTap() async {
+    final result = await showExploreFilterSheet(
+      context,
+      initialValue: _activeFilter,
+    );
+
+    if (result == null) return;
+
+    setState(() => _activeFilter = result);
+    _loadMangas(query: _searchController.text.trim());
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -69,13 +85,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _ExploreToolbar(
+                  child: ExploreToolbar(
                     mode: _mode,
                     searchController: _searchController,
                     onModeChanged: (mode) => setState(() => _mode = mode),
-                    onFilterTap: () {
-                      // TODO: buka filter drawer di sini nanti
-                    },
+                    onFilterTap: _onFilterTap,
                     onSearchSubmitted: _onSearchSubmitted,
                   ),
                 ),
@@ -105,7 +119,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   hasScrollBody: false,
                   child: Center(child: Text('Tidak ada hasil')),
                 )
-              else if (_mode == _ViewMode.grid)
+              else if (_mode == ExploreViewMode.grid)
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
@@ -121,7 +135,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         ),
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final manga = _mangas[index];
-                      return _ExploreGridCard(
+                      return ExploreGridCard(
                         manga: manga,
                         onTap: () {
                           // TODO: navigasi ke halaman detail manga
@@ -143,165 +157,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _ExploreToolbar extends StatelessWidget {
-  final _ViewMode mode;
-  final TextEditingController searchController;
-  final void Function(_ViewMode mode) onModeChanged;
-  final VoidCallback onFilterTap;
-  final void Function(String value) onSearchSubmitted;
-
-  const _ExploreToolbar({
-    required this.mode,
-    required this.searchController,
-    required this.onModeChanged,
-    required this.onFilterTap,
-    required this.onSearchSubmitted,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        _ToolbarIconButton(
-          icon: Icons.grid_view_rounded,
-          isActive: mode == _ViewMode.grid,
-          onTap: () => onModeChanged(_ViewMode.grid),
-        ),
-        const SizedBox(width: 8),
-        _ToolbarIconButton(
-          icon: Icons.view_agenda_outlined,
-          isActive: mode == _ViewMode.list,
-          onTap: () => onModeChanged(_ViewMode.list),
-        ),
-        const SizedBox(width: 8),
-        _ToolbarIconButton(
-          icon: Icons.tune_rounded,
-          isActive: false,
-          onTap: onFilterTap,
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Container(
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            decoration: BoxDecoration(
-              color: Colors.blue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.search, color: Colors.grey.shade700, size: 20),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: searchController,
-                    onSubmitted: onSearchSubmitted,
-                    textInputAction: TextInputAction.search,
-                    decoration: InputDecoration(
-                      hintText: 'Search anything',
-                      hintStyle: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 14,
-                      ),
-                      border: InputBorder.none,
-                      isCollapsed: true,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ToolbarIconButton extends StatelessWidget {
-  final IconData icon;
-  final bool isActive;
-  final VoidCallback onTap;
-
-  const _ToolbarIconButton({
-    required this.icon,
-    required this.isActive,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 44,
-        height: 44,
-        decoration: BoxDecoration(
-          color: isActive ? Colors.blue : Colors.blue.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Icon(
-          icon,
-          size: 20,
-          color: isActive ? Colors.white : Colors.grey.shade800,
-        ),
-      ),
-    );
-  }
-}
-
-class _ExploreGridCard extends StatelessWidget {
-  final Manga manga;
-  final VoidCallback? onTap;
-
-  const _ExploreGridCard({required this.manga, this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AspectRatio(
-            aspectRatio: 3 / 4,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
-              child: Image.network(
-                manga.thumbnail,
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
-                  color: Colors.grey.shade300,
-                  child: Icon(Icons.broken_image, color: Colors.grey.shade500),
-                ),
-                loadingBuilder: (context, child, progress) {
-                  if (progress == null) return child;
-                  return Container(
-                    color: Colors.grey.shade200,
-                    child: const Center(
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            manga.title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.black87,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
       ),
     );
   }
