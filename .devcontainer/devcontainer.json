@@ -1,0 +1,13 @@
+{
+  "name": "Flutter Dev Container",
+  "image": "ghcr.io/mobile-dev-inc/devcontainers/flutter:3.19.0",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "dart.flutterSdkPath": "/sdks/flutter"
+      },
+      "extensions": ["Dart-Code.flutter", "Dart-Code.dart-code"]
+    }
+  },
+  "remoteUser": "root"
+}
