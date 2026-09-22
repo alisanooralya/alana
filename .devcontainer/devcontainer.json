@@ -1,13 +1,25 @@
 {
   "name": "Flutter Dev Container",
-  "image": "ghcr.io/mobile-dev-inc/devcontainers/flutter:3.19.0",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+
+  // Ekstensi VS Code yang otomatis terpasang di Codespace
   "customizations": {
     "vscode": {
+      "extensions": ["Dart-Code.flutter", "Dart-Code.dart-code"],
       "settings": {
-        "dart.flutterSdkPath": "/sdks/flutter"
-      },
-      "extensions": ["Dart-Code.flutter", "Dart-Code.dart-code"]
+        "dart.flutterSdkPath": "/opt/flutter"
+      }
     }
   },
-  "remoteUser": "root"
+
+  // Port yang biasa dipakai flutter run -d web-server / DevTools
+  "forwardPorts": [8080, 9100],
+
+  // Jalan sekali saat container pertama kali dibuat
+  "postCreateCommand": "flutter doctor -v",
+
+  // User non-root bawaan image
+  "remoteUser": "vscode"
 }
