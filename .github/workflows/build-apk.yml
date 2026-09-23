@@ -1,0 +1,58 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ "main" ]
+
+  workflow_dispatch:
+
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    name: Build & Analyze
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout kode
+        uses: actions/checkout@v4
+
+      - name: Setup Java (dibutuhkan Android Gradle build)
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          cache: true
+
+      - name: Cek versi Flutter
+        run: flutter --version
+
+      - name: Install dependency
+        run: flutter pub get
+
+      - name: Format check (opsional, gagal kalau ada file belum diformat)
+        run: dart format --output=none --set-exit-if-changed .
+        continue-on-error: true
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run tests
+        run: flutter test
+        continue-on-error: true
+
+      - name: Build APK (release)
+        run: flutter build apk --release
+
+      - name: Upload APK sebagai artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 14
