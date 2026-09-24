@@ -18,7 +18,7 @@ jobs:
       - name: Checkout kode
         uses: actions/checkout@v4
 
-      - name: Setup Java (dibutuhkan Android Gradle build)
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           distribution: "temurin"
@@ -36,7 +36,7 @@ jobs:
       - name: Install dependency
         run: flutter pub get
 
-      - name: Format check (opsional, gagal kalau ada file belum diformat)
+      - name: Format check
         run: dart format --output=none --set-exit-if-changed .
         continue-on-error: true
 
@@ -55,4 +55,4 @@ jobs:
         with:
           name: app-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-          retention-days: 14
+          retention-days: 3

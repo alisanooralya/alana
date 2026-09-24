@@ -1,4 +1,4 @@
-package com.alana.alana
+package com.alana
 
 import io.flutter.embedding.android.FlutterActivity
 
