@@ -10,13 +10,13 @@ class SettingsRepository extends Notifier<AppSettings> {
 
   @override
   AppSettings build() {
-    final raw = AppStorage.settingsBox.get(_key);
+    final raw = AppStorage.settingsBox?.get(_key);
     if (raw is! Map) return const AppSettings();
     return AppSettings.fromMap(Map<String, dynamic>.from(raw));
   }
 
   void _tulis(AppSettings next) {
-    AppStorage.settingsBox.put(_key, next.toMap());
+    AppStorage.settingsBox?.put(_key, next.toMap());
     state = next;
   }
 

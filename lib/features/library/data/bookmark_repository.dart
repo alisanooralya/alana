@@ -9,6 +9,7 @@ class BookmarkRepository extends Notifier<Map<String, BookmarkedManga>> {
   @override
   Map<String, BookmarkedManga> build() {
     final box = AppStorage.bookmarksBox;
+    if (box == null) return const {};
     final entries = <String, BookmarkedManga>{};
     for (final key in box.keys) {
       final raw = box.get(key);
@@ -29,10 +30,10 @@ class BookmarkRepository extends Notifier<Map<String, BookmarkedManga>> {
     final sudahAda = next.containsKey(item.mangaId);
     if (sudahAda) {
       next.remove(item.mangaId);
-      box.delete(item.mangaId);
+      box?.delete(item.mangaId);
     } else {
       next[item.mangaId] = item;
-      box.put(item.mangaId, item.toMap());
+      box?.put(item.mangaId, item.toMap());
     }
     state = Map.unmodifiable(next);
     return !sudahAda;
@@ -42,7 +43,7 @@ class BookmarkRepository extends Notifier<Map<String, BookmarkedManga>> {
   void hapus(String mangaId) {
     if (!state.containsKey(mangaId)) return;
     final next = Map<String, BookmarkedManga>.of(state)..remove(mangaId);
-    AppStorage.bookmarksBox.delete(mangaId);
+    AppStorage.bookmarksBox?.delete(mangaId);
     state = Map.unmodifiable(next);
   }
 }

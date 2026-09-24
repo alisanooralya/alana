@@ -9,6 +9,7 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
   @override
   Map<String, MangaReadingProgress> build() {
     final box = AppStorage.historyBox;
+    if (box == null) return const {};
     final entries = <String, MangaReadingProgress>{};
     for (final key in box.keys) {
       final raw = box.get(key);
@@ -34,7 +35,7 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
   }
 
   void _tulis(MangaReadingProgress progress) {
-    AppStorage.historyBox.put(progress.mangaId, progress.toMap());
+    AppStorage.historyBox?.put(progress.mangaId, progress.toMap());
     state = Map.unmodifiable({...state, progress.mangaId: progress});
   }
 
@@ -106,7 +107,7 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
   void hapus(String mangaId) {
     if (!state.containsKey(mangaId)) return;
     final next = Map<String, MangaReadingProgress>.of(state)..remove(mangaId);
-    AppStorage.historyBox.delete(mangaId);
+    AppStorage.historyBox?.delete(mangaId);
     state = Map.unmodifiable(next);
   }
 }
