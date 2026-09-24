@@ -86,11 +86,6 @@ class _HomePageState extends ConsumerState<HomePage> {
             icon: const Icon(Icons.search),
             onPressed: () => context.pushNamed('pencarian'),
           ),
-          IconButton(
-            tooltip: 'Pengaturan',
-            icon: const Icon(Icons.settings_outlined),
-            onPressed: () => context.pushNamed('pengaturan'),
-          ),
         ],
       ),
       body: Column(

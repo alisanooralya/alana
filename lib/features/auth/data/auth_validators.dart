@@ -30,7 +30,16 @@ String? validasiPassword(String value) {
   return null;
 }
 
-/// Menerjemahkan error Supabase/auth umum ke Bahasa Indonesia.
+/// `true` bila [isoCreatedAt] menunjukkan akun yang baru dibuat
+/// (kurang dari 5 menit lalu). Dipakai menandai user Google baru
+/// yang perlu memilih username sendiri.
+bool akunBaruDariIso(String? isoCreatedAt) {
+  if (isoCreatedAt == null || isoCreatedAt.isEmpty) return false;
+  final dibuat = DateTime.tryParse(isoCreatedAt);
+  if (dibuat == null) return false;
+  return DateTime.now().difference(dibuat).inMinutes < 5;
+}
+
 String pesanAuthRamah(Object error) {
   if (error is AuthException) {
     return _dariPesan(error.message);

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:alana/core/supabase/supabase_setup.dart';
 import 'package:alana/features/auth/data/auth_repository.dart';
 import 'package:alana/features/auth/data/auth_validators.dart';
+import 'package:alana/features/auth/presentation/auth_providers.dart';
 
 import 'widgets/auth_widgets.dart';
 
@@ -56,7 +57,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       _memuatGoogle = true;
     });
     try {
-      await ref.read(authRepositoryProvider).masukDenganGoogle();
+      final hasil = await ref.read(authRepositoryProvider).masukDenganGoogle();
+      if (!mounted) return;
+      // User Google baru (akun dibuat barusan) wajib pilih username.
+      ref.read(pendingUsernameSetupProvider.notifier).state = akunBaruDariIso(
+        hasil.user?.createdAt,
+      );
     } catch (error) {
       if (mounted) setState(() => _pesanError = pesanAuthRamah(error));
     } finally {

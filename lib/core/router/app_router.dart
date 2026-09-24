@@ -14,6 +14,8 @@ import 'package:alana/features/history/presentation/history_page.dart';
 import 'package:alana/features/home/presentation/home_page.dart';
 import 'package:alana/features/home/presentation/search_page.dart';
 import 'package:alana/features/library/presentation/library_page.dart';
+import 'package:alana/features/profile/presentation/edit_profile_page.dart';
+import 'package:alana/features/profile/presentation/profile_page.dart';
 import 'package:alana/features/reader/presentation/reader_page.dart';
 import 'package:alana/features/settings/presentation/diagnostics_page.dart';
 import 'package:alana/features/settings/presentation/settings_page.dart';
@@ -28,6 +30,7 @@ import 'scaffold_with_nav.dart';
 /// user yang sudah login tidak bisa membuka halaman auth.
 final goRouterProvider = Provider<GoRouter>((ref) {
   final sesiAsync = ref.watch(sesiProvider);
+  final pendatangBaru = ref.watch(pendingUsernameSetupProvider);
   final refresh = GoRouterRefreshStream(
     SupabaseSetup.siap
         ? ref.watch(authRepositoryProvider).perubahanSesi
@@ -48,13 +51,18 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       };
       // Sesi belum diketahui → tahan di tempat (cegah kedip login).
       if (sesiAsync.isLoading) return null;
-      final sesi = sesiAsync.valueOrNull?.session ??
+      final sesi =
+          sesiAsync.valueOrNull?.session ??
           (SupabaseSetup.siap
               ? SupabaseSetup.instance.auth.currentSession
               : null);
       final masuk = sesi != null;
       if (!masuk && !rutePublik.contains(lokasi)) return '/masuk';
       if (masuk && (lokasi == '/masuk' || lokasi == '/daftar')) return '/';
+      // User Google baru wajib memilih username sendiri dulu.
+      if (masuk && pendatangBaru && lokasi != '/profil/ubah') {
+        return '/profil/ubah?baru=1';
+      }
       return null;
     },
     routes: [
@@ -76,9 +84,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/verifikasi-email',
         name: 'verifikasi-email',
-        builder: (context, state) => VerifyEmailPage(
-          email: state.uri.queryParameters['email'] ?? '',
-        ),
+        builder: (context, state) =>
+            VerifyEmailPage(email: state.uri.queryParameters['email'] ?? ''),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
@@ -122,18 +129,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                       );
                     },
                   ),
-                  GoRoute(
-                    path: 'pengaturan',
-                    name: 'pengaturan',
-                    builder: (context, state) => const SettingsPage(),
-                    routes: [
-                      GoRoute(
-                        path: 'diagnostik',
-                        name: 'diagnostik',
-                        builder: (context, state) => const DiagnosticsPage(),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ],
@@ -153,6 +148,36 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 path: '/riwayat',
                 name: 'riwayat',
                 builder: (context, state) => const HistoryPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/profil',
+                name: 'profil',
+                builder: (context, state) => const ProfilePage(),
+                routes: [
+                  GoRoute(
+                    path: 'ubah',
+                    name: 'ubah-profil',
+                    builder: (context, state) => EditProfilePage(
+                      baru: state.uri.queryParameters['baru'] == '1',
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'pengaturan',
+                    name: 'pengaturan',
+                    builder: (context, state) => const SettingsPage(),
+                    routes: [
+                      GoRoute(
+                        path: 'diagnostik',
+                        name: 'diagnostik',
+                        builder: (context, state) => const DiagnosticsPage(),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ],
           ),

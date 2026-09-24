@@ -25,6 +25,7 @@ class AuthRepository {
   }
 
   Stream<AuthState>? _siaran;
+  bool _googleSiap = false;
 
   /// Sesi aktif saat ini (null bila belum login).
   Session? get sesiAktif => _client.auth.currentSession;
@@ -72,6 +73,7 @@ class AuthRepository {
 
     final googleSignIn = GoogleSignIn.instance;
     await googleSignIn.initialize(serverClientId: AppConfig.googleWebClientId);
+    _googleSiap = true;
 
     var googleUser = await googleSignIn.attemptLightweightAuthentication();
     googleUser ??= await googleSignIn.authenticate();
@@ -98,8 +100,18 @@ class AuthRepository {
     );
   }
 
-  /// Keluar (menghapus sesi tersimpan).
-  Future<void> keluar() => _client.auth.signOut();
+  /// Keluar (menghapus sesi tersimpan + sesi Google bila ada).
+  Future<void> keluar() async {
+    if (_googleSiap) {
+      try {
+        await GoogleSignIn.instance.signOut();
+      } catch (_) {
+        // Abaikan: sesi Supabase tetap dihapus di bawah.
+      }
+      _googleSiap = false;
+    }
+    await _client.auth.signOut();
+  }
 
   /// Mengirim email reset password.
   Future<void> kirimResetPassword(String email) {
