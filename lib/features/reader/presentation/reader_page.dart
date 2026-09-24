@@ -233,7 +233,6 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
             return ListView.builder(
               controller: _scrollController,
               padding: EdgeInsets.zero,
-              scrollCacheExtent: MediaQuery.of(context).size.height,
               itemCount: pages.length,
               itemBuilder: (context, index) {
                 if (index == 0) {
