@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:alana/core/diagnostics/error_log.dart';
 import 'package:alana/core/router/app_router.dart';
 import 'package:alana/core/storage/app_storage.dart';
+import 'package:alana/core/supabase/supabase_setup.dart';
 import 'package:alana/core/theme/app_theme.dart';
 import 'package:alana/features/settings/data/app_settings.dart';
 import 'package:alana/features/settings/data/settings_repository.dart';
@@ -32,7 +33,9 @@ class _BootstrapState extends ConsumerState<Bootstrap> {
   @override
   void initState() {
     super.initState();
-    AppStorage.init().then((_) {
+    // Supabase dulu (sesi menentukan rute awal), lalu Hive.
+    // Keduanya gagal-aman: aplikasi tetap jalan.
+    SupabaseSetup.init().then((_) => AppStorage.init()).then((_) {
       if (mounted) setState(() => _status = _StatusSiap.siap);
     });
   }

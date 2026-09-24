@@ -2,6 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:alana/core/supabase/supabase_setup.dart';
+import 'package:alana/features/auth/data/auth_repository.dart';
+import 'package:alana/features/auth/presentation/auth_providers.dart';
+import 'package:alana/features/auth/presentation/forgot_password_page.dart';
+import 'package:alana/features/auth/presentation/login_page.dart';
+import 'package:alana/features/auth/presentation/register_page.dart';
+import 'package:alana/features/auth/presentation/verify_email_page.dart';
 import 'package:alana/features/detail/presentation/detail_page.dart';
 import 'package:alana/features/history/presentation/history_page.dart';
 import 'package:alana/features/home/presentation/home_page.dart';
@@ -11,14 +18,68 @@ import 'package:alana/features/reader/presentation/reader_page.dart';
 import 'package:alana/features/settings/presentation/diagnostics_page.dart';
 import 'package:alana/features/settings/presentation/settings_page.dart';
 
+import 'auth_refresh.dart';
 import 'scaffold_with_nav.dart';
 
 /// Router aplikasi. Disediakan lewat Riverpod agar mudah diuji
 /// dan di-watch dari [MaterialApp.router].
+///
+/// Akses wajib login: pengunjung tanpa sesi diarahkan ke `/masuk`,
+/// user yang sudah login tidak bisa membuka halaman auth.
 final goRouterProvider = Provider<GoRouter>((ref) {
+  final sesiAsync = ref.watch(sesiProvider);
+  final refresh = GoRouterRefreshStream(
+    SupabaseSetup.siap
+        ? ref.watch(authRepositoryProvider).perubahanSesi
+        : const Stream.empty(),
+  );
+  ref.onDispose(refresh.dispose);
+
   return GoRouter(
     initialLocation: '/',
+    refreshListenable: refresh,
+    redirect: (context, state) {
+      final lokasi = state.matchedLocation;
+      const rutePublik = {
+        '/masuk',
+        '/daftar',
+        '/lupa-password',
+        '/verifikasi-email',
+      };
+      // Sesi belum diketahui → tahan di tempat (cegah kedip login).
+      if (sesiAsync.isLoading) return null;
+      final sesi = sesiAsync.valueOrNull?.session ??
+          (SupabaseSetup.siap
+              ? SupabaseSetup.instance.auth.currentSession
+              : null);
+      final masuk = sesi != null;
+      if (!masuk && !rutePublik.contains(lokasi)) return '/masuk';
+      if (masuk && (lokasi == '/masuk' || lokasi == '/daftar')) return '/';
+      return null;
+    },
     routes: [
+      GoRoute(
+        path: '/masuk',
+        name: 'masuk',
+        builder: (context, state) => const LoginPage(),
+      ),
+      GoRoute(
+        path: '/daftar',
+        name: 'daftar',
+        builder: (context, state) => const RegisterPage(),
+      ),
+      GoRoute(
+        path: '/lupa-password',
+        name: 'lupa-password',
+        builder: (context, state) => const ForgotPasswordPage(),
+      ),
+      GoRoute(
+        path: '/verifikasi-email',
+        name: 'verifikasi-email',
+        builder: (context, state) => VerifyEmailPage(
+          email: state.uri.queryParameters['email'] ?? '',
+        ),
+      ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
           return ScaffoldWithNavBar(navigationShell: navigationShell);
