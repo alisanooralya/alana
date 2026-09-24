@@ -90,6 +90,10 @@ String _dariPesan(String pesan) {
     return 'Tidak ada koneksi internet. Periksa jaringan lalu coba lagi.';
   }
   if (t.contains('cancelled') || t.contains('canceled')) {
+    if (t.contains('reauth')) {
+      return 'Login Google gagal (akun perlu otorisasi ulang). '
+          'Pastikan SHA-1 dan Client ID cocok, lalu coba lagi.';
+    }
     return 'Login dibatalkan.';
   }
   if (t.contains('apiexception: 10') ||

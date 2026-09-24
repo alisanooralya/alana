@@ -108,7 +108,10 @@ class AuthRepository {
     _googleSiap = true;
 
     var googleUser = await googleSignIn.attemptLightweightAuthentication();
-    googleUser ??= await googleSignIn.authenticate();
+    // scopeHint: gabungkan auth+otorisasi agar tidak gagal reauth diam-diam.
+    googleUser ??= await googleSignIn.authenticate(
+      scopeHint: const ['email', 'profile'],
+    );
 
     final authorization =
         await googleUser.authorizationClient.authorizationForScopes(const [
