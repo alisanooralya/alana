@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:alana/core/diagnostics/error_log.dart';
 import 'package:alana/core/widgets/loading_view.dart';
 import 'package:alana/features/auth/data/auth_validators.dart';
 import 'package:alana/features/auth/presentation/auth_providers.dart';
@@ -142,7 +143,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         ..showSnackBar(
           const SnackBar(content: Text('Foto profil diperbarui.')),
         );
-    } catch (error) {
+    } catch (error, stack) {
+      ErrorLog.catat(error, stack);
       if (mounted) setState(() => _pesanError = pesanAuthRamah(error));
     } finally {
       if (mounted) setState(() => _mengunggah = false);
