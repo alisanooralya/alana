@@ -58,7 +58,7 @@ class _DiagnosticsPageState extends State<DiagnosticsPage> {
       ),
       body: ValueListenableBuilder<int>(
         valueListenable: ErrorLog.versi,
-        builder: (context, _, __) {
+        builder: (context, _versi, _child) {
           final entries = ErrorLog.entries;
           return FutureBuilder<String>(
             future: _file,
