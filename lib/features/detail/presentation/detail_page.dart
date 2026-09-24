@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
@@ -53,21 +54,12 @@ class _DetailPageState extends ConsumerState<DetailPage> {
       );
   }
 
-  void _bukaChapter(Chapter chapter) {
-    ref
-        .read(historyRepositoryProvider.notifier)
-        .tandaiDibaca(
-          mangaId: widget.mangaId,
-          chapterId: chapter.url,
-          chapterName: chapter.name,
-        );
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text('Ditandai sudah dibaca. Pembaca full di Fase 4.'),
-        ),
-      );
+  void _bukaChapter(BuildContext context, MangaDetails info, Chapter chapter) {
+    context.pushNamed(
+      'reader',
+      pathParameters: {'mangaId': widget.mangaId, 'chapterId': chapter.url},
+      extra: {'chapterName': chapter.name, 'mangaTitle': info.title},
+    );
   }
 
   @override
@@ -104,7 +96,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
             setState(() => _terbaruDulu = !_terbaruDulu);
           },
           onToggleBookmark: () => _toggleBookmark(info),
-          onBukaChapter: _bukaChapter,
+          onBukaChapter: (chapter) => _bukaChapter(context, info, chapter),
         ),
       ),
     );

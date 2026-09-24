@@ -7,6 +7,7 @@ import 'package:alana/features/history/presentation/history_page.dart';
 import 'package:alana/features/home/presentation/home_page.dart';
 import 'package:alana/features/home/presentation/search_page.dart';
 import 'package:alana/features/library/presentation/library_page.dart';
+import 'package:alana/features/reader/presentation/reader_page.dart';
 
 import 'scaffold_with_nav.dart';
 
@@ -39,6 +40,22 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) => DetailPage(
                       mangaId: state.pathParameters['mangaId'] ?? '',
                     ),
+                  ),
+                  GoRoute(
+                    path: 'baca/:mangaId/:chapterId',
+                    name: 'reader',
+                    builder: (context, state) {
+                      final extra = state.extra;
+                      final args = extra is Map<String, dynamic>
+                          ? extra
+                          : const <String, dynamic>{};
+                      return ReaderPage(
+                        mangaId: state.pathParameters['mangaId'] ?? '',
+                        chapterId: state.pathParameters['chapterId'] ?? '',
+                        chapterName: args['chapterName']?.toString() ?? '',
+                        mangaTitle: args['mangaTitle']?.toString() ?? '',
+                      );
+                    },
                   ),
                 ],
               ),
