@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 class AppTheme {
   const AppTheme._();
 
-  static const Color _seedColor = Colors.indigo;
+  static const Color _seedColor = Colors.blue;
 
   static ThemeData get lightTheme {
     return ThemeData(

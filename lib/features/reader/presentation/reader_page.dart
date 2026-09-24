@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -112,7 +113,10 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
     for (var i = index + 1; i <= index + 2 && i < pages.length; i++) {
       unawaited(
         precacheImage(
-          NetworkImage(pages[i].imageUrl, headers: readerImageHeaders),
+          CachedNetworkImageProvider(
+            pages[i].imageUrl,
+            headers: readerImageHeaders,
+          ),
           context,
         ).then((_) {}, onError: (_) {}),
       );

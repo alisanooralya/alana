@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:alana/core/widgets/cover_image.dart';
 import 'package:alana/models/manga.dart';
 
 /// Kartu vertikal untuk satu judul (cover + judul + info singkat).
@@ -41,28 +42,12 @@ class MangaCard extends StatelessWidget {
             children: [
               AspectRatio(
                 aspectRatio: 3 / 4,
-                child: manga.thumbnail.isEmpty
-                    ? const Icon(Icons.image_not_supported_outlined, size: 40)
-                    : Image.network(
-                        manga.thumbnail,
-                        fit: BoxFit.cover,
-                        loadingBuilder: (context, child, progress) {
-                          if (progress == null) return child;
-                          return const Center(
-                            child: SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            ),
-                          );
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          return const Icon(
-                            Icons.broken_image_outlined,
-                            size: 40,
-                          );
-                        },
-                      ),
+                child: CoverImage(
+                  imageUrl: manga.thumbnail,
+                  width: double.infinity,
+                  height: double.infinity,
+                  borderRadius: 0,
+                ),
               ),
               Padding(
                 padding: const EdgeInsets.all(8),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:alana/core/widgets/cover_image.dart';
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_view.dart';
@@ -300,30 +301,11 @@ class _HeaderDetail extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: info.thumbnail.isEmpty
-                    ? const SizedBox(
-                        width: 120,
-                        height: 160,
-                        child: Icon(
-                          Icons.image_not_supported_outlined,
-                          size: 48,
-                        ),
-                      )
-                    : Image.network(
-                        info.thumbnail,
-                        width: 120,
-                        height: 160,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return const SizedBox(
-                            width: 120,
-                            height: 160,
-                            child: Icon(Icons.broken_image_outlined, size: 48),
-                          );
-                        },
-                      ),
+              CoverImage(
+                imageUrl: info.thumbnail,
+                width: 120,
+                height: 160,
+                borderRadius: 12,
               ),
               const SizedBox(width: 16),
               Expanded(

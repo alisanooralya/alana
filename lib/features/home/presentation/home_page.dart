@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:alana/core/widgets/cover_image.dart';
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_view.dart';
@@ -14,6 +15,7 @@ import 'latest_updates_controller.dart';
 import 'paginated_manga_state.dart';
 import 'widgets/home_section.dart';
 import 'widgets/manga_card.dart';
+import 'widgets/popular_carousel.dart';
 
 /// Halaman Beranda.
 ///
@@ -135,15 +137,11 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ),
                       data: (response) {
                         if (response.mangas.isEmpty) {
-                          return const _SectionKosong(judul: 'Rekomendasi');
+                          return const _SectionKosong(
+                            judul: 'Populer Hari Ini',
+                          );
                         }
-                        return HomeSection(
-                          judul: 'Rekomendasi',
-                          children: [
-                            for (final manga in response.mangas)
-                              MangaCard(manga: manga),
-                          ],
-                        );
+                        return PopularCarousel(mangas: response.mangas);
                       },
                     ),
                   ),
@@ -312,17 +310,7 @@ class _LatestItem extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: ListTile(
         contentPadding: const EdgeInsets.all(8),
-        leading: manga.thumbnail.isEmpty
-            ? const Icon(Icons.image_not_supported_outlined, size: 48)
-            : Image.network(
-                manga.thumbnail,
-                width: 56,
-                height: 76,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return const Icon(Icons.broken_image_outlined, size: 48);
-                },
-              ),
+        leading: CoverImage(imageUrl: manga.thumbnail),
         title: Text(manga.title, maxLines: 2, overflow: TextOverflow.ellipsis),
         subtitle: Text(infoChapter),
         onTap: () {

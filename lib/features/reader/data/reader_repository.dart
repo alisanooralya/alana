@@ -8,7 +8,7 @@ import 'package:alana/services/manga_api_service.dart';
 /// Header HTTP untuk mengunduh gambar halaman dari CDN.
 ///
 /// CDN (`storage.shngm.id`) memeriksa `Referer` seperti browser.
-/// Disalurkan ke `Image.network(headers: ...)` dan `precacheImage`.
+/// Disalurkan ke `CachedNetworkImage(httpHeaders: ...)` dan `precacheImage`.
 const readerImageHeaders = <String, String>{
   'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
   'Referer': '${MangaApiClient.webBaseUrl}/',

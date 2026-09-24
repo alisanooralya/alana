@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:alana/core/widgets/cover_image.dart';
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/features/library/data/bookmark_repository.dart';
 
@@ -34,23 +35,7 @@ class LibraryPage extends ConsumerWidget {
                   clipBehavior: Clip.antiAlias,
                   child: ListTile(
                     contentPadding: const EdgeInsets.all(8),
-                    leading: item.thumbnail.isEmpty
-                        ? const Icon(
-                            Icons.image_not_supported_outlined,
-                            size: 48,
-                          )
-                        : Image.network(
-                            item.thumbnail,
-                            width: 56,
-                            height: 76,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Icon(
-                                Icons.broken_image_outlined,
-                                size: 48,
-                              );
-                            },
-                          ),
+                    leading: CoverImage(imageUrl: item.thumbnail),
                     title: Text(
                       item.title,
                       maxLines: 2,
