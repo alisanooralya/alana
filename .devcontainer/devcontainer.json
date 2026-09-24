@@ -4,7 +4,6 @@
     "dockerfile": "Dockerfile"
   },
 
-  // Ekstensi VS Code yang otomatis terpasang di Codespace
   "customizations": {
     "vscode": {
       "extensions": ["Dart-Code.flutter", "Dart-Code.dart-code"],
@@ -14,12 +13,7 @@
     }
   },
 
-  // Port yang biasa dipakai flutter run -d web-server / DevTools
   "forwardPorts": [8080, 9100],
-
-  // Jalan sekali saat container pertama kali dibuat
   "postCreateCommand": "flutter doctor -v",
-
-  // User non-root bawaan image
   "remoteUser": "vscode"
 }
