@@ -233,9 +233,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
             return ListView.builder(
               controller: _scrollController,
               padding: EdgeInsets.zero,
-              scrollCacheExtent: ScrollCacheExtent.pixels(
-                MediaQuery.of(context).size.height,
-              ),
+              scrollCacheExtent: MediaQuery.of(context).size.height,
               itemCount: pages.length,
               itemBuilder: (context, index) {
                 if (index == 0) {
@@ -244,8 +242,8 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
                     historyRepositoryProvider,
                   )[widget.mangaId];
                   final offset = tersimpan?.lastChapterId == widget.chapterId
-                      ? tersimpan?.scrollOffset ?? 0
-                      : 0;
+                      ? tersimpan?.scrollOffset ?? 0.0
+                      : 0.0;
                   _restorePosisi(offset);
                 }
                 return ReaderImage(
