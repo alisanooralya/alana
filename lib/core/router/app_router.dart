@@ -54,6 +54,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                         chapterId: state.pathParameters['chapterId'] ?? '',
                         chapterName: args['chapterName']?.toString() ?? '',
                         mangaTitle: args['mangaTitle']?.toString() ?? '',
+                        mangaThumbnail:
+                            args['mangaThumbnail']?.toString() ?? '',
                       );
                     },
                   ),

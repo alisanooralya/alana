@@ -1,7 +1,6 @@
 /// Satu judul yang ditandai di Pustaka.
 ///
-/// Disimpan in-memory di Fase 3. Fase 5 mengganti penyimpanan
-/// dengan shared_preferences/hive tanpa mengubah API ini.
+/// Disimpan di Hive sebagai `Map` (lihat [toMap]/[fromMap]).
 class BookmarkedManga {
   const BookmarkedManga({
     required this.mangaId,
@@ -16,4 +15,24 @@ class BookmarkedManga {
 
   /// Kapan judul ditandai.
   final DateTime savedAt;
+
+  Map<String, dynamic> toMap() {
+    return {
+      'mangaId': mangaId,
+      'title': title,
+      'thumbnail': thumbnail,
+      'savedAt': savedAt.toIso8601String(),
+    };
+  }
+
+  factory BookmarkedManga.fromMap(Map<String, dynamic> map) {
+    return BookmarkedManga(
+      mangaId: map['mangaId']?.toString() ?? '',
+      title: map['title']?.toString() ?? 'Tanpa judul',
+      thumbnail: map['thumbnail']?.toString() ?? '',
+      savedAt:
+          DateTime.tryParse(map['savedAt']?.toString() ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+    );
+  }
 }

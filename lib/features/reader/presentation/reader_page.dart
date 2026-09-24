@@ -29,6 +29,7 @@ class ReaderPage extends ConsumerStatefulWidget {
     required this.chapterId,
     this.chapterName = '',
     this.mangaTitle = '',
+    this.mangaThumbnail = '',
   });
 
   final String mangaId;
@@ -37,6 +38,7 @@ class ReaderPage extends ConsumerStatefulWidget {
   /// Nama chapter untuk judul AppBar (dikirim lewat route `extra`).
   final String chapterName;
   final String mangaTitle;
+  final String mangaThumbnail;
 
   @override
   ConsumerState<ReaderPage> createState() => _ReaderPageState();
@@ -44,17 +46,59 @@ class ReaderPage extends ConsumerStatefulWidget {
 
 class _ReaderPageState extends ConsumerState<ReaderPage> {
   bool _chromeTerlihat = true;
+  bool _sudahRestore = false;
+  final _scrollController = ScrollController();
+  Timer? _saveTimer;
 
   @override
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
+    _saveTimer?.cancel();
+    _scrollController.removeListener(_onScroll);
+    _simpanPosisi();
+    _scrollController.dispose();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
+  }
+
+  /// Menyimpan posisi scroll (debounce 1 detik selama scroll).
+  void _onScroll() {
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(seconds: 1), _simpanPosisi);
+  }
+
+  void _simpanPosisi() {
+    if (!_scrollController.hasClients) return;
+    final pages = ref.read(pageListProvider(widget.chapterId)).valueOrNull;
+    ref
+        .read(historyRepositoryProvider.notifier)
+        .simpanPosisi(
+          mangaId: widget.mangaId,
+          mangaTitle: widget.mangaTitle,
+          mangaThumbnail: widget.mangaThumbnail,
+          chapterId: widget.chapterId,
+          chapterName: widget.chapterName,
+          scrollOffset: _scrollController.offset,
+          pageCount: pages?.length ?? 0,
+        );
+  }
+
+  void _restorePosisi(double offset) {
+    if (_sudahRestore) return;
+    _sudahRestore = true;
+    if (offset <= 0) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) return;
+      final max = _scrollController.position.maxScrollExtent;
+      if (max <= 0) return;
+      _scrollController.jumpTo(offset.clamp(0, max));
+    });
   }
 
   void _preloadBerikutnya(int index, List<manga.Page> pages) {
@@ -72,7 +116,11 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
     context.pushReplacementNamed(
       'reader',
       pathParameters: {'mangaId': widget.mangaId, 'chapterId': target.url},
-      extra: {'chapterName': target.name, 'mangaTitle': widget.mangaTitle},
+      extra: {
+        'chapterName': target.name,
+        'mangaTitle': widget.mangaTitle,
+        'mangaThumbnail': widget.mangaThumbnail,
+      },
     );
   }
 
@@ -89,6 +137,8 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
           .read(historyRepositoryProvider.notifier)
           .tandaiDibaca(
             mangaId: widget.mangaId,
+            mangaTitle: widget.mangaTitle,
+            mangaThumbnail: widget.mangaThumbnail,
             chapterId: widget.chapterId,
             chapterName: widget.chapterName.isEmpty
                 ? widget.chapterId
@@ -174,10 +224,21 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
               );
             }
             return ListView.builder(
+              controller: _scrollController,
               padding: EdgeInsets.zero,
               cacheExtent: MediaQuery.of(context).size.height,
               itemCount: pages.length,
               itemBuilder: (context, index) {
+                if (index == 0) {
+                  // Kembalikan posisi terakhir hanya bila chapter-nya sama.
+                  final tersimpan = ref.read(
+                    historyRepositoryProvider,
+                  )[widget.mangaId];
+                  final offset = tersimpan?.lastChapterId == widget.chapterId
+                      ? tersimpan?.scrollOffset ?? 0
+                      : 0;
+                  _restorePosisi(offset);
+                }
                 return ReaderImage(
                   imageUrl: pages[index].imageUrl,
                   headers: readerImageHeaders,

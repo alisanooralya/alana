@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:alana/core/router/app_router.dart';
+import 'package:alana/core/storage/app_storage.dart';
 import 'package:alana/core/theme/app_theme.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await AppStorage.init();
   runApp(const ProviderScope(child: ManhwaApp()));
 }
 

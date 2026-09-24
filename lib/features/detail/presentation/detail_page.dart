@@ -58,7 +58,11 @@ class _DetailPageState extends ConsumerState<DetailPage> {
     context.pushNamed(
       'reader',
       pathParameters: {'mangaId': widget.mangaId, 'chapterId': chapter.url},
-      extra: {'chapterName': chapter.name, 'mangaTitle': info.title},
+      extra: {
+        'chapterName': chapter.name,
+        'mangaTitle': info.title,
+        'mangaThumbnail': info.thumbnail,
+      },
     );
   }
 
