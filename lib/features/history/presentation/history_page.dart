@@ -6,6 +6,8 @@ import 'package:alana/core/widgets/cover_image.dart';
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/features/history/data/history_repository.dart';
 import 'package:alana/features/history/data/reading_history.dart';
+import 'package:alana/features/sync/data/sync_service.dart';
+import 'package:alana/features/sync/presentation/widgets/pending_bar.dart';
 import 'package:alana/utils/relative_time.dart';
 
 /// Halaman Riwayat baca. Reaktif: otomatis memperbarui
@@ -22,13 +24,28 @@ class HistoryPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Riwayat')),
-      body: daftar.isEmpty
-          ? const EmptyView(
-              judul: 'Riwayat masih kosong',
-              deskripsi: 'Chapter yang kamu baca akan tercatat di sini.',
-              ikon: Icons.history_outlined,
-            )
-          : ListView.separated(
+      body: Column(
+        children: [
+          const PendingBar(),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () =>
+                  ref.read(syncServiceProvider).pullSegar(),
+              child: daftar.isEmpty
+                  ? const CustomScrollView(
+                      physics: AlwaysScrollableScrollPhysics(),
+                      slivers: [
+                        SliverFillRemaining(
+                          child: EmptyView(
+                            judul: 'Riwayat masih kosong',
+                            deskripsi:
+                                'Chapter yang kamu baca akan tercatat di sini.',
+                            ikon: Icons.history_outlined,
+                          ),
+                        ),
+                      ],
+                    )
+                  : ListView.separated(
               padding: const EdgeInsets.all(12),
               itemCount: daftar.length,
               separatorBuilder: (context, index) => const SizedBox(height: 4),
@@ -99,6 +116,10 @@ class HistoryPage extends ConsumerWidget {
                 );
               },
             ),
+          ),
+        ),
+        ],
+      ),
     );
   }
 }

@@ -1,13 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:alana/core/diagnostics/error_log.dart';
+import 'package:alana/core/providers/konektivitas_provider.dart';
 import 'package:alana/core/router/app_router.dart';
 import 'package:alana/core/storage/app_storage.dart';
 import 'package:alana/core/supabase/supabase_setup.dart';
 import 'package:alana/core/theme/app_theme.dart';
+import 'package:alana/features/auth/presentation/auth_providers.dart';
 import 'package:alana/features/settings/data/app_settings.dart';
 import 'package:alana/features/settings/data/settings_repository.dart';
+import 'package:alana/features/sync/data/sync_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -104,6 +109,21 @@ class ManhwaApp extends ConsumerWidget {
     final tema = ref.watch(
       settingsRepositoryProvider.select((pengaturan) => pengaturan.themeMode),
     );
+
+    // Orkestrasi sinkronisasi: login/logout dan koneksi kembali.
+    // Semua fire-and-forget; UI tidak pernah menunggu jaringan.
+    ref.listen(sesiProvider, (previous, next) {
+      unawaited(
+        ref
+            .read(syncServiceProvider)
+            .handleSesi(next.valueOrNull?.session?.user.id),
+      );
+    });
+    ref.listen(luringProvider, (previous, next) {
+      if (previous == true && next == false) {
+        unawaited(ref.read(syncServiceProvider).flushTertunda());
+      }
+    });
 
     return MaterialApp.router(
       title: 'Alana - Baca Manhwa',

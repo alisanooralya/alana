@@ -14,6 +14,7 @@ class MangaReadingProgress {
     this.scrollOffset = 0,
     this.pageCount = 0,
     required this.updatedAt,
+    this.pending = false,
   });
 
   final String mangaId;
@@ -36,6 +37,9 @@ class MangaReadingProgress {
   /// Terakhir diperbarui. Menentukan urutan di tab Riwayat.
   final DateTime updatedAt;
 
+  /// `true` bila belum terkirim ke Supabase.
+  final bool pending;
+
   MangaReadingProgress copyWith({
     String? mangaTitle,
     String? mangaThumbnail,
@@ -45,6 +49,7 @@ class MangaReadingProgress {
     double? scrollOffset,
     int? pageCount,
     DateTime? updatedAt,
+    bool? pending,
   }) {
     return MangaReadingProgress(
       mangaId: mangaId,
@@ -56,6 +61,7 @@ class MangaReadingProgress {
       scrollOffset: scrollOffset ?? this.scrollOffset,
       pageCount: pageCount ?? this.pageCount,
       updatedAt: updatedAt ?? this.updatedAt,
+      pending: pending ?? this.pending,
     );
   }
 
@@ -70,6 +76,7 @@ class MangaReadingProgress {
       'scrollOffset': scrollOffset,
       'pageCount': pageCount,
       'updatedAt': updatedAt.toIso8601String(),
+      'pending': pending,
     };
   }
 
@@ -89,6 +96,7 @@ class MangaReadingProgress {
       updatedAt:
           DateTime.tryParse(map['updatedAt']?.toString() ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
+      pending: map['pending'] == true,
     );
   }
 }

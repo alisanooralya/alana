@@ -13,7 +13,9 @@ import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_view.dart';
 import 'package:alana/features/detail/presentation/detail_providers.dart';
 import 'package:alana/features/history/data/history_repository.dart';
+import 'package:alana/features/profile/presentation/profile_providers.dart';
 import 'package:alana/features/settings/data/settings_repository.dart';
+import 'package:alana/features/sync/data/sync_service.dart';
 import 'package:alana/models/chapter.dart';
 import 'package:alana/models/page.dart' as manga;
 
@@ -48,31 +50,47 @@ class ReaderPage extends ConsumerStatefulWidget {
   ConsumerState<ReaderPage> createState() => _ReaderPageState();
 }
 
-class _ReaderPageState extends ConsumerState<ReaderPage> {
+class _ReaderPageState extends ConsumerState<ReaderPage>
+    with WidgetsBindingObserver {
   bool _chromeTerlihat = true;
   bool _sudahRestore = false;
   final _scrollController = ScrollController();
   Timer? _saveTimer;
+  String? _uid;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     if (ref.read(settingsRepositoryProvider).keepScreenOn) {
       WakelockPlus.enable();
     }
     _scrollController.addListener(_onScroll);
+    // Selaraskan flag pending dengan box (dorong statis menulis box langsung).
+    ref.invalidate(historyRepositoryProvider);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _saveTimer?.cancel();
     _scrollController.removeListener(_onScroll);
     _simpanPosisi();
+    // Tanpa ref di dispose: dorong statis langsung dari box.
+    unawaited(SyncService.dorongSekarang(_uid, mangaId: widget.mangaId));
     _scrollController.dispose();
     WakelockPlus.disable();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Aplikasi background: kirim progres yang pending (best-effort).
+    if (state == AppLifecycleState.paused) {
+      unawaited(ref.read(syncServiceProvider).flushTertunda());
+    }
   }
 
   /// Menyimpan posisi scroll (debounce 1 detik selama scroll).
@@ -124,6 +142,8 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
   }
 
   void _pindahChapter(Chapter target) {
+    // Dorong progres chapter ini sebelum pindah (tanpa menunggu).
+    unawaited(ref.read(syncServiceProvider).flushTertunda());
     context.pushReplacementNamed(
       'reader',
       pathParameters: {'mangaId': widget.mangaId, 'chapterId': target.url},
@@ -139,6 +159,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
   Widget build(BuildContext context) {
     final pagesAsync = ref.watch(pageListProvider(widget.chapterId));
     final chaptersAsync = ref.watch(chapterListProvider(widget.mangaId));
+    _uid = ref.watch(userIdProvider);
 
     // Tandai chapter sedang dibaca begitu daftar gambar termuat.
     ref.listen(pageListProvider(widget.chapterId), (previous, next) {

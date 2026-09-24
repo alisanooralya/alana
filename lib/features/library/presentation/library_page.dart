@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:alana/core/widgets/cover_image.dart';
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/features/library/data/bookmark_repository.dart';
+import 'package:alana/features/sync/data/sync_service.dart';
+import 'package:alana/features/sync/presentation/widgets/pending_bar.dart';
 
 /// Halaman Pustaka (bookmark). Reaktif: otomatis memperbarui
 /// saat bookmark ditambah/dihapus dari halaman detail.
@@ -19,13 +21,28 @@ class LibraryPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Pustaka')),
-      body: daftar.isEmpty
-          ? const EmptyView(
-              judul: 'Pustaka masih kosong',
-              deskripsi: 'Ketuk ikon bookmark di halaman detail untuk menyimpan judul.',
-              ikon: Icons.bookmark_outline,
-            )
-          : ListView.separated(
+      body: Column(
+        children: [
+          const PendingBar(),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () =>
+                  ref.read(syncServiceProvider).pullSegar(),
+              child: daftar.isEmpty
+                  ? const CustomScrollView(
+                      physics: AlwaysScrollableScrollPhysics(),
+                      slivers: [
+                        SliverFillRemaining(
+                          child: EmptyView(
+                            judul: 'Pustaka masih kosong',
+                            deskripsi:
+                                'Ketuk ikon bookmark di halaman detail untuk menyimpan judul.',
+                            ikon: Icons.bookmark_outline,
+                          ),
+                        ),
+                      ],
+                    )
+                  : ListView.separated(
               padding: const EdgeInsets.all(12),
               itemCount: daftar.length,
               separatorBuilder: (context, index) => const SizedBox(height: 4),
@@ -69,6 +86,10 @@ class LibraryPage extends ConsumerWidget {
                 );
               },
             ),
+          ),
+        ),
+        ],
+      ),
     );
   }
 }
