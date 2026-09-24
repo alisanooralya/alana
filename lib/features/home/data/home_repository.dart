@@ -22,6 +22,10 @@ class HomeRepository {
   Future<MangaListResponse> getRecommended({int page = 1}) {
     return service.getRecommendedManga(page: page);
   }
+
+  Future<MangaListResponse> search(String query, {int page = 1}) {
+    return service.searchManga(query, page: page);
+  }
 }
 
 final homeRepositoryProvider = Provider<HomeRepository>((ref) {

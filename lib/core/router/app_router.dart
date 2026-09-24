@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:alana/features/history/presentation/history_page.dart';
 import 'package:alana/features/home/presentation/home_page.dart';
+import 'package:alana/features/home/presentation/search_page.dart';
 import 'package:alana/features/library/presentation/library_page.dart';
 
 import 'scaffold_with_nav.dart';
@@ -25,6 +26,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 path: '/',
                 name: 'beranda',
                 builder: (context, state) => const HomePage(),
+                routes: [
+                  GoRoute(
+                    path: 'cari',
+                    name: 'pencarian',
+                    builder: (context, state) => const SearchPage(),
+                  ),
+                ],
               ),
             ],
           ),
