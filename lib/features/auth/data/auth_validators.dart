@@ -92,5 +92,11 @@ String _dariPesan(String pesan) {
   if (t.contains('cancelled') || t.contains('canceled')) {
     return 'Login dibatalkan.';
   }
+  if (t.contains('apiexception: 10') ||
+      t.contains('developer_error') ||
+      t.contains('12500') ||
+      t.contains('sign_in_failed')) {
+    return 'Login Google gagal: konfigurasi belum tepat (SHA-1 atau Client ID).';
+  }
   return 'Terjadi kesalahan. Coba lagi.';
 }

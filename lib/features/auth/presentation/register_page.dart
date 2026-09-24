@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:alana/core/diagnostics/error_log.dart';
 import 'package:alana/core/supabase/supabase_setup.dart';
 import 'package:alana/features/auth/data/auth_repository.dart';
 import 'package:alana/features/auth/data/auth_validators.dart';
@@ -120,7 +121,8 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
       ref.read(pendingUsernameSetupProvider.notifier).state = akunBaruDariIso(
         hasil.user?.createdAt,
       );
-    } catch (error) {
+    } catch (error, stack) {
+      ErrorLog.catat(error, stack);
       if (mounted) setState(() => _pesanError = pesanAuthRamah(error));
     } finally {
       if (mounted) setState(() => _memuatGoogle = false);
