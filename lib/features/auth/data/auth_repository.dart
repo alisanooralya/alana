@@ -5,6 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:alana/core/config/app_config.dart';
 import 'package:alana/core/supabase/supabase_setup.dart';
 
+import 'auth_validators.dart';
+
 /// Repository autentikasi via Supabase.
 ///
 /// - Email+password: [daftar], [masuk], [kirimResetPassword], [keluar].
@@ -59,6 +61,36 @@ class AuthRepository {
       email: email.trim(),
       password: password,
     );
+  }
+
+  /// Masuk dengan username via Edge Function `login-with-username`.
+  ///
+  /// Function mengembalikan token; sesi disimpan lewat `setSession`
+  /// sehingga stream `onAuthStateChange` terpicu seperti login biasa.
+  /// Akun Google-only gagal dengan pesan umum yang sama.
+  Future<AuthResponse> masukDenganUsername({
+    required String username,
+    required String password,
+  }) async {
+    try {
+      final hasil = await _client.functions.invoke(
+        'login-with-username',
+        body: {'username': username.trim(), 'password': password},
+      );
+      final data = hasil.data;
+      final segar = data is Map ? data['refresh_token']?.toString() : null;
+      if (hasil.status != 200 || segar == null || segar.isEmpty) {
+        throw AuthException(_pesanFunctionLogin(data));
+      }
+      return await _client.auth.setSession(segar);
+    } catch (error) {
+      if (error is AuthException) rethrow;
+      final teks = error.toString();
+      if (teks.contains('Username atau password salah')) {
+        throw const AuthException('Username atau password salah.');
+      }
+      throw AuthException(pesanAuthRamah(error));
+    }
   }
 
   /// Masuk dengan akun Google (native, tanpa browser).
@@ -188,6 +220,16 @@ String _pesanFunction(dynamic data) {
   }
   if (data is String && data.isNotEmpty) return data;
   return 'Gagal menghapus akun. Coba lagi.';
+}
+
+/// Pesan login-username: hanya pesan generik yang lolos, sisanya umum.
+String _pesanFunctionLogin(dynamic data) {
+  if (data is Map &&
+      data['error']?.toString().contains('Username atau password salah') ==
+          true) {
+    return 'Username atau password salah.';
+  }
+  return 'Gagal masuk. Coba lagi.';
 }
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {

@@ -48,8 +48,23 @@ di-commit ke repo.
 ## Alur auth
 
 - Belum login → otomatis ke `/masuk`; tab lain terkunci.
+- Masuk bisa pakai **email atau username** (satu field; ada `@` = email,
+  selain itu lewat Edge Function `login-with-username` yang anti-enumerasi).
 - Daftar (`/daftar`): username (unik, `a-z0-9_`, 3–20) + email + password (min 8).
   Bila konfirmasi email aktif di Supabase, user diarahkan ke
   `/verifikasi-email` setelah daftar.
 - Lupa password (`/lupa-password`): kirim tautan reset via email.
 - Sesi tersimpan otomatis — tetap login setelah aplikasi ditutup.
+
+## Edge Functions
+
+Deploy lewat workflow **Deploy Edge Functions** (manual atau otomatis saat
+`supabase/functions/**` berubah). Secrets: `SUPABASE_ACCESS_TOKEN`,
+`SUPABASE_PROJECT_REF`. SQL mentah ada di `supabase/sql/` (jalankan manual
+di SQL Editor).
+
+| Fungsi | Akses | Tugas |
+|---|---|---|
+| `rate-limit-login` | publik (`--no-verify-jwt`) | Rate limit percobaan login |
+| `delete-account` | JWT (verify default) | Hapus akun + avatar milik pemanggil |
+| `login-with-username` | publik (`--no-verify-jwt`, `config.toml`) | Login username → token (anti-enumerasi, rate limit IP+username) |

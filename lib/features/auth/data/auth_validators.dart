@@ -52,6 +52,9 @@ String pesanAuthRamah(Object error) {
 
 String _dariPesan(String pesan) {
   final t = pesan.toLowerCase();
+  if (t.contains('username atau password salah')) {
+    return 'Username atau password salah.';
+  }
   if (t.contains('invalid login credentials')) {
     return 'Email atau password salah.';
   }

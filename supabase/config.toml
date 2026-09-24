@@ -1,0 +1,8 @@
+# Konfigurasi Supabase lokal (minimal, manual — tanpa CLI di Termux).
+#
+# Catatan lingkungan: verify_jwt fungsi publik lain (mis. rate-limit-login)
+# ditangani lewat flag --no-verify-jwt di workflow deploy, BUKAN di sini.
+# Hanya fungsi yang disebut di bawah yang dioverride di file ini.
+
+[functions.login-with-username]
+verify_jwt = false

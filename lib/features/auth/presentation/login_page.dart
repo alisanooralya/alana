@@ -40,9 +40,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _memuat = true);
     try {
-      await ref
-          .read(authRepositoryProvider)
-          .masuk(email: _email.text, password: _password.text);
+      final identitas = _email.text.trim();
+      final repo = ref.read(authRepositoryProvider);
+      if (identitas.contains('@')) {
+        await repo.masuk(email: identitas, password: _password.text);
+      } else {
+        await repo.masukDenganUsername(
+          username: identitas,
+          password: _password.text,
+        );
+      }
       // Pindah halaman ditangani redirect (sesi berubah).
     } catch (error) {
       if (mounted) setState(() => _pesanError = pesanAuthRamah(error));
@@ -95,10 +102,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-                  validator: (value) => validasiEmail(value ?? ''),
+                  validator: (value) {
+                    final teks = (value ?? '').trim();
+                    if (teks.isEmpty) {
+                      return 'Email atau username wajib diisi.';
+                    }
+                    if (teks.contains('@')) {
+                      return validasiEmail(teks);
+                    }
+                    return null;
+                  },
                   decoration: const InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: Icon(Icons.email_outlined),
+                    labelText: 'Email atau username',
+                    hintText: 'nama@email.com atau username_kamu',
+                    prefixIcon: Icon(Icons.person_outline),
                     border: OutlineInputBorder(),
                   ),
                 ),

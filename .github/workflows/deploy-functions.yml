@@ -48,6 +48,14 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
 
+      - name: Deploy login-with-username (publik, tanpa verify JWT)
+        run: >
+          supabase functions deploy login-with-username
+          --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+          --no-verify-jwt
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
       # Pola tambah fungsi baru (salin blok di atas, ganti nama):
       # - name: Deploy <nama-fungsi> (butuh JWT)
       #   run: >
