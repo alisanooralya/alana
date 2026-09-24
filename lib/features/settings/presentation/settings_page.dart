@@ -24,15 +24,21 @@ class SettingsPage extends ConsumerWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
-          for (final mode in AppThemeMode.values)
-            RadioListTile<AppThemeMode>(
-              title: Text(mode.label),
-              value: mode,
-              groupValue: pengaturan.themeMode,
-              onChanged: (value) {
-                if (value != null) repo.aturTema(value);
-              },
+          RadioGroup<AppThemeMode>(
+            groupValue: pengaturan.themeMode,
+            onChanged: (value) {
+              if (value != null) repo.aturTema(value);
+            },
+            child: Column(
+              children: [
+                for (final mode in AppThemeMode.values)
+                  RadioListTile<AppThemeMode>(
+                    title: Text(mode.label),
+                    value: mode,
+                  ),
+              ],
             ),
+          ),
           const Divider(),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),

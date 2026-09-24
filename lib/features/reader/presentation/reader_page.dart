@@ -104,7 +104,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
       if (!mounted || !_scrollController.hasClients) return;
       final max = _scrollController.position.maxScrollExtent;
       if (max <= 0) return;
-      _scrollController.jumpTo(offset.clamp(0, max));
+      _scrollController.jumpTo(offset.clamp(0.0, max).toDouble());
     });
   }
 
@@ -233,7 +233,9 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
             return ListView.builder(
               controller: _scrollController,
               padding: EdgeInsets.zero,
-              cacheExtent: MediaQuery.of(context).size.height,
+              scrollCacheExtent: ScrollCacheExtent.pixels(
+                MediaQuery.of(context).size.height,
+              ),
               itemCount: pages.length,
               itemBuilder: (context, index) {
                 if (index == 0) {
