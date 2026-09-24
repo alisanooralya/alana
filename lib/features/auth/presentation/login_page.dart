@@ -26,6 +26,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _password = TextEditingController();
   bool _memuat = false;
   bool _memuatGoogle = false;
+  bool _sukses = false;
   String? _pesanError;
 
   @override
@@ -37,7 +38,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
 
   Future<void> _masuk() async {
     FocusScope.of(context).unfocus();
-    setState(() => _pesanError = null);
+    setState(() {
+      _pesanError = null;
+      _sukses = false;
+    });
     if (!(_formKey.currentState?.validate() ?? false)) return;
     setState(() => _memuat = true);
     try {
@@ -51,7 +55,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           password: _password.text,
         );
       }
-      // Pindah halaman ditangani redirect (sesi berubah).
+      // Tampilkan centang singkat; pindah halaman ikut redirect sesi.
+      if (mounted) setState(() => _sukses = true);
     } catch (error) {
       if (mounted) setState(() => _pesanError = pesanAuthRamah(error));
     } finally {
@@ -86,6 +91,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     return AuthScaffold(
       judul: 'Selamat datang kembali',
       subjudul: 'Masuk untuk lanjut membaca.',
+      animasiMasuk: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -137,8 +143,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ],
           const SizedBox(height: 16),
           FilledButton(
-            onPressed: (_memuat || !terkonfigurasi) ? null : _masuk,
-            child: _memuat
+            onPressed: (_memuat || _sukses || !terkonfigurasi) ? null : _masuk,
+            child: _sukses
+                ? const Icon(Icons.check, size: 20)
+                : _memuat
                 ? const SizedBox(
                     width: 20,
                     height: 20,

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:alana/core/diagnostics/error_log.dart';
 import 'package:alana/core/providers/konektivitas_provider.dart';
@@ -10,6 +11,7 @@ import 'package:alana/core/storage/app_storage.dart';
 import 'package:alana/core/supabase/supabase_setup.dart';
 import 'package:alana/core/theme/app_theme.dart';
 import 'package:alana/features/auth/presentation/auth_providers.dart';
+import 'package:alana/features/onboarding/data/onboarding_repository.dart';
 import 'package:alana/features/settings/data/app_settings.dart';
 import 'package:alana/features/settings/data/settings_repository.dart';
 import 'package:alana/features/sync/data/sync_service.dart';
@@ -17,7 +19,14 @@ import 'package:alana/features/sync/data/sync_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   ErrorLog.pasang();
-  runApp(const ProviderScope(child: Bootstrap()));
+  // Flag onboarding dimuat sebelum runApp: tanpa kedip bagi pengguna lama.
+  final prefs = await SharedPreferences.getInstance();
+  runApp(
+    ProviderScope(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      child: const Bootstrap(),
+    ),
+  );
 }
 
 enum _StatusSiap { memuat, siap }

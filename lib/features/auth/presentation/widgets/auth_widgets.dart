@@ -1,22 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 /// Kerangka halaman auth: logo, judul, dan isi form.
+///
+/// Bila [animasiMasuk] true, elemen kepala masuk berurutan
+/// (total < 700ms). Dilewati bila animasi sistem dimatikan.
 class AuthScaffold extends StatelessWidget {
   const AuthScaffold({
     super.key,
     required this.judul,
     required this.subjudul,
     required this.child,
+    this.animasiMasuk = false,
   });
 
   final String judul;
   final String subjudul;
   final Widget child;
+  final bool animasiMasuk;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
+    final tanpaAnimasi =
+        !animasiMasuk || MediaQuery.disableAnimationsOf(context);
+
+    Widget animasi(Widget anak, int tahap) {
+      if (tanpaAnimasi) return anak;
+      final jeda = Duration(milliseconds: tahap * 80);
+      return anak
+          .animate()
+          .fadeIn(duration: 320.ms, delay: jeda)
+          .slideY(
+            begin: 0.3,
+            end: 0,
+            duration: 320.ms,
+            delay: jeda,
+            curve: Curves.easeOutCubic,
+          );
+    }
 
     return Scaffold(
       body: SafeArea(
@@ -28,32 +51,44 @@ class AuthScaffold extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.menu_book, size: 56, color: scheme.primary),
+                  animasi(
+                    Icon(Icons.menu_book, size: 56, color: scheme.primary),
+                    0,
+                  ),
                   const SizedBox(height: 12),
-                  Text(
-                    'Alana',
-                    textAlign: TextAlign.center,
-                    style: textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: scheme.primary,
+                  animasi(
+                    Text(
+                      'Alana',
+                      textAlign: TextAlign.center,
+                      style: textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: scheme.primary,
+                      ),
                     ),
+                    1,
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    judul,
-                    textAlign: TextAlign.center,
-                    style: textTheme.titleLarge,
+                  animasi(
+                    Text(
+                      judul,
+                      textAlign: TextAlign.center,
+                      style: textTheme.titleLarge,
+                    ),
+                    2,
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    subjudul,
-                    textAlign: TextAlign.center,
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: scheme.onSurfaceVariant,
+                  animasi(
+                    Text(
+                      subjudul,
+                      textAlign: TextAlign.center,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
                     ),
+                    3,
                   ),
                   const SizedBox(height: 24),
-                  child,
+                  animasi(child, 4),
                 ],
               ),
             ),

@@ -1,3 +1,4 @@
+import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -14,24 +15,32 @@ import 'package:alana/features/history/presentation/history_page.dart';
 import 'package:alana/features/home/presentation/home_page.dart';
 import 'package:alana/features/home/presentation/search_page.dart';
 import 'package:alana/features/library/presentation/library_page.dart';
+import 'package:alana/features/onboarding/data/onboarding_repository.dart';
+import 'package:alana/features/onboarding/presentation/onboarding_page.dart';
 import 'package:alana/features/profile/presentation/edit_profile_page.dart';
 import 'package:alana/features/profile/presentation/profile_page.dart';
 import 'package:alana/features/profile/presentation/security_page.dart';
 import 'package:alana/features/reader/presentation/reader_page.dart';
 import 'package:alana/features/settings/presentation/diagnostics_page.dart';
 import 'package:alana/features/settings/presentation/settings_page.dart';
+import 'package:alana/features/splash/presentation/splash_page.dart';
+import 'package:alana/features/splash/presentation/splash_providers.dart';
 
 import 'auth_refresh.dart';
 import 'scaffold_with_nav.dart';
+import 'transisi.dart';
 
 /// Router aplikasi. Disediakan lewat Riverpod agar mudah diuji
 /// dan di-watch dari [MaterialApp.router].
 ///
-/// Akses wajib login: pengunjung tanpa sesi diarahkan ke `/masuk`,
-/// user yang sudah login tidak bisa membuka halaman auth.
+/// Prioritas redirect: sesi belum diketahui → splash; onboarding
+/// belum selesai → onboarding; belum login → rute auth; sudah
+/// login → Beranda (aturan username-baru tetap berlaku).
 final goRouterProvider = Provider<GoRouter>((ref) {
   final sesiAsync = ref.watch(sesiProvider);
   final pendatangBaru = ref.watch(pendingUsernameSetupProvider);
+  final sudahLihat = ref.watch(sudahOnboardingProvider);
+  final splashSiap = ref.watch(splashSiapProvider);
   final refresh = GoRouterRefreshStream(
     SupabaseSetup.siap
         ? ref.watch(authRepositoryProvider).perubahanSesi
@@ -45,21 +54,40 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final lokasi = state.matchedLocation;
       const rutePublik = {
+        '/splash',
+        '/onboarding',
         '/masuk',
         '/daftar',
         '/lupa-password',
         '/verifikasi-email',
       };
-      // Sesi belum diketahui → tahan di tempat (cegah kedip login).
-      if (sesiAsync.isLoading) return null;
+      // 1. Sesi belum diketahui atau splash belum cukup tampil.
+      if (sesiAsync.isLoading || !splashSiap) {
+        return lokasi == '/splash' ? null : '/splash';
+      }
       final sesi =
           sesiAsync.valueOrNull?.session ??
           (SupabaseSetup.siap
               ? SupabaseSetup.instance.auth.currentSession
               : null);
       final masuk = sesi != null;
+      // 2. Onboarding belum selesai (berlaku juga bila sudah login).
+      if (!sudahLihat) {
+        return lokasi == '/onboarding' ? null : '/onboarding';
+      }
+      // 3. Belum login → hanya rute publik.
       if (!masuk && !rutePublik.contains(lokasi)) return '/masuk';
-      if (masuk && (lokasi == '/masuk' || lokasi == '/daftar')) return '/';
+      // 4. Sudah login → keluar dari halaman auth/splash/onboarding.
+      if (masuk && (lokasi == '/masuk' || lokasi == '/daftar')) {
+        return '/';
+      }
+      if (masuk &&
+          (lokasi == '/splash' ||
+              lokasi == '/onboarding' ||
+              lokasi == '/lupa-password' ||
+              lokasi == '/verifikasi-email')) {
+        return '/';
+      }
       // User Google baru wajib memilih username sendiri dulu.
       if (masuk && pendatangBaru && lokasi != '/profil/ubah') {
         return '/profil/ubah?baru=1';
@@ -68,30 +96,55 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(
+        path: '/splash',
+        name: 'splash',
+        pageBuilder: (context, state) =>
+            Transisi.fade(key: state.pageKey, child: const SplashPage()),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        name: 'onboarding',
+        pageBuilder: (context, state) =>
+            Transisi.fade(key: state.pageKey, child: const OnboardingPage()),
+      ),
+      GoRoute(
         path: '/masuk',
         name: 'masuk',
-        builder: (context, state) => const LoginPage(),
+        pageBuilder: (context, state) =>
+            Transisi.sumbu(key: state.pageKey, child: const LoginPage()),
       ),
       GoRoute(
         path: '/daftar',
         name: 'daftar',
-        builder: (context, state) => const RegisterPage(),
+        pageBuilder: (context, state) => Transisi.sumbu(
+          key: state.pageKey,
+          child: const RegisterPage(),
+          tipe: SharedAxisTransitionType.vertical,
+        ),
       ),
       GoRoute(
         path: '/lupa-password',
         name: 'lupa-password',
-        builder: (context, state) => const ForgotPasswordPage(),
+        pageBuilder: (context, state) => Transisi.fade(
+          key: state.pageKey,
+          child: const ForgotPasswordPage(),
+        ),
       ),
       GoRoute(
         path: '/verifikasi-email',
         name: 'verifikasi-email',
-        builder: (context, state) =>
-            VerifyEmailPage(email: state.uri.queryParameters['email'] ?? ''),
+        pageBuilder: (context, state) => Transisi.fade(
+          key: state.pageKey,
+          child: VerifyEmailPage(
+            email: state.uri.queryParameters['email'] ?? '',
+          ),
+        ),
       ),
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) {
-          return ScaffoldWithNavBar(navigationShell: navigationShell);
-        },
+        pageBuilder: (context, state, navigationShell) => Transisi.lubang(
+          key: state.pageKey,
+          child: ScaffoldWithNavBar(navigationShell: navigationShell),
+        ),
         branches: [
           StatefulShellBranch(
             routes: [
