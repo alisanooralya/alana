@@ -29,11 +29,29 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        // Dipakai CI bila variabel lingkungan keystore diisi (lihat workflow).
+        // Lokal tanpa env: tidak dipakai, tetap debug keys.
+        create("release") {
+            val keystorePath = System.getenv("KEYSTORE_PATH")
+            if (!keystorePath.isNullOrBlank()) {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            // Keystore release bila env terisi, selain itu debug keys
+            // agar `flutter run --release` lokal tetap jalan.
+            signingConfig = if (!System.getenv("KEYSTORE_PATH").isNullOrBlank()) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

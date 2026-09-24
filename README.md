@@ -45,6 +45,28 @@ di-commit ke repo.
 3. SHA-1 debug lokal: `keytool -list -v -keystore ~/.android/debug.keystore`
    (password `android`). SHA-1 release mengikuti keystore penandatangan APK.
 
+## Signing release (agar SHA-1 tetap)
+
+APK CI default memakai debug keys (SHA-1 acak tiap run) — Google Sign-In
+tidak akan stabil. Buat satu keystore release sekali saja:
+
+```bash
+# Di laptop:
+keytool -genkeypair -v -keystore alana-release.jks -alias alana \
+  -keyalg RSA -keysize 2048 -validity 10000
+# Windows PowerShell (base64 satu baris):
+certutil -encode alana-release.jks alana-release.b64
+# Linux/macOS:
+base64 -w0 alana-release.jks   # macOS: base64 -i alana-release.jks | tr -d '\n'
+```
+
+Simpan sebagai Secrets repo: `KEYSTORE_BASE64` (isi file b64),
+`KEYSTORE_PASSWORD`, `KEY_ALIAS` (`alana`), `KEY_PASSWORD`.
+Workflow otomatis memakai keystore ini bila Secrets ada, dan fallback
+ke debug keys bila tidak. SHA-1-nya (`keytool -list -v -keystore
+alana-release.jks`) daftarkan di OAuth client Android — cukup sekali,
+berlaku untuk semua build berikutnya. **Jangan commit file .jks.**
+
 ## Alur auth
 
 - Belum login → otomatis ke `/masuk`; tab lain terkunci.
