@@ -29,8 +29,7 @@ class HistoryPage extends ConsumerWidget {
           const PendingBar(),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () =>
-                  ref.read(syncServiceProvider).pullSegar(),
+              onRefresh: () => ref.read(syncServiceProvider).pullSegar(),
               child: daftar.isEmpty
                   ? const CustomScrollView(
                       physics: AlwaysScrollableScrollPhysics(),
@@ -46,78 +45,80 @@ class HistoryPage extends ConsumerWidget {
                       ],
                     )
                   : ListView.separated(
-              padding: const EdgeInsets.all(12),
-              itemCount: daftar.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 4),
-              itemBuilder: (context, index) {
-                final item = daftar[index];
-                final judul = item.mangaTitle.isEmpty
-                    ? item.mangaId
-                    : item.mangaTitle;
-                final sub = [
-                  if (item.lastChapterName.isNotEmpty) item.lastChapterName,
-                  _relatif(item),
-                ].where((bagian) => bagian.isNotEmpty).join(' • ');
+                      padding: const EdgeInsets.all(12),
+                      itemCount: daftar.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 4),
+                      itemBuilder: (context, index) {
+                        final item = daftar[index];
+                        final judul = item.mangaTitle.isEmpty
+                            ? item.mangaId
+                            : item.mangaTitle;
+                        final sub = [
+                          if (item.lastChapterName.isNotEmpty)
+                            item.lastChapterName,
+                          _relatif(item),
+                        ].where((bagian) => bagian.isNotEmpty).join(' • ');
 
-                return Card(
-                  clipBehavior: Clip.antiAlias,
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(8),
-                    leading: CoverImage(imageUrl: item.mangaThumbnail),
-                    title: Text(
-                      judul,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text(
-                      sub.isEmpty ? 'Belum ada progres.' : sub,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: IconButton(
-                      tooltip: 'Hapus dari Riwayat',
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: () {
-                        ref
-                            .read(historyRepositoryProvider.notifier)
-                            .hapus(item.mangaId);
-                        ScaffoldMessenger.of(context)
-                          ..hideCurrentSnackBar()
-                          ..showSnackBar(
-                            const SnackBar(
-                              content: Text('Dihapus dari Riwayat.'),
+                        return Card(
+                          clipBehavior: Clip.antiAlias,
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.all(8),
+                            leading: CoverImage(imageUrl: item.mangaThumbnail),
+                            title: Text(
+                              judul,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          );
+                            subtitle: Text(
+                              sub.isEmpty ? 'Belum ada progres.' : sub,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            trailing: IconButton(
+                              tooltip: 'Hapus dari Riwayat',
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () {
+                                ref
+                                    .read(historyRepositoryProvider.notifier)
+                                    .hapus(item.mangaId);
+                                ScaffoldMessenger.of(context)
+                                  ..hideCurrentSnackBar()
+                                  ..showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Dihapus dari Riwayat.'),
+                                    ),
+                                  );
+                              },
+                            ),
+                            onTap: () {
+                              if (item.lastChapterId.isEmpty) {
+                                if (item.mangaId.isEmpty) return;
+                                context.pushNamed(
+                                  'detail',
+                                  pathParameters: {'mangaId': item.mangaId},
+                                );
+                                return;
+                              }
+                              context.pushNamed(
+                                'reader',
+                                pathParameters: {
+                                  'mangaId': item.mangaId,
+                                  'chapterId': item.lastChapterId,
+                                },
+                                extra: {
+                                  'chapterName': item.lastChapterName,
+                                  'mangaTitle': item.mangaTitle,
+                                  'mangaThumbnail': item.mangaThumbnail,
+                                },
+                              );
+                            },
+                          ),
+                        );
                       },
                     ),
-                    onTap: () {
-                      if (item.lastChapterId.isEmpty) {
-                        if (item.mangaId.isEmpty) return;
-                        context.pushNamed(
-                          'detail',
-                          pathParameters: {'mangaId': item.mangaId},
-                        );
-                        return;
-                      }
-                      context.pushNamed(
-                        'reader',
-                        pathParameters: {
-                          'mangaId': item.mangaId,
-                          'chapterId': item.lastChapterId,
-                        },
-                        extra: {
-                          'chapterName': item.lastChapterName,
-                          'mangaTitle': item.mangaTitle,
-                          'mangaThumbnail': item.mangaThumbnail,
-                        },
-                      );
-                    },
-                  ),
-                );
-              },
             ),
           ),
-        ),
         ],
       ),
     );

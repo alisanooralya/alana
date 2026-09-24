@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +7,7 @@ import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_view.dart';
 import 'package:alana/features/auth/data/auth_repository.dart';
+import 'package:alana/features/auth/data/auth_validators.dart';
 import 'package:alana/features/auth/presentation/auth_providers.dart';
 
 import 'profile_providers.dart';
@@ -39,10 +41,87 @@ class ProfilePage extends ConsumerWidget {
     // Pindah ke /masuk ditangani redirect (sesi hilang).
   }
 
+  Future<void> _hapusAkun(BuildContext context, WidgetRef ref) async {
+    final repo = ref.read(authRepositoryProvider);
+    final punyaEmail = ref.read(punyaEmailProvider);
+    final email = repo.userAktif?.email ?? '';
+
+    final lanjut = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus akun permanen?'),
+        content: const Text(
+          'Akun, profil, bookmark, dan riwayat bacamu akan terhapus '
+          'permanen dari server dan tidak bisa dikembalikan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Lanjut'),
+          ),
+        ],
+      ),
+    );
+    if (lanjut != true || !context.mounted) return;
+
+    // Konfirmasi ulang: password (email) atau kata HAPUS (Google).
+    final terkonfirmasi = await showDialog<bool>(
+      context: context,
+      builder: (context) => _DialogKonfirmasiHapus(
+        lewatEmail: punyaEmail,
+        onValidasi: (input) async {
+          if (punyaEmail) {
+            if (email.isEmpty) return 'Sesi tidak valid. Masuk ulang.';
+            try {
+              await repo.verifikasiPassword(email, input);
+              return null;
+            } catch (error) {
+              return pesanAuthRamah(error);
+            }
+          }
+          if (input.trim() != 'HAPUS') {
+            return 'Ketik persis: HAPUS';
+          }
+          return null;
+        },
+      ),
+    );
+    if (terkonfirmasi != true || !context.mounted) return;
+
+    try {
+      await repo.hapusAkun();
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(pesanAuthRamah(error))));
+      return;
+    }
+
+    // Bersihkan cache lokal: gambar + Hive (Hive user menyusul
+    // lewat orkestrasi sync saat sesi hilang).
+    try {
+      await DefaultCacheManager().emptyCache();
+    } catch (_) {
+      // Abaikan: bukan kritis.
+    }
+    ref.read(pendingUsernameSetupProvider.notifier).state = false;
+    await repo.keluar();
+    // Pindah ke /masuk ditangani redirect (sesi hilang).
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profilAsync = ref.watch(profileProvider);
     final email = ref.watch(userEmailProvider);
+    final punyaEmail = ref.watch(punyaEmailProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profil')),
@@ -111,6 +190,20 @@ class ProfilePage extends ConsumerWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.pushNamed('pengaturan'),
               ),
+              if (punyaEmail)
+                ListTile(
+                  leading: const Icon(Icons.security_outlined),
+                  title: const Text('Keamanan'),
+                  subtitle: const Text('Ganti password'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => context.pushNamed('keamanan'),
+                )
+              else
+                const ListTile(
+                  leading: Icon(Icons.info_outline),
+                  title: Text('Akun ini masuk lewat Google'),
+                  subtitle: Text('Password dikelola oleh Google.'),
+                ),
               ListTile(
                 leading: Icon(
                   Icons.logout,
@@ -122,10 +215,131 @@ class ProfilePage extends ConsumerWidget {
                 ),
                 onTap: () => _keluar(context, ref),
               ),
+              ListTile(
+                leading: Icon(
+                  Icons.delete_forever_outlined,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: Text(
+                  'Hapus Akun',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+                subtitle: const Text('Hapus permanen dari server'),
+                onTap: () => _hapusAkun(context, ref),
+              ),
             ],
           );
         },
       ),
+    );
+  }
+}
+
+/// Dialog konfirmasi ulang hapus akun.
+///
+/// [lewatEmail] true → minta password (divalidasi via [onValidasi]);
+/// false → minta ketik kata HAPUS.
+class _DialogKonfirmasiHapus extends StatefulWidget {
+  const _DialogKonfirmasiHapus({
+    required this.lewatEmail,
+    required this.onValidasi,
+  });
+
+  final bool lewatEmail;
+  final Future<String?> Function(String input) onValidasi;
+
+  @override
+  State<_DialogKonfirmasiHapus> createState() => _DialogKonfirmasiHapusState();
+}
+
+class _DialogKonfirmasiHapusState extends State<_DialogKonfirmasiHapus> {
+  final _controller = TextEditingController();
+  bool _sembunyi = true;
+  bool _memuat = false;
+  String? _pesanError;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _kirim() async {
+    setState(() {
+      _pesanError = null;
+      _memuat = true;
+    });
+    final pesan = await widget.onValidasi(_controller.text);
+    if (!mounted) return;
+    setState(() => _memuat = false);
+    if (pesan != null) {
+      setState(() => _pesanError = pesan);
+      return;
+    }
+    Navigator.of(context).pop(true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Konfirmasi terakhir'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            widget.lewatEmail
+                ? 'Ketik password kamu untuk memastikan.'
+                : 'Ketik persis kata HAPUS untuk memastikan.',
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _controller,
+            obscureText: widget.lewatEmail && _sembunyi,
+            enableSuggestions: false,
+            autocorrect: false,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => _kirim(),
+            decoration: InputDecoration(
+              labelText: widget.lewatEmail ? 'Password' : 'Ketik HAPUS',
+              border: const OutlineInputBorder(),
+              errorText: _pesanError,
+              suffixIcon: widget.lewatEmail
+                  ? IconButton(
+                      tooltip: _sembunyi
+                          ? 'Lihat password'
+                          : 'Sembunyikan password',
+                      icon: Icon(
+                        _sembunyi
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                      ),
+                      onPressed: () => setState(() => _sembunyi = !_sembunyi),
+                    )
+                  : null,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _memuat ? null : () => Navigator.of(context).pop(false),
+          child: const Text('Batal'),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+          onPressed: _memuat ? null : _kirim,
+          child: _memuat
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('Hapus permanen'),
+        ),
+      ],
     );
   }
 }

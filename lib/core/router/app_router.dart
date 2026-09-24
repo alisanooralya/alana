@@ -16,6 +16,7 @@ import 'package:alana/features/home/presentation/search_page.dart';
 import 'package:alana/features/library/presentation/library_page.dart';
 import 'package:alana/features/profile/presentation/edit_profile_page.dart';
 import 'package:alana/features/profile/presentation/profile_page.dart';
+import 'package:alana/features/profile/presentation/security_page.dart';
 import 'package:alana/features/reader/presentation/reader_page.dart';
 import 'package:alana/features/settings/presentation/diagnostics_page.dart';
 import 'package:alana/features/settings/presentation/settings_page.dart';
@@ -164,6 +165,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) => EditProfilePage(
                       baru: state.uri.queryParameters['baru'] == '1',
                     ),
+                  ),
+                  GoRoute(
+                    path: 'keamanan',
+                    name: 'keamanan',
+                    builder: (context, state) => const SecurityPage(),
                   ),
                   GoRoute(
                     path: 'pengaturan',

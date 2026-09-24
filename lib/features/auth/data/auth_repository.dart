@@ -113,6 +113,50 @@ class AuthRepository {
     await _client.auth.signOut();
   }
 
+  /// `true` bila user punya identity email (bisa ganti password).
+  ///
+  /// User yang hanya login Google tidak punya identity ini.
+  bool get punyaIdentitasEmail {
+    final user = userAktif;
+    if (user == null) return false;
+    final ids = user.identities;
+    if (ids != null && ids.any((i) => i.provider == 'email')) {
+      return true;
+    }
+    final providers = user.appMetadata['providers'];
+    if (providers is List) return providers.contains('email');
+    return false;
+  }
+
+  /// Verifikasi password saat ini dengan masuk ulang.
+  Future<void> verifikasiPassword(String email, String password) async {
+    await _client.auth.signInWithPassword(
+      email: email.trim(),
+      password: password,
+    );
+  }
+
+  /// Mengganti password milik user aktif.
+  Future<void> gantiPassword(String passwordBaru) async {
+    await _client.auth.updateUser(UserAttributes(password: passwordBaru));
+  }
+
+  /// Menghapus akun milik pemanggil via Edge Function.
+  ///
+  /// Function memvalidasi JWT, menghapus avatar + user auth
+  /// (data ikut cascade). Melempar dengan pesan jelas bila gagal.
+  Future<void> hapusAkun() async {
+    final hasil = await _client.functions.invoke('delete-account');
+    if (hasil.status != 200) {
+      final pesan = _pesanFunction(hasil.data);
+      throw AuthException(pesan);
+    }
+    final data = hasil.data;
+    if (data is Map && data['success'] != true) {
+      throw AuthException(_pesanFunction(data));
+    }
+  }
+
   /// Mengirim email reset password.
   Future<void> kirimResetPassword(String email) {
     return _client.auth.resetPasswordForEmail(email.trim());
@@ -135,6 +179,15 @@ class AuthRepository {
       return null;
     }
   }
+}
+
+/// Ambil pesan error dari respons Edge Function.
+String _pesanFunction(dynamic data) {
+  if (data is Map && data['error'] != null) {
+    return data['error'].toString();
+  }
+  if (data is String && data.isNotEmpty) return data;
+  return 'Gagal menghapus akun. Coba lagi.';
 }
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {

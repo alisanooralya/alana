@@ -32,3 +32,11 @@ final sudahLoginProvider = Provider<bool>((ref) {
 /// Diset setelah login Google pertama; dibersihkan setelah profil disimpan
 /// atau saat keluar. Redirect mengarahkannya ke Edit Profil.
 final pendingUsernameSetupProvider = StateProvider<bool>((ref) => false);
+
+/// `true` bila user aktif punya identity email (boleh ganti password).
+final punyaEmailProvider = Provider<bool>((ref) {
+  if (!SupabaseSetup.siap) return false;
+  // Dengarkan sesi agar ikut berubah saat login/logout.
+  ref.watch(sesiProvider);
+  return ref.watch(authRepositoryProvider).punyaIdentitasEmail;
+});

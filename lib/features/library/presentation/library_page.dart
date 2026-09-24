@@ -26,8 +26,7 @@ class LibraryPage extends ConsumerWidget {
           const PendingBar(),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () =>
-                  ref.read(syncServiceProvider).pullSegar(),
+              onRefresh: () => ref.read(syncServiceProvider).pullSegar(),
               child: daftar.isEmpty
                   ? const CustomScrollView(
                       physics: AlwaysScrollableScrollPhysics(),
@@ -35,59 +34,61 @@ class LibraryPage extends ConsumerWidget {
                         SliverFillRemaining(
                           child: EmptyView(
                             judul: 'Pustaka masih kosong',
-                            deskripsi:
-                                'Ketuk ikon bookmark di halaman detail untuk menyimpan judul.',
+                            deskripsi: 'Ketuk ikon bookmark di halaman detail untuk menyimpan judul.',
                             ikon: Icons.bookmark_outline,
                           ),
                         ),
                       ],
                     )
                   : ListView.separated(
-              padding: const EdgeInsets.all(12),
-              itemCount: daftar.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 4),
-              itemBuilder: (context, index) {
-                final item = daftar[index];
-                return Card(
-                  clipBehavior: Clip.antiAlias,
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(8),
-                    leading: CoverImage(imageUrl: item.thumbnail),
-                    title: Text(
-                      item.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    subtitle: Text('Disimpan ${_formatTanggal(item.savedAt)}'),
-                    trailing: IconButton(
-                      tooltip: 'Hapus dari Pustaka',
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: () {
-                        ref
-                            .read(bookmarkRepositoryProvider.notifier)
-                            .hapus(item.mangaId);
-                        ScaffoldMessenger.of(context)
-                          ..hideCurrentSnackBar()
-                          ..showSnackBar(
-                            const SnackBar(
-                              content: Text('Dihapus dari Pustaka.'),
+                      padding: const EdgeInsets.all(12),
+                      itemCount: daftar.length,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 4),
+                      itemBuilder: (context, index) {
+                        final item = daftar[index];
+                        return Card(
+                          clipBehavior: Clip.antiAlias,
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.all(8),
+                            leading: CoverImage(imageUrl: item.thumbnail),
+                            title: Text(
+                              item.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          );
+                            subtitle: Text(
+                              'Disimpan ${_formatTanggal(item.savedAt)}',
+                            ),
+                            trailing: IconButton(
+                              tooltip: 'Hapus dari Pustaka',
+                              icon: const Icon(Icons.delete_outline),
+                              onPressed: () {
+                                ref
+                                    .read(bookmarkRepositoryProvider.notifier)
+                                    .hapus(item.mangaId);
+                                ScaffoldMessenger.of(context)
+                                  ..hideCurrentSnackBar()
+                                  ..showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Dihapus dari Pustaka.'),
+                                    ),
+                                  );
+                              },
+                            ),
+                            onTap: () {
+                              if (item.mangaId.isEmpty) return;
+                              context.pushNamed(
+                                'detail',
+                                pathParameters: {'mangaId': item.mangaId},
+                              );
+                            },
+                          ),
+                        );
                       },
                     ),
-                    onTap: () {
-                      if (item.mangaId.isEmpty) return;
-                      context.pushNamed(
-                        'detail',
-                        pathParameters: {'mangaId': item.mangaId},
-                      );
-                    },
-                  ),
-                );
-              },
             ),
           ),
-        ),
         ],
       ),
     );
