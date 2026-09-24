@@ -1,0 +1,50 @@
+name: Deploy Edge Functions
+
+# Cara pakai:
+# 1. Isi Secrets repo (Settings → Secrets and variables → Actions):
+#    - SUPABASE_ACCESS_TOKEN  (dashboard → Account → Access Tokens)
+#    - SUPABASE_PROJECT_REF   (bagian subdomain project: xyzcompany)
+# 2. Jalankan manual: tab Actions → "Deploy Edge Functions" → Run workflow.
+#    (Otomatis juga jalan tiap ada push yang menyentuh supabase/functions/**)
+#
+# verify_jwt diatur per fungsi lewat flag --no-verify-jwt di bawah
+# (tanpa config.toml, sesuai catatan lingkungan Termux).
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches: ["main"]
+    paths:
+      - "supabase/functions/**"
+      - ".github/workflows/deploy-functions.yml"
+
+jobs:
+  deploy:
+    name: Deploy Functions
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout kode
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Deploy rate-limit-login (publik, tanpa verify JWT)
+        run: >
+          supabase functions deploy rate-limit-login
+          --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+          --no-verify-jwt
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+
+      # Pola tambah fungsi baru (salin blok di atas, ganti nama):
+      # - name: Deploy <nama-fungsi> (butuh JWT)
+      #   run: >
+      #     supabase functions deploy <nama-fungsi>
+      #     --project-ref ${{ secrets.SUPABASE_PROJECT_REF }}
+      #   env:
+      #     SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
