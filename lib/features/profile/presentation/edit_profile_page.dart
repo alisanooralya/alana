@@ -247,9 +247,14 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Center(
-                  TextButton(
-                    onPressed: _mengunggah ? null : _gantiFoto,
+                Align(
+                  alignment: Alignment.center,
+                  child: TextButton(
+                    onPressed: _mengunggah
+                        ? null
+                        : () {
+                            _gantiFoto();
+                          },
                     child: Text(_mengunggah ? 'Mengunggah…' : 'Ganti foto'),
                   ),
                 ),

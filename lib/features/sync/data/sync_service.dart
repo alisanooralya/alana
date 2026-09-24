@@ -158,8 +158,9 @@ class SyncService {
     List<Map<String, dynamic>> remoteRows,
   ) async {
     final repo = ref.read(bookmarkRepositoryProvider.notifier);
+    final saatIni = ref.read(bookmarkRepositoryProvider);
     final lokal = <String, EntriGabung>{
-      for (final e in repo.state.entries)
+      for (final e in saatIni.entries)
         e.key: (updated: e.value.updatedAt, data: e.value.toMap()),
     };
     final remote = <String, EntriGabung>{};
@@ -210,8 +211,9 @@ class SyncService {
     List<Map<String, dynamic>> remoteRows,
   ) async {
     final repo = ref.read(historyRepositoryProvider.notifier);
+    final saatIni = ref.read(historyRepositoryProvider);
     final lokal = <String, EntriGabung>{
-      for (final e in repo.state.entries)
+      for (final e in saatIni.entries)
         e.key: (updated: e.value.updatedAt, data: e.value.toMap()),
     };
     final remote = <String, EntriGabung>{};
@@ -249,7 +251,7 @@ class SyncService {
     final gabungan = <String, MangaReadingProgress>{};
     for (final e in hasil.lokal.entries) {
       var p = MangaReadingProgress.fromMap(e.value);
-      final l = repo.state[e.key];
+      final l = saatIni[e.key];
       if (l != null) {
         p = p.copyWith(
           readChapterIds: {...l.readChapterIds, ...p.readChapterIds},

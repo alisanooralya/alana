@@ -5,7 +5,7 @@ import 'package:alana/features/history/data/history_repository.dart';
 import 'package:alana/features/library/data/bookmark_repository.dart';
 import 'package:alana/features/profile/presentation/profile_providers.dart';
 
-import 'sync_service.dart';
+import '../data/sync_service.dart';
 
 /// Jumlah item menunggu sinkron (pending + tombstone).
 ///
