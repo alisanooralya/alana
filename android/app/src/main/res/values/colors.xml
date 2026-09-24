@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Indigo sesuai seed color tema aplikasi -->
+    <color name="splash_background">#3F51B5</color>
+    <color name="ic_launcher_background">#3F51B5</color>
+</resources>

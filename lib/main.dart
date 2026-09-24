@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:alana/core/router/app_router.dart';
 import 'package:alana/core/storage/app_storage.dart';
 import 'package:alana/core/theme/app_theme.dart';
+import 'package:alana/features/settings/data/app_settings.dart';
+import 'package:alana/features/settings/data/settings_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,13 +20,19 @@ class ManhwaApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(goRouterProvider);
+    final tema = ref.watch(
+      settingsRepositoryProvider.select((pengaturan) => pengaturan.themeMode),
+    );
 
     return MaterialApp.router(
       title: 'Alana - Baca Manhwa',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      // Mengikuti pengaturan sistem (terang/gelap).
-      themeMode: ThemeMode.system,
+      themeMode: switch (tema) {
+        AppThemeMode.sistem => ThemeMode.system,
+        AppThemeMode.terang => ThemeMode.light,
+        AppThemeMode.gelap => ThemeMode.dark,
+      },
       routerConfig: router,
     );
   }

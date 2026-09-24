@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Marka buku di tengah (zona aman ikon adaptif) -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.95"
+        android:pathData="M39,28h30a5,5 0 0 1 5,5v42a5,5 0 0 1 -5,5h-30a5,5 0 0 1 -5,-5v-42a5,5 0 0 1 5,-5z" />
+    <path
+        android:fillColor="#3F51B5"
+        android:pathData="M41,40h26v5h-26zM41,50h26v5h-26zM41,60h16v5h-16z" />
+</vector>

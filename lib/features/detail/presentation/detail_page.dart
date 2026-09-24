@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_view.dart';
+import 'package:alana/core/widgets/offline_banner.dart';
+import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/features/history/data/history_repository.dart';
 import 'package:alana/features/library/data/bookmark_repository.dart';
 import 'package:alana/features/library/data/bookmarked_manga.dart';
@@ -85,22 +87,29 @@ class _DetailPageState extends ConsumerState<DetailPage> {
       body: detail.when(
         loading: () => const LoadingView(),
         error: (error, _) => ErrorView(
-          pesan: 'Gagal memuat detail. $error',
+          pesan: pesanErrorRamah(error),
           onRetry: () => ref.invalidate(mangaDetailsProvider(widget.mangaId)),
         ),
-        data: (info) => _IsiDetail(
-          mangaId: widget.mangaId,
-          info: info,
-          sinopsisPenuh: _sinopsisPenuh,
-          terbaruDulu: _terbaruDulu,
-          onToggleSinopsis: () {
-            setState(() => _sinopsisPenuh = !_sinopsisPenuh);
+        data: (info) => RefreshIndicator(
+          onRefresh: () async {
+            ref
+              ..invalidate(mangaDetailsProvider(widget.mangaId))
+              ..invalidate(chapterListProvider(widget.mangaId));
           },
-          onToggleUrut: () {
-            setState(() => _terbaruDulu = !_terbaruDulu);
-          },
-          onToggleBookmark: () => _toggleBookmark(info),
-          onBukaChapter: (chapter) => _bukaChapter(context, info, chapter),
+          child: _IsiDetail(
+            mangaId: widget.mangaId,
+            info: info,
+            sinopsisPenuh: _sinopsisPenuh,
+            terbaruDulu: _terbaruDulu,
+            onToggleSinopsis: () {
+              setState(() => _sinopsisPenuh = !_sinopsisPenuh);
+            },
+            onToggleUrut: () {
+              setState(() => _terbaruDulu = !_terbaruDulu);
+            },
+            onToggleBookmark: () => _toggleBookmark(info),
+            onBukaChapter: (chapter) => _bukaChapter(context, info, chapter),
+          ),
         ),
       ),
     );
@@ -136,7 +145,10 @@ class _IsiDetail extends ConsumerWidget {
     final chaptersAsync = ref.watch(chapterListProvider(mangaId));
 
     return CustomScrollView(
+      // Selalu bisa ditarik-refresh walau konten pendek.
+      physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
+        const SliverToBoxAdapter(child: OfflineBanner()),
         SliverToBoxAdapter(
           child: _HeaderDetail(
             info: info,

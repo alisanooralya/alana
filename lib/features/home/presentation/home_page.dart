@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_view.dart';
+import 'package:alana/core/widgets/offline_banner.dart';
+import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/models/manga.dart';
 
 import 'home_providers.dart';
@@ -82,108 +84,130 @@ class _HomePageState extends ConsumerState<HomePage> {
             icon: const Icon(Icons.search),
             onPressed: () => context.pushNamed('pencarian'),
           ),
+          IconButton(
+            tooltip: 'Pengaturan',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.pushNamed('pengaturan'),
+          ),
         ],
       ),
-      body: RefreshIndicator(
-        onRefresh: _muatUlangSemua,
-        child: CustomScrollView(
-          controller: _scrollController,
-          slivers: [
-            SliverToBoxAdapter(
-              child: populer.when(
-                loading: () => const _SectionMemuat(judul: 'Populer Hari Ini'),
-                error: (error, _) => _SectionGagal(
-                  judul: 'Populer Hari Ini',
-                  pesan: 'Gagal memuat daftar populer.',
-                  onRetry: () => ref.invalidate(popularMangaProvider),
-                ),
-                data: (response) {
-                  if (response.mangas.isEmpty) {
-                    return const _SectionKosong(judul: 'Populer Hari Ini');
-                  }
-                  return HomeSection(
-                    judul: 'Populer Hari Ini',
-                    children: [
-                      for (final manga in response.mangas)
-                        MangaCard(manga: manga),
-                    ],
-                  );
-                },
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: rekomendasi.when(
-                loading: () => const _SectionMemuat(judul: 'Rekomendasi'),
-                error: (error, _) => _SectionGagal(
-                  judul: 'Rekomendasi',
-                  pesan: 'Gagal memuat rekomendasi.',
-                  onRetry: () => ref.invalidate(recommendedMangaProvider),
-                ),
-                data: (response) {
-                  if (response.mangas.isEmpty) {
-                    return const _SectionKosong(judul: 'Rekomendasi');
-                  }
-                  return HomeSection(
-                    judul: 'Rekomendasi',
-                    children: [
-                      for (final manga in response.mangas)
-                        MangaCard(manga: manga),
-                    ],
-                  );
-                },
-              ),
-            ),
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Text(
-                  'Pembaruan Terbaru',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-            terbaru.when(
-              loading: () => const SliverToBoxAdapter(child: LoadingView()),
-              error: (error, _) => SliverToBoxAdapter(
-                child: ErrorView(
-                  pesan: 'Gagal memuat pembaruan terbaru. $error',
-                  onRetry: () =>
-                      ref.invalidate(latestUpdatesControllerProvider),
-                ),
-              ),
-              data: (halaman) {
-                if (halaman.items.isEmpty) {
-                  return SliverToBoxAdapter(
-                    child: EmptyView(
-                      judul: 'Belum ada pembaruan',
-                      deskripsi:
-                          'Coba lagi nanti atau tarik untuk memuat ulang.',
-                      labelAksi: 'Muat ulang',
-                      onAksi: () =>
-                          ref.invalidate(latestUpdatesControllerProvider),
-                    ),
-                  );
-                }
-                return SliverMainAxisGroup(
-                  slivers: [
-                    SliverList.separated(
-                      itemCount: halaman.items.length,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 4),
-                      itemBuilder: (context, index) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: _LatestItem(manga: halaman.items[index]),
+      body: Column(
+        children: [
+          const OfflineBanner(),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _muatUlangSemua,
+              child: CustomScrollView(
+                controller: _scrollController,
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: populer.when(
+                      loading: () =>
+                          const _SectionMemuat(judul: 'Populer Hari Ini'),
+                      error: (error, _) => _SectionGagal(
+                        judul: 'Populer Hari Ini',
+                        pesan: pesanErrorRamah(error),
+                        onRetry: () => ref.invalidate(popularMangaProvider),
+                      ),
+                      data: (response) {
+                        if (response.mangas.isEmpty) {
+                          return const _SectionKosong(
+                            judul: 'Populer Hari Ini',
+                          );
+                        }
+                        return HomeSection(
+                          judul: 'Populer Hari Ini',
+                          children: [
+                            for (final manga in response.mangas)
+                              MangaCard(manga: manga),
+                          ],
                         );
                       },
                     ),
-                    SliverToBoxAdapter(child: _BawahDaftar(halaman: halaman)),
-                  ],
-                );
-              },
+                  ),
+                  SliverToBoxAdapter(
+                    child: rekomendasi.when(
+                      loading: () => const _SectionMemuat(judul: 'Rekomendasi'),
+                      error: (error, _) => _SectionGagal(
+                        judul: 'Rekomendasi',
+                        pesan: pesanErrorRamah(error),
+                        onRetry: () => ref.invalidate(recommendedMangaProvider),
+                      ),
+                      data: (response) {
+                        if (response.mangas.isEmpty) {
+                          return const _SectionKosong(judul: 'Rekomendasi');
+                        }
+                        return HomeSection(
+                          judul: 'Rekomendasi',
+                          children: [
+                            for (final manga in response.mangas)
+                              MangaCard(manga: manga),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Text(
+                        'Pembaruan Terbaru',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  terbaru.when(
+                    loading: () =>
+                        const SliverToBoxAdapter(child: LoadingView()),
+                    error: (error, _) => SliverToBoxAdapter(
+                      child: ErrorView(
+                        pesan: pesanErrorRamah(error),
+                        onRetry: () =>
+                            ref.invalidate(latestUpdatesControllerProvider),
+                      ),
+                    ),
+                    data: (halaman) {
+                      if (halaman.items.isEmpty) {
+                        return SliverToBoxAdapter(
+                          child: EmptyView(
+                            judul: 'Belum ada pembaruan',
+                            deskripsi: 'Coba lagi nanti atau tarik untuk memuat ulang.',
+                            labelAksi: 'Muat ulang',
+                            onAksi: () =>
+                                ref.invalidate(latestUpdatesControllerProvider),
+                          ),
+                        );
+                      }
+                      return SliverMainAxisGroup(
+                        slivers: [
+                          SliverList.separated(
+                            itemCount: halaman.items.length,
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 4),
+                            itemBuilder: (context, index) {
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                child: _LatestItem(manga: halaman.items[index]),
+                              );
+                            },
+                          ),
+                          SliverToBoxAdapter(
+                            child: _BawahDaftar(halaman: halaman),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

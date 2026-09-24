@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_view.dart';
+import 'package:alana/core/widgets/offline_banner.dart';
+import 'package:alana/core/utils/pesan_error.dart';
 
 import 'paginated_manga_state.dart';
 import 'search_controller.dart';
@@ -104,11 +106,17 @@ class _SearchPageState extends ConsumerState<SearchPage> {
               ],
             ),
           ),
+          const OfflineBanner(),
           Expanded(
-            child: _HasilPencarian(
-              query: query,
-              hasil: hasil,
-              scrollController: _scrollController,
+            child: RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(searchResultsControllerProvider);
+              },
+              child: _HasilPencarian(
+                query: query,
+                hasil: hasil,
+                scrollController: _scrollController,
+              ),
             ),
           ),
         ],
@@ -141,7 +149,7 @@ class _HasilPencarian extends ConsumerWidget {
     return hasil.when(
       loading: () => const LoadingView(),
       error: (error, _) => ErrorView(
-        pesan: 'Pencarian gagal. $error',
+        pesan: pesanErrorRamah(error),
         onRetry: () => ref.invalidate(searchResultsControllerProvider),
       ),
       data: (halaman) {

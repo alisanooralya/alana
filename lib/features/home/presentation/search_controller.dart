@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/features/home/data/home_repository.dart';
 
 import 'paginated_manga_state.dart';
@@ -55,7 +56,8 @@ class SearchResultsController extends AsyncNotifier<PaginatedMangaState> {
       state = AsyncData(
         saatIni.copyWith(
           isLoadingMore: false,
-          pesanErrorMore: () => 'Gagal memuat halaman berikutnya: $error',
+          pesanErrorMore: () =>
+              'Gagal memuat halaman berikutnya. ${pesanErrorRamah(error)}',
         ),
       );
     }

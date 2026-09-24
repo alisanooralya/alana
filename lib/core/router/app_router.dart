@@ -8,6 +8,7 @@ import 'package:alana/features/home/presentation/home_page.dart';
 import 'package:alana/features/home/presentation/search_page.dart';
 import 'package:alana/features/library/presentation/library_page.dart';
 import 'package:alana/features/reader/presentation/reader_page.dart';
+import 'package:alana/features/settings/presentation/settings_page.dart';
 
 import 'scaffold_with_nav.dart';
 
@@ -58,6 +59,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                             args['mangaThumbnail']?.toString() ?? '',
                       );
                     },
+                  ),
+                  GoRoute(
+                    path: 'pengaturan',
+                    name: 'pengaturan',
+                    builder: (context, state) => const SettingsPage(),
                   ),
                 ],
               ),

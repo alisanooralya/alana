@@ -10,6 +10,7 @@ class AppStorage {
 
   static const String bookmarksBoxName = 'bookmarks';
   static const String historyBoxName = 'history';
+  static const String settingsBoxName = 'settings';
 
   static bool _siap = false;
 
@@ -20,10 +21,12 @@ class AppStorage {
     await Future.wait([
       Hive.openBox(bookmarksBoxName),
       Hive.openBox(historyBoxName),
+      Hive.openBox(settingsBoxName),
     ]);
     _siap = true;
   }
 
   static Box get bookmarksBox => Hive.box(bookmarksBoxName);
   static Box get historyBox => Hive.box(historyBoxName);
+  static Box get settingsBox => Hive.box(settingsBoxName);
 }

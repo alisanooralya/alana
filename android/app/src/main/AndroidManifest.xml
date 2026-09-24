@@ -2,7 +2,7 @@
     <!-- Required for API and image requests in release builds. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="alana"
+        android:label="Alana"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

@@ -4,12 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 
+import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_view.dart';
 import 'package:alana/features/detail/presentation/detail_providers.dart';
 import 'package:alana/features/history/data/history_repository.dart';
+import 'package:alana/features/settings/data/settings_repository.dart';
 import 'package:alana/models/chapter.dart';
 import 'package:alana/models/page.dart' as manga;
 
@@ -54,6 +57,9 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
   void initState() {
     super.initState();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    if (ref.read(settingsRepositoryProvider).keepScreenOn) {
+      WakelockPlus.enable();
+    }
     _scrollController.addListener(_onScroll);
   }
 
@@ -63,6 +69,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
     _scrollController.removeListener(_onScroll);
     _simpanPosisi();
     _scrollController.dispose();
+    WakelockPlus.disable();
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
@@ -212,7 +219,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage> {
         child: pagesAsync.when(
           loading: () => const LoadingView(),
           error: (error, _) => ErrorView(
-            pesan: 'Gagal memuat gambar. $error',
+            pesan: pesanErrorRamah(error),
             onRetry: () => ref.invalidate(pageListProvider(widget.chapterId)),
           ),
           data: (pages) {
