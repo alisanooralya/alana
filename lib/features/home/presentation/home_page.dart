@@ -302,13 +302,15 @@ class _LatestItem extends StatelessWidget {
         title: Text(manga.title, maxLines: 2, overflow: TextOverflow.ellipsis),
         subtitle: Text(infoChapter),
         onTap: () {
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(
-              const SnackBar(
-                content: Text('Halaman detail menyusul di Fase 3.'),
-              ),
-            );
+          if (manga.url.isEmpty) {
+            ScaffoldMessenger.of(context)
+              ..hideCurrentSnackBar()
+              ..showSnackBar(
+                const SnackBar(content: Text('ID judul tidak tersedia.')),
+              );
+            return;
+          }
+          context.pushNamed('detail', pathParameters: {'mangaId': manga.url});
         },
       ),
     );

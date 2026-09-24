@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:alana/models/manga.dart';
 
 /// Kartu vertikal untuk satu judul (cover + judul + info singkat).
 ///
 /// Dipakai di daftar horizontal Beranda dan grid Pencarian.
-/// Ketuk kartu menampilkan penanda karena halaman detail
-/// baru dikerjakan di Fase 3.
+/// Ketuk kartu membuka halaman detail.
 class MangaCard extends StatelessWidget {
   const MangaCard({super.key, required this.manga, this.width = 130});
 
@@ -25,13 +25,15 @@ class MangaCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () {
-            ScaffoldMessenger.of(context)
-              ..hideCurrentSnackBar()
-              ..showSnackBar(
-                const SnackBar(
-                  content: Text('Halaman detail menyusul di Fase 3.'),
-                ),
-              );
+            if (manga.url.isEmpty) {
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(
+                  const SnackBar(content: Text('ID judul tidak tersedia.')),
+                );
+              return;
+            }
+            context.pushNamed('detail', pathParameters: {'mangaId': manga.url});
           },
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
