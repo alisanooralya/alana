@@ -47,9 +47,9 @@ jobs:
         run: flutter test
         continue-on-error: true
 
-      - name: Build APK (release)
+      - name: Build APK (release, split per ABI)
         run: >
-          flutter build apk --release
+          flutter build apk --release --split-per-abi
           --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }}
           --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
           --dart-define=GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }}
