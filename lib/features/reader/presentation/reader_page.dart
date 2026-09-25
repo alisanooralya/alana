@@ -20,6 +20,7 @@ import 'package:alana/models/chapter.dart';
 import 'package:alana/models/page.dart' as manga;
 
 import '../data/reader_repository.dart';
+import 'chapter_report_sheet.dart';
 import 'reader_providers.dart';
 import 'widgets/reader_image.dart';
 
@@ -155,6 +156,34 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     );
   }
 
+  Future<void> _bukaLaporan() async {
+    final userId = ref.read(userIdProvider);
+    if (userId == null || userId.isEmpty) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Sesi login tidak tersedia.')),
+        );
+      return;
+    }
+
+    final hasil = await showModalBottomSheet<ReportSheetResult>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => ChapterReportSheet(chapterId: widget.chapterId),
+    );
+    if (!mounted || hasil == null) return;
+    final pesan = switch (hasil) {
+      ReportSheetResult.submitted => 'Laporan terkirim, terima kasih.',
+      ReportSheetResult.alreadyReported =>
+        'Kamu sudah melaporkan chapter ini, tim akan meninjau.',
+    };
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(pesan)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final pagesAsync = ref.watch(pageListProvider(widget.chapterId));
@@ -205,6 +234,24 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
       appBar: _chromeTerlihat
           ? AppBar(
               title: Text(judul, maxLines: 1, overflow: TextOverflow.ellipsis),
+              actions: [
+                PopupMenuButton<String>(
+                  tooltip: 'Menu chapter',
+                  onSelected: (value) {
+                    if (value == 'laporan') unawaited(_bukaLaporan());
+                  },
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(
+                      value: 'laporan',
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(Icons.report_problem_outlined),
+                        title: Text('Laporkan Masalah'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             )
           : null,
       bottomNavigationBar: _chromeTerlihat

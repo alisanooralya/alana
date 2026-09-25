@@ -190,6 +190,13 @@ class ProfilePage extends ConsumerWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.pushNamed('pengaturan'),
               ),
+              ListTile(
+                leading: const Icon(Icons.info_outline),
+                title: const Text('Tentang Aplikasi'),
+                subtitle: const Text('Versi, sumber data, dan lisensi'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.pushNamed('tentang-aplikasi'),
+              ),
               if (punyaEmail)
                 ListTile(
                   leading: const Icon(Icons.security_outlined),
