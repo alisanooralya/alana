@@ -5,6 +5,14 @@ on:
     branches: ["main"]
 
   workflow_dispatch:
+    inputs:
+      apk_mode:
+        description: "Mode APK"
+        type: choice
+        default: "arm64"
+        options:
+          - "arm64"
+          - "split-per-abi"
 
   pull_request:
     branches: ["main"]
@@ -59,11 +67,19 @@ jobs:
             echo "Secrets keystore kosong — memakai debug keys."
           fi
 
-      - name: Build APK (release, split per ABI)
-        run: >
-          flutter build apk --release --split-per-abi
-          --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }}
-          --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}
+      # Mode APK (lihat input workflow_dispatch `apk_mode`):
+      # - "arm64" (bawaan, termasuk saat push): hanya 64-bit, 1 file.
+      # - "split-per-abi": 3 file (arm64 + arm32 + x86_64), via Run workflow manual.
+      - name: Build APK (release)
+        run: |
+          if [ "${{ inputs.apk_mode }}" = "split-per-abi" ]; then
+            ABI_FLAGS="--split-per-abi"
+          else
+            ABI_FLAGS="--target-platform android-arm64"
+          fi
+          flutter build apk --release $ABI_FLAGS \
+          --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+          --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
           --dart-define=GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }}
 
       - name: Upload APK sebagai artifact
