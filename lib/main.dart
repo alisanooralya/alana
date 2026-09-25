@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:alana/core/diagnostics/error_log.dart';
 import 'package:alana/core/notifikasi/layanan_notifikasi.dart';
+import 'package:alana/core/notifikasi/push_fcm.dart';
 import 'package:alana/core/providers/konektivitas_provider.dart';
 import 'package:alana/core/router/app_router.dart';
 import 'package:alana/core/storage/app_storage.dart';
@@ -22,6 +24,13 @@ import 'package:alana/features/sync/data/sync_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   ErrorLog.pasang();
+  // Firebase untuk push (tanpa firebase_options: baca google-services.json).
+  // Gagal init tidak mematikan aplikasi (push saja yang mati).
+  try {
+    await Firebase.initializeApp();
+  } catch (error, stack) {
+    ErrorLog.catat(error, stack);
+  }
   // Flag onboarding dimuat sebelum runApp: tanpa kedip bagi pengguna lama.
   final prefs = await SharedPreferences.getInstance();
   runApp(
@@ -59,6 +68,7 @@ class _BootstrapState extends ConsumerState<Bootstrap> {
           if (mounted) {
             setState(() => _status = _StatusSiap.siap);
             _jadwalkanPengingat();
+            unawaited(ref.read(pushServiceProvider).init());
           }
         });
   }
@@ -143,11 +153,10 @@ class ManhwaApp extends ConsumerWidget {
     // Orkestrasi sinkronisasi: login/logout dan koneksi kembali.
     // Semua fire-and-forget; UI tidak pernah menunggu jaringan.
     ref.listen(sesiProvider, (previous, next) {
-      unawaited(
-        ref
-            .read(syncServiceProvider)
-            .handleSesi(next.valueOrNull?.session?.user.id),
-      );
+      final uid = next.valueOrNull?.session?.user.id;
+      unawaited(ref.read(syncServiceProvider).handleSesi(uid));
+      // Token push mengikuti sesi: login/start → upsert, logout → hapus.
+      unawaited(ref.read(pushServiceProvider).sinkronToken(uid));
     });
     ref.listen(luringProvider, (previous, next) {
       if (previous == true && next == false) {

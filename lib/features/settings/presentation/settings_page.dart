@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:alana/core/notifikasi/layanan_notifikasi.dart';
+import 'package:alana/core/notifikasi/push_fcm.dart';
 import 'package:alana/core/storage/app_storage.dart';
+import 'package:alana/features/notifikasi/data/device_token_repository.dart';
 import 'package:alana/features/notifikasi/data/pengingat_repository.dart';
 import 'package:alana/features/profile/presentation/profile_providers.dart';
 import 'package:alana/features/settings/data/app_settings.dart';
@@ -67,6 +69,7 @@ class SettingsPage extends ConsumerWidget {
             ),
           ),
           const _TilePengingat(),
+          const _TilePushBab(),
           ListTile(
             leading: const Icon(Icons.notifications_active_outlined),
             title: const Text('Kirim notifikasi uji'),
@@ -109,6 +112,35 @@ class SettingsPage extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Toggle push chapter baru: mati = token dihapus (push berhenti),
+/// nyala = token dikirim lagi. Tidak mengontrol server.
+class _TilePushBab extends ConsumerWidget {
+  const _TilePushBab();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final aktif = ref.watch(pushAktifProvider);
+
+    return SwitchListTile(
+      title: const Text('Notifikasi chapter baru'),
+      subtitle: const Text('Kirim kabar saat bookmark mendapat chapter baru.'),
+      value: aktif,
+      onChanged: (nilai) async {
+        if (nilai) {
+          await LayananNotifikasi.mintaIzin();
+        }
+        await ref.read(pushAktifProvider.notifier).atur(nilai);
+        final push = ref.read(pushServiceProvider);
+        if (nilai) {
+          await push.sinkronToken(ref.read(userIdProvider));
+        } else {
+          await push.hapusTokenTersimpan();
+        }
+      },
     );
   }
 }

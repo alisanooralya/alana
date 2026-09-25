@@ -78,6 +78,27 @@ berlaku untuk semua build berikutnya. **Jangan commit file .jks.**
 - Lupa password (`/lupa-password`): kirim tautan reset via email.
 - Sesi tersimpan otomatis — tetap login setelah aplikasi ditutup.
 
+## Firebase Cloud Messaging (tanpa flutterfire_cli)
+
+- `android/app/google-services.json` sudah ada di repo; plugin
+  `com.google.gms.google-services` dipasang manual di gradle.
+  `Firebase.initializeApp()` tanpa opsi (baca file itu langsung) —
+  tanpa `firebase_options.dart`, tanpa menjalankan flutterfire.
+- Token perangkat disimpan ke tabel `device_tokens` saat login/app-start
+  (diperbarui saat refresh, dihapus saat logout/toggle mati).
+- Toggle: Profil → Pengaturan → "Notifikasi chapter baru".
+- Verifikasi token: Dashboard → Table Editor → `device_tokens`,
+  cari baris `user_id`-mu (kolom `fcm_token` + `updated_at`).
+- Tes manual: Edge Functions → `check-new-chapters` → Invoke (POST `{}`),
+  atau curl dengan service role key:
+  ```bash
+  curl -X POST https://<ref>.supabase.co/functions/v1/check-new-chapters \
+    -H "Authorization: Bearer <SERVICE_ROLE_KEY>" \
+    -H "Content-Type: application/json" -d '{}'
+  ```
+  Respons ringkasan `{checked, updated, notifikasi, push_terkirim, ...}`;
+  log detail di Edge Functions → Logs.
+
 ## Edge Functions
 
 Deploy lewat workflow **Deploy Edge Functions** (manual atau otomatis saat

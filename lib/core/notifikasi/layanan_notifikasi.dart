@@ -15,6 +15,10 @@ class LayananNotifikasi {
   static const channelId = 'pengingat_baca';
   static const channelName = 'Pengingat Baca';
 
+  /// Channel terpisah untuk push chapter baru via FCM.
+  static const channelBabId = 'bab_baru';
+  static const channelBabName = 'Chapter Baru';
+
   static final FlutterLocalNotificationsPlugin _plugin =
       FlutterLocalNotificationsPlugin();
 
@@ -62,11 +66,18 @@ class LayananNotifikasi {
         description: 'Pengingat melanjutkan bacaan yang tertunda.',
         importance: Importance.defaultImportance,
       );
-      await _plugin
+      const kanalBab = AndroidNotificationChannel(
+        channelBabId,
+        channelBabName,
+        description: 'Pemberitahuan chapter baru dari server.',
+        importance: Importance.highImportance,
+      );
+      final android = _plugin
           .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin
-          >()
-          ?.createNotificationChannel(kanal);
+          >();
+      await android?.createNotificationChannel(kanal);
+      await android?.createNotificationChannel(kanalBab);
 
       // App dibuka dari notifikasi saat terminated.
       final awal = await _plugin.getNotificationAppLaunchDetails();
@@ -96,16 +107,44 @@ class LayananNotifikasi {
     }
   }
 
-  static NotificationDetails _detail() {
-    return const NotificationDetails(
+  static NotificationDetails _detail({String? channel}) {
+    final id = channel ?? channelId;
+    final nama = channel == channelBabId ? channelBabName : channelName;
+    final deskripsi = channel == channelBabId
+        ? 'Pemberitahuan chapter baru dari server.'
+        : 'Pengingat melanjutkan bacaan yang tertunda.';
+    return NotificationDetails(
       android: AndroidNotificationDetails(
-        channelId,
-        channelName,
-        channelDescription: 'Pengingat melanjutkan bacaan yang tertunda.',
-        importance: Importance.defaultImportance,
+        id,
+        nama,
+        channelDescription: deskripsi,
+        importance: channel == channelBabId
+            ? Importance.highImportance
+            : Importance.defaultImportance,
         priority: Priority.defaultPriority,
       ),
     );
+  }
+
+  /// Tampilkan langsung di channel chapter baru (untuk push FCM
+  /// foreground). Payload tetap format `"manga|chapter"`.
+  static Future<void> tampilkanBab({
+    required int id,
+    required String judul,
+    required String isi,
+    String? payload,
+  }) async {
+    try {
+      await _plugin.show(
+        id: id,
+        title: judul,
+        body: isi,
+        notificationDetails: _detail(channel: channelBabId),
+        payload: payload,
+      );
+    } catch (_) {
+      // Abaikan.
+    }
   }
 
   /// Tampilkan langsung (untuk tombol uji).
@@ -182,10 +221,31 @@ class LayananNotifikasi {
   static String? _lokasiDariPayload(String? payload) {
     if (payload == null || payload.isEmpty) return null;
     final pisah = payload.split('|');
-    final mangaId = pisah[0].trim();
-    if (mangaId.isEmpty) return null;
-    final chapterId = pisah.length > 1 ? pisah[1].trim() : '';
-    if (chapterId.isEmpty) return '/detail/$mangaId';
-    return '/baca/$mangaId/$chapterId';
+    return ruteDariNotif(
+      mangaId: pisah[0].trim(),
+      chapterId: pisah.length > 1 ? pisah[1].trim() : '',
+    );
+  }
+
+  /// Rute dari data notifikasi FCM (`manga_id`/`chapter_id`).
+  static String? ruteDariNotif({String? mangaId, String? chapterId}) {
+    final m = (mangaId ?? '').trim();
+    if (m.isEmpty) return null;
+    final c = (chapterId ?? '').trim();
+    if (c.isEmpty) return '/detail/$m';
+    return '/baca/$m/$c';
+  }
+
+  /// Buka rute notifikasi: langsung bila navigator siap,
+  /// ditampung bila belum (dibaca saat aplikasi siap).
+  static void bukaNotifikasi({String? mangaId, String? chapterId}) {
+    final lokasi = ruteDariNotif(mangaId: mangaId, chapterId: chapterId);
+    if (lokasi == null) return;
+    final pergi = _pergi;
+    if (pergi != null) {
+      pergi(lokasi);
+    } else {
+      _lokasiTertunda = lokasi;
+    }
   }
 }

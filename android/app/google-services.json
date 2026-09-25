@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "279029941925",
+    "project_id": "alana-fc879",
+    "storage_bucket": "alana-fc879.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:279029941925:android:019e2cd08e82235d3eaf4c",
+        "android_client_info": {
+          "package_name": "com.alana"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC588lbvurWMU8Y1w7u2Is78Io0detXmKQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
