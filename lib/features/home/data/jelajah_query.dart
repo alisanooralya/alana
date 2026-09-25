@@ -7,7 +7,10 @@ class JelajahQuery {
     this.sort = MangaSort.latest,
   }) : genreSlugs = List.unmodifiable(genreSlugs.toSet().toList()..sort());
 
-  const JelajahQuery._();
+  const JelajahQuery._()
+    : genreSlugs = const [],
+      status = MangaStatusFilter.all,
+      sort = MangaSort.latest;
 
   static const defaultQuery = JelajahQuery._();
 
