@@ -15,6 +15,7 @@ import 'package:alana/features/history/presentation/history_page.dart';
 import 'package:alana/features/home/presentation/home_page.dart';
 import 'package:alana/features/home/presentation/search_page.dart';
 import 'package:alana/features/library/presentation/library_page.dart';
+import 'package:alana/features/notifikasi/presentation/notification_list_page.dart';
 import 'package:alana/features/onboarding/data/onboarding_repository.dart';
 import 'package:alana/features/onboarding/presentation/onboarding_page.dart';
 import 'package:alana/features/profile/presentation/edit_profile_page.dart';
@@ -157,6 +158,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     path: 'cari',
                     name: 'pencarian',
                     builder: (context, state) => const SearchPage(),
+                  ),
+                  GoRoute(
+                    path: 'notifikasi',
+                    name: 'notifikasi',
+                    builder: (context, state) => const NotificationListPage(),
                   ),
                   GoRoute(
                     path: 'detail/:mangaId',

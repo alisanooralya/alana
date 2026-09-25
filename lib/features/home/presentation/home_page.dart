@@ -8,6 +8,7 @@ import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_view.dart';
 import 'package:alana/core/widgets/offline_banner.dart';
 import 'package:alana/core/utils/pesan_error.dart';
+import 'package:alana/features/notifikasi/presentation/notifikasi_providers.dart';
 import 'package:alana/models/manga.dart';
 
 import 'home_providers.dart';
@@ -76,6 +77,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final populer = ref.watch(popularMangaProvider);
     final rekomendasi = ref.watch(recommendedMangaProvider);
     final terbaru = ref.watch(latestUpdatesControllerProvider);
+    final belumDibaca = ref.watch(belumDibacaProvider).valueOrNull ?? 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -85,6 +87,18 @@ class _HomePageState extends ConsumerState<HomePage> {
             tooltip: 'Cari judul',
             icon: const Icon(Icons.search),
             onPressed: () => context.pushNamed('pencarian'),
+          ),
+          IconButton(
+            tooltip: 'Notifikasi',
+            icon: Badge(
+              isLabelVisible: belumDibaca > 0,
+              label: Text(belumDibaca > 99 ? '99+' : '$belumDibaca'),
+              child: const Icon(Icons.notifications_outlined),
+            ),
+            onPressed: () {
+              context.pushNamed('notifikasi');
+              ref.invalidate(belumDibacaProvider);
+            },
           ),
         ],
       ),

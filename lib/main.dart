@@ -5,13 +5,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:alana/core/diagnostics/error_log.dart';
+import 'package:alana/core/notifikasi/layanan_notifikasi.dart';
 import 'package:alana/core/providers/konektivitas_provider.dart';
 import 'package:alana/core/router/app_router.dart';
 import 'package:alana/core/storage/app_storage.dart';
 import 'package:alana/core/supabase/supabase_setup.dart';
 import 'package:alana/core/theme/app_theme.dart';
 import 'package:alana/features/auth/presentation/auth_providers.dart';
+import 'package:alana/features/notifikasi/data/pengingat_repository.dart';
 import 'package:alana/features/onboarding/data/onboarding_repository.dart';
+import 'package:alana/features/profile/presentation/profile_providers.dart';
 import 'package:alana/features/settings/data/app_settings.dart';
 import 'package:alana/features/settings/data/settings_repository.dart';
 import 'package:alana/features/sync/data/sync_service.dart';
@@ -47,11 +50,29 @@ class _BootstrapState extends ConsumerState<Bootstrap> {
   @override
   void initState() {
     super.initState();
-    // Supabase dulu (sesi menentukan rute awal), lalu Hive.
+    // Supabase dulu (sesi menentukan rute awal), lalu Hive + notifikasi.
     // Keduanya gagal-aman: aplikasi tetap jalan.
-    SupabaseSetup.init().then((_) => AppStorage.init()).then((_) {
-      if (mounted) setState(() => _status = _StatusSiap.siap);
-    });
+    SupabaseSetup.init()
+        .then((_) => AppStorage.init())
+        .then((_) => LayananNotifikasi.init())
+        .then((_) {
+          if (mounted) {
+            setState(() => _status = _StatusSiap.siap);
+            _jadwalkanPengingat();
+          }
+        });
+  }
+
+  /// Jadwalkan ulang pengingat tiap aplikasi dibuka (best-effort).
+  Future<void> _jadwalkanPengingat() async {
+    try {
+      if (!ref.read(pengingatAktifProvider)) return;
+      await ref
+          .read(pengingatRepositoryProvider)
+          .jadwalkanUlang(ref.read(userIdProvider));
+    } catch (_) {
+      // Abaikan: pengingat non-kritis.
+    }
   }
 
   @override
@@ -131,6 +152,25 @@ class ManhwaApp extends ConsumerWidget {
     ref.listen(luringProvider, (previous, next) {
       if (previous == true && next == false) {
         unawaited(ref.read(syncServiceProvider).flushTertunda());
+      }
+    });
+
+    // Ketuk notifikasi → pindah rute (termasuk dari terminated).
+    LayananNotifikasi.daftarkanNavigasi((lokasi) {
+      try {
+        ref.read(goRouterProvider).go(lokasi);
+      } catch (_) {
+        // Router belum siap; lokasi sudah ditampung layanan.
+      }
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final lokasi = LayananNotifikasi.ambilTertunda();
+      if (lokasi != null) {
+        try {
+          ref.read(goRouterProvider).go(lokasi);
+        } catch (_) {
+          // Abaikan.
+        }
       }
     });
 

@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:alana/core/notifikasi/layanan_notifikasi.dart';
 import 'package:alana/core/storage/app_storage.dart';
+import 'package:alana/features/notifikasi/data/pengingat_repository.dart';
+import 'package:alana/features/profile/presentation/profile_providers.dart';
 import 'package:alana/features/settings/data/app_settings.dart';
 import 'package:alana/features/settings/data/settings_repository.dart';
 
@@ -59,6 +62,24 @@ class SettingsPage extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Text(
+              'Notifikasi',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+          const _TilePengingat(),
+          ListTile(
+            leading: const Icon(Icons.notifications_active_outlined),
+            title: const Text('Kirim notifikasi uji'),
+            subtitle: const Text(
+              'Tampilkan satu notifikasi sekarang untuk mencoba.',
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => ref.read(pengingatRepositoryProvider).kirimUji(),
+          ),
+          const Divider(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: Text(
               'Perangkat',
               style: Theme.of(context).textTheme.titleMedium,
             ),
@@ -88,6 +109,32 @@ class SettingsPage extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Toggle pengingat baca: minta izin + jadwalkan saat dinyalakan.
+class _TilePengingat extends ConsumerWidget {
+  const _TilePengingat();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final aktif = ref.watch(pengingatAktifProvider);
+
+    return SwitchListTile(
+      title: const Text('Pengingat baca'),
+      subtitle: const Text('Ingatkan bacaan yang 2+ hari tidak dilanjutkan.'),
+      value: aktif,
+      onChanged: (nilai) async {
+        if (nilai) {
+          await LayananNotifikasi.mintaIzin();
+        }
+        await ref.read(pengingatAktifProvider.notifier).atur(nilai);
+        if (nilai) {
+          final uid = ref.read(userIdProvider);
+          await ref.read(pengingatRepositoryProvider).jadwalkanUlang(uid);
+        }
+      },
     );
   }
 }
