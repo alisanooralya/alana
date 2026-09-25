@@ -35,7 +35,7 @@ class DownloadsPage extends ConsumerWidget {
                   subtitle: Text(
                     storage.when(
                       loading: () => 'Menghitung…',
-                      error: (_, __) => 'Tidak dapat menghitung',
+                      error: (_, _) => 'Tidak dapat menghitung',
                       data: (bytes) => '${_formatBytes(bytes)} terpakai',
                     ),
                   ),
@@ -90,7 +90,7 @@ class _MangaDownloadCard extends ConsumerWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
-        leading: cover != null && File(cover).existsSync()
+        leading: cover.isNotEmpty && File(cover).existsSync()
             ? Image.file(File(cover), width: 48, height: 64, fit: BoxFit.cover)
             : const SizedBox(
                 width: 48,

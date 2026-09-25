@@ -231,8 +231,9 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     final current = state.valueOrNull;
     if (current == null || current.activeKey != null) return;
     if (current.queue.isEmpty) {
-      if (current.waitingForWifi)
+      if (current.waitingForWifi) {
         _tulis(current.copyWith(waitingForWifi: false));
+      }
       return;
     }
 
@@ -305,8 +306,9 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     final pages = await ref
         .read(readerRepositoryProvider)
         .getPages(request.chapterId);
-    if (pages.isEmpty)
+    if (pages.isEmpty) {
       throw const FormatException('Chapter tidak memiliki halaman.');
+    }
 
     final chapterDirectory = await repository.chapterDirectory(
       request.mangaId,
@@ -350,7 +352,6 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
           },
         );
       }
-      final bytes = await file.length();
       current = current.copyWith(
         downloadedPages: index + 1,
         fileSizeBytes:

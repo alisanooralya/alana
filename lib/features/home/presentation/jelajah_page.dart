@@ -9,7 +9,6 @@ import 'package:alana/core/widgets/loading_view.dart';
 import 'package:alana/core/widgets/offline_banner.dart';
 import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/features/home/data/jelajah_query.dart';
-import 'package:alana/features/home/presentation/paginated_manga_state.dart';
 import 'package:alana/models/genre.dart';
 import 'package:alana/services/manga_api_service.dart';
 
@@ -259,7 +258,7 @@ class _GenreSelector extends ConsumerWidget {
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
         scrollDirection: Axis.horizontal,
         itemCount: genres.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final genre = genres[index];
           return ChoiceChip(

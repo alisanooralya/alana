@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import 'package:alana/core/supabase/supabase_setup.dart';
 
@@ -43,8 +44,7 @@ class ReportRepository {
         .eq('chapter_id', chapterId)
         .eq('status', 'pending')
         .limit(1);
-    if (response.error != null) throw response.error!;
-    return response.data is List && response.data!.isNotEmpty;
+    return response.isNotEmpty;
   }
 
   Future<void> kirim({
@@ -53,22 +53,23 @@ class ReportRepository {
     required ChapterReportReason reason,
     String? note,
   }) async {
-    final response = await SupabaseSetup.instance
-        .from('chapter_reports')
-        .insert({
-          'user_id': userId,
-          'chapter_id': chapterId,
-          'reason': reason.value,
-          'note': note?.trim().isEmpty == true ? null : note?.trim(),
-        })
-        .select('id');
-    final error = response.error;
-    if (error == null) return;
-    if (error.code == '23505' ||
-        error.message.toLowerCase().contains('duplicate')) {
-      throw const ReportAlreadyExistsException();
+    try {
+      await SupabaseSetup.instance
+          .from('chapter_reports')
+          .insert({
+            'user_id': userId,
+            'chapter_id': chapterId,
+            'reason': reason.value,
+            'note': note?.trim().isEmpty == true ? null : note?.trim(),
+          })
+          .select('id');
+    } on PostgrestException catch (error) {
+      if (error.code == '23505' ||
+          error.message.toLowerCase().contains('duplicate')) {
+        throw const ReportAlreadyExistsException();
+      }
+      rethrow;
     }
-    throw error;
   }
 }
 

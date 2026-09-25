@@ -353,7 +353,7 @@ class _IsiDetail extends ConsumerWidget {
                   subtitle: Text(
                     [
                       _formatTanggalChapter(chapter.dateUpload),
-                      if (statusLabel != null) statusLabel,
+                      ?statusLabel,
                     ].join(' • '),
                   ),
                   trailing: Row(

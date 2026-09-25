@@ -202,8 +202,8 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     final offline =
         downloadAsync.hasValue &&
         downloaded?.status == DownloadStatus.completed;
-    final pagesAsync = downloadAsync.isLoading
-        ? const AsyncLoading()
+    final AsyncValue<List<manga.Page>> pagesAsync = downloadAsync.isLoading
+        ? const AsyncLoading<List<manga.Page>>()
         : offline
         ? ref.watch(offlinePageListProvider(widget.chapterId))
         : ref.watch(pageListProvider(widget.chapterId));
