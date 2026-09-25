@@ -35,8 +35,10 @@ import { SignJWT, importPKCS8 } from 'npm:jose@4';
 //      -H "Authorization: Bearer salah" \
 //      -H "Content-Type: application/json" -d '{}'
 const MAX_MANGA_PER_RUN = 100;
-const JEDA_MS_ANTAR_MANGA = 400;
+const JEDA_MS_ANTAR_MANGA = 1200;
 const BATCH_TOKEN = 20;
+// Retry backoff bila ditolak (WAF/rate-limit): 2s lalu 8s.
+const TUNDA_ULANG_MS = [2000, 8000];
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -144,9 +146,11 @@ function acakPanjang(n: number): string {
 }
 
 async function ambilChapterTerbaru(mangaId: string): Promise<ChapterBaru> {
+  // page_size kecil (30) cukup: daftar terurut terbaru dulu, dan
+  // chapterTeratas mengambil number terbesar sebagai pengaman.
   const url =
     `https://api.shngm.io/v1/chapter/${encodeURIComponent(mangaId)}/list` +
-    `?page_size=100`;
+    `?page_size=30`;
   // Header meniru browser desktop: API memblokir UA non-browser
   // (Deno/* kena 403) dan butuh Origin/Referer layaknya klien Flutter.
   const headers = {
@@ -160,16 +164,26 @@ async function ambilChapterTerbaru(mangaId: string): Promise<ChapterBaru> {
       '(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
     'X-Requested-With': acakPanjang(10),
   };
-  let res = await fetch(url, { headers });
-  // Sekali coba ulang setelah jeda bila ditolak (kemungkinan rate limit).
-  if (res.status === 403 || res.status === 429) {
-    await tidur(2000);
-    res = await fetch(url, { headers });
+  let terakhir = 0;
+  for (let coba = 0; coba <= TUNDA_ULANG_MS.length; coba++) {
+    const res = await fetch(url, { headers });
+    if (res.ok) {
+      const hasil = chapterTeratas(await res.json());
+      if (!hasil) throw new Error('Daftar chapter kosong');
+      return hasil;
+    }
+    terakhir = res.status;
+    // Hanya 403/429 yang dicoba ulang dengan backoff.
+    if (
+      (res.status === 403 || res.status === 429) &&
+      coba < TUNDA_ULANG_MS.length
+    ) {
+      await tidur(TUNDA_ULANG_MS[coba]);
+      continue;
+    }
+    throw new Error(`API manhwa ${res.status}`);
   }
-  if (!res.ok) throw new Error(`API manhwa ${res.status}`);
-  const hasil = chapterTeratas(await res.json());
-  if (!hasil) throw new Error('Daftar chapter kosong');
-  return hasil;
+  throw new Error(`API manhwa ${terakhir}`);
 }
 
 function fcmGagalUnregistered(badan: unknown): boolean {
