@@ -2,6 +2,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:alana/core/notifikasi/layanan_notifikasi.dart';
+import 'package:alana/core/utils/deep_link.dart';
 import 'package:alana/features/notifikasi/data/device_token_repository.dart';
 import 'package:alana/features/notifikasi/presentation/notification_permission_provider.dart';
 import 'package:alana/features/notifikasi/presentation/notifikasi_providers.dart';
@@ -134,13 +135,20 @@ class PushFcm {
     final data = pesan.data;
     final mangaId = data['manga_id']?.toString() ?? '';
     final chapterId = data['chapter_id']?.toString() ?? '';
+    final link =
+        data['link']?.toString() ??
+        (mangaId.isEmpty
+            ? ''
+            : chapterId.isEmpty
+            ? mangaDeepLink(mangaId)
+            : chapterDeepLink(mangaId, chapterId));
     final judul = pesan.notification?.title ?? 'Chapter baru tersedia';
     final isi = pesan.notification?.body ?? 'Ketuk untuk membaca.';
     await LayananNotifikasi.tampilkanBab(
       id: (mangaId + chapterId).hashCode & 0x7fffffff,
       judul: judul,
       isi: isi,
-      payload: '$mangaId|$chapterId',
+      payload: link,
     );
     ref.invalidate(daftarNotifikasiProvider);
     ref.invalidate(belumDibacaProvider);
@@ -150,6 +158,7 @@ class PushFcm {
     LayananNotifikasi.bukaNotifikasi(
       mangaId: pesan.data['manga_id']?.toString(),
       chapterId: pesan.data['chapter_id']?.toString(),
+      link: pesan.data['link']?.toString(),
     );
   }
 }

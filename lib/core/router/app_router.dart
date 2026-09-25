@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:alana/core/supabase/supabase_setup.dart';
+import 'package:alana/core/utils/deep_link.dart';
 import 'package:alana/features/about/presentation/about_page.dart';
 import 'package:alana/features/auth/data/auth_repository.dart';
 import 'package:alana/features/auth/presentation/auth_providers.dart';
@@ -34,12 +35,10 @@ import 'auth_refresh.dart';
 import 'scaffold_with_nav.dart';
 import 'transisi.dart';
 
-/// Router aplikasi. Disediakan lewat Riverpod agar mudah diuji
-/// dan di-watch dari [MaterialApp.router].
-///
-/// Prioritas redirect: sesi belum diketahui → splash; onboarding
-/// belum selesai → onboarding; belum login → rute auth; sudah
-/// login → Beranda (aturan username-baru tetap berlaku).
+String? _targetDeepLink(GoRouterState state) {
+  return internalLocationFromDeepLink(state.uri.toString());
+}
+
 final goRouterProvider = Provider<GoRouter>((ref) {
   final sesiAsync = ref.watch(sesiProvider);
   final pendatangBaru = ref.watch(pendingUsernameSetupProvider);
@@ -57,6 +56,13 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     refreshListenable: refresh,
     redirect: (context, state) {
       final lokasi = state.matchedLocation;
+      final customTarget = _targetDeepLink(state);
+      final target =
+          customTarget ??
+          (lokasi.startsWith('/detail/') || lokasi.startsWith('/baca/')
+              ? lokasi
+              : null);
+      if (target != null) DeepLinkIntent.simpan(target);
       const rutePublik = {
         '/splash',
         '/onboarding',
@@ -65,7 +71,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         '/lupa-password',
         '/verifikasi-email',
       };
-      // 1. Sesi belum diketahui atau splash belum cukup tampil.
       if (sesiAsync.isLoading || !splashSiap) {
         return lokasi == '/splash' ? null : '/splash';
       }
@@ -75,26 +80,30 @@ final goRouterProvider = Provider<GoRouter>((ref) {
               ? SupabaseSetup.instance.auth.currentSession
               : null);
       final masuk = sesi != null;
-      // 2. Onboarding belum selesai (berlaku juga bila sudah login).
       if (!sudahLihat) {
         return lokasi == '/onboarding' ? null : '/onboarding';
       }
-      // 3. Belum login → hanya rute publik.
+      if (masuk && customTarget != null) {
+        if (pendatangBaru) return '/profil/ubah?baru=1';
+        DeepLinkIntent.ambil();
+        return customTarget;
+      }
       if (!masuk && !rutePublik.contains(lokasi)) return '/masuk';
-      // 4. Sudah login → keluar dari halaman auth/splash/onboarding.
+      if (masuk && pendatangBaru && lokasi != '/profil/ubah') {
+        return '/profil/ubah?baru=1';
+      }
       if (masuk && (lokasi == '/masuk' || lokasi == '/daftar')) {
-        return '/';
+        return DeepLinkIntent.ambil() ?? '/';
       }
       if (masuk &&
           (lokasi == '/splash' ||
               lokasi == '/onboarding' ||
               lokasi == '/lupa-password' ||
               lokasi == '/verifikasi-email')) {
-        return '/';
+        return DeepLinkIntent.ambil() ?? '/';
       }
-      // User Google baru wajib memilih username sendiri dulu.
-      if (masuk && pendatangBaru && lokasi != '/profil/ubah') {
-        return '/profil/ubah?baru=1';
+      if (masuk && lokasi == '/profil/ubah') {
+        return DeepLinkIntent.ambil();
       }
       return null;
     },
@@ -265,6 +274,28 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/:mangaId',
+        name: 'deep-link-manga',
+        builder: (context, state) =>
+            DetailPage(mangaId: state.pathParameters['mangaId'] ?? ''),
+      ),
+      GoRoute(
+        path: '/:mangaId/chapter/:chapterId',
+        name: 'deep-link-chapter',
+        builder: (context, state) => ReaderPage(
+          mangaId: state.pathParameters['mangaId'] ?? '',
+          chapterId: state.pathParameters['chapterId'] ?? '',
+        ),
+      ),
+      GoRoute(
+        path: '/:mangaId/:chapterId',
+        name: 'deep-link-chapter-host',
+        builder: (context, state) => ReaderPage(
+          mangaId: state.pathParameters['mangaId'] ?? '',
+          chapterId: state.pathParameters['chapterId'] ?? '',
+        ),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

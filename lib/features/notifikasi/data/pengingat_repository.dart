@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import 'package:alana/core/notifikasi/layanan_notifikasi.dart';
+import 'package:alana/core/utils/deep_link.dart';
 import 'package:alana/core/storage/app_storage.dart';
 import 'package:alana/features/history/data/reading_history.dart';
 import 'package:alana/features/onboarding/data/onboarding_repository.dart';
@@ -46,7 +47,9 @@ class PengingatRepository {
             ? 'Bacaanmu menunggumu.'
             : 'Terakhir: ${p.lastChapterName}.',
         kapan: kapan,
-        payload: '${p.mangaId}|${p.lastChapterId}',
+        payload: p.lastChapterId.isEmpty
+            ? mangaDeepLink(p.mangaId)
+            : chapterDeepLink(p.mangaId, p.lastChapterId),
       );
       i++;
     }

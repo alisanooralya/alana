@@ -343,6 +343,7 @@ Deno.serve(async (req: Request) => {
       const isiNotif = terbaru.judul
         ? `${terbaru.judul} sudah tersedia.`
         : 'Chapter terbaru sudah tersedia.';
+      const linkBab = `alana://manga/${encodeURIComponent(mangaId)}/chapter/${encodeURIComponent(String(terbaru.id))}`;
       const { error: errNotif } = await admin.from('notifications').insert(
         target.map((uid) => ({
           user_id: uid,
@@ -393,6 +394,7 @@ Deno.serve(async (req: Request) => {
                   notification: { title: judulNotif, body: isiNotif },
                   data: {
                     type: 'chapter_update',
+                    link: linkBab,
                     manga_id: mangaId,
                     chapter_id: terbaru.id,
                   },

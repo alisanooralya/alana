@@ -1,22 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
-const shareBaseUrl = 'https://<domain-nanti>';
+import 'deep_link.dart';
 
-String mangaShareUrl(String mangaId) => '$shareBaseUrl/manga/$mangaId';
+String mangaShareUrl(String mangaId) => mangaDeepLink(mangaId);
 
 String chapterShareUrl(String mangaId, String chapterId) {
-  return '$shareBaseUrl/manga/$mangaId/chapter/$chapterId';
+  return chapterDeepLink(mangaId, chapterId);
 }
 
-Future<void> shareText(BuildContext context, String text) async {
+Future<void> shareLink(
+  BuildContext context, {
+  required String text,
+  required String link,
+}) async {
   final renderBox = context.findRenderObject() as RenderBox?;
   final origin = renderBox == null
       ? null
       : renderBox.localToGlobal(Offset.zero) & renderBox.size;
   try {
     await SharePlus.instance.share(
-      ShareParams(text: text, sharePositionOrigin: origin),
+      ShareParams(
+        text: text,
+        uri: Uri.parse(link),
+        sharePositionOrigin: origin,
+      ),
     );
   } catch (_) {
     if (!context.mounted) return;
@@ -29,7 +37,8 @@ Future<void> shareText(BuildContext context, String text) async {
 }
 
 Future<void> shareManga(BuildContext context, String title, String mangaId) {
-  return shareText(context, 'Baca $title di Alana! ${mangaShareUrl(mangaId)}');
+  final link = mangaShareUrl(mangaId);
+  return shareLink(context, text: 'Baca $title di Alana! $link', link: link);
 }
 
 Future<void> shareChapter(
@@ -40,8 +49,10 @@ Future<void> shareChapter(
   required String chapterId,
 }) {
   final chapter = chapterTitle.isEmpty ? chapterId : chapterTitle;
-  return shareText(
+  final link = chapterShareUrl(mangaId, chapterId);
+  return shareLink(
     context,
-    'Baca $mangaTitle — $chapter di Alana! ${chapterShareUrl(mangaId, chapterId)}',
+    text: 'Baca $mangaTitle — $chapter di Alana! $link',
+    link: link,
   );
 }

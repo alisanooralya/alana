@@ -3,6 +3,8 @@ import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/data/latest_all.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'package:alana/core/utils/deep_link.dart';
+
 /// Mekanik plugin notifikasi lokal (tanpa logika bisnis).
 ///
 /// - Channel Android `pengingat_baca`.
@@ -220,6 +222,8 @@ class LayananNotifikasi {
   /// `"manga|chapter"` → `/baca/m/c` atau `/detail/m`. Null bila kosong.
   static String? _lokasiDariPayload(String? payload) {
     if (payload == null || payload.isEmpty) return null;
+    final dariLink = internalLocationFromDeepLink(payload);
+    if (dariLink != null) return dariLink;
     final pisah = payload.split('|');
     return ruteDariNotif(
       mangaId: pisah[0].trim(),
@@ -227,8 +231,14 @@ class LayananNotifikasi {
     );
   }
 
-  /// Rute dari data notifikasi FCM (`manga_id`/`chapter_id`).
-  static String? ruteDariNotif({String? mangaId, String? chapterId}) {
+  /// Rute dari data notifikasi FCM (`link` atau `manga_id`/`chapter_id`).
+  static String? ruteDariNotif({
+    String? mangaId,
+    String? chapterId,
+    String? link,
+  }) {
+    final dariLink = internalLocationFromDeepLink(link);
+    if (dariLink != null) return dariLink;
     final m = (mangaId ?? '').trim();
     if (m.isEmpty) return null;
     final c = (chapterId ?? '').trim();
@@ -238,8 +248,16 @@ class LayananNotifikasi {
 
   /// Buka rute notifikasi: langsung bila navigator siap,
   /// ditampung bila belum (dibaca saat aplikasi siap).
-  static void bukaNotifikasi({String? mangaId, String? chapterId}) {
-    final lokasi = ruteDariNotif(mangaId: mangaId, chapterId: chapterId);
+  static void bukaNotifikasi({
+    String? mangaId,
+    String? chapterId,
+    String? link,
+  }) {
+    final lokasi = ruteDariNotif(
+      mangaId: mangaId,
+      chapterId: chapterId,
+      link: link,
+    );
     if (lokasi == null) return;
     final pergi = _pergi;
     if (pergi != null) {
