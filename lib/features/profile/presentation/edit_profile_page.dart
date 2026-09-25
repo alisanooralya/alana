@@ -138,6 +138,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           .unggahAvatar(uid, File(potong.path));
       if (!mounted) return;
       setState(() => _avatarBaru = url);
+      ref.invalidate(profileProvider);
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
@@ -166,6 +167,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           .read(profileRepositoryProvider)
           .ubah(uidAwal, displayName: _nama.text, username: usernameBaru);
       ref.read(pendingUsernameSetupProvider.notifier).state = false;
+      ref.invalidate(profileProvider);
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()

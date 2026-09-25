@@ -20,10 +20,14 @@ final userEmailProvider = Provider<String?>((ref) {
       SupabaseSetup.instance.auth.currentUser?.email;
 });
 
-/// Stream profil milik user aktif (null bila belum ada baris).
-final profileProvider = StreamProvider<Profile?>((ref) {
-  if (!SupabaseSetup.siap) return const Stream.empty();
+/// Profil milik user aktif (null bila belum ada baris).
+///
+/// Sengaja FutureProvider, bukan stream Realtime: profil hanya berubah
+/// dari aplikasi ini, jadi ambil-sekali + refresh sudah cukup dan tidak
+/// bergantung pada Replication yang aktif di server.
+final profileProvider = FutureProvider<Profile?>((ref) async {
+  if (!SupabaseSetup.siap) return null;
   final uid = ref.watch(userIdProvider);
-  if (uid == null || uid.isEmpty) return Stream.value(null);
-  return ref.watch(profileRepositoryProvider).pantau(uid);
+  if (uid == null || uid.isEmpty) return null;
+  return ref.watch(profileRepositoryProvider).ambil(uid);
 });

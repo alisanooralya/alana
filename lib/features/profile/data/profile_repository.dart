@@ -28,18 +28,6 @@ class ProfileRepository {
     return Profile.fromMap(Map<String, dynamic>.from(baris));
   }
 
-  /// Stream profil (realtime per baris user).
-  Stream<Profile?> pantau(String uid) {
-    return _client
-        .from('profiles')
-        .stream(primaryKey: ['id'])
-        .eq('id', uid)
-        .map((daftar) {
-          if (daftar.isEmpty) return null;
-          return Profile.fromMap(Map<String, dynamic>.from(daftar.first));
-        });
-  }
-
   /// Mengecek username dipakai user lain (di luar [kecualiUid]).
   /// null = tidak bisa dicek, lanjutkan dan andalkan error unik DB.
   Future<bool?> usernameDipakai(String username, {String? kecualiUid}) async {
