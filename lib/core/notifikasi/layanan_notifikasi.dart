@@ -52,7 +52,7 @@ class LayananNotifikasi {
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       );
       await _plugin.initialize(
-        pengaturan,
+        settings: pengaturan,
         onDidReceiveNotificationResponse: _saatDiketuk,
       );
 
@@ -116,7 +116,13 @@ class LayananNotifikasi {
     String? payload,
   }) async {
     try {
-      await _plugin.show(id, judul, isi, _detail(), payload: payload);
+      await _plugin.show(
+        id: id,
+        title: judul,
+        body: isi,
+        notificationDetails: _detail(),
+        payload: payload,
+      );
     } catch (_) {
       // Abaikan.
     }
@@ -132,11 +138,11 @@ class LayananNotifikasi {
   }) async {
     try {
       await _plugin.zonedSchedule(
-        id,
-        judul,
-        isi,
-        tz.TZDateTime.from(kapan, tz.local),
-        _detail(),
+        id: id,
+        title: judul,
+        body: isi,
+        scheduledDate: tz.TZDateTime.from(kapan, tz.local),
+        notificationDetails: _detail(),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         payload: payload,
       );
@@ -147,7 +153,7 @@ class LayananNotifikasi {
 
   static Future<void> batalkan(int id) async {
     try {
-      await _plugin.cancel(id);
+      await _plugin.cancel(id: id);
     } catch (_) {
       // Abaikan.
     }
