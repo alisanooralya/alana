@@ -13,6 +13,7 @@ import 'package:alana/features/auth/presentation/verify_email_page.dart';
 import 'package:alana/features/detail/presentation/detail_page.dart';
 import 'package:alana/features/history/presentation/history_page.dart';
 import 'package:alana/features/home/presentation/home_page.dart';
+import 'package:alana/features/home/presentation/jelajah_page.dart';
 import 'package:alana/features/home/presentation/search_page.dart';
 import 'package:alana/features/library/presentation/library_page.dart';
 import 'package:alana/features/notifikasi/presentation/notification_list_page.dart';
@@ -154,6 +155,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 name: 'beranda',
                 builder: (context, state) => const HomePage(),
                 routes: [
+                  GoRoute(
+                    path: 'jelajah',
+                    name: 'jelajah',
+                    builder: (context, state) => const JelajahPage(),
+                  ),
                   GoRoute(
                     path: 'cari',
                     name: 'pencarian',

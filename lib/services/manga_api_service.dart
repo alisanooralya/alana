@@ -6,6 +6,24 @@ import 'manga_api_client.dart';
 import 'manga_api_exception.dart';
 import 'manga_api_parsers.dart';
 
+enum MangaStatusFilter { all, ongoing, completed }
+
+extension MangaStatusFilterValue on MangaStatusFilter {
+  int? get apiValue => switch (this) {
+    MangaStatusFilter.all => null,
+    MangaStatusFilter.ongoing => 1,
+    MangaStatusFilter.completed => 2,
+  };
+}
+
+enum MangaSort { latest, popular, rating, title }
+
+extension MangaSortValue on MangaSort {
+  String get apiValue => name;
+
+  String get apiOrder => this == MangaSort.title ? 'asc' : 'desc';
+}
+
 /// High-level access to the Shinigami (shngm) manga API.
 class MangaApiService {
   MangaApiService({MangaApiClient? client})
@@ -55,6 +73,36 @@ class MangaApiService {
           'sort': 'latest',
           'sort_order': 'desc',
         },
+      );
+      return MangaListResponse.fromJson(json);
+    });
+  }
+
+  Future<MangaListResponse> listManga({
+    String query = '',
+    int page = 1,
+    Iterable<String> genreSlugs = const [],
+    MangaStatusFilter status = MangaStatusFilter.all,
+    MangaSort sort = MangaSort.latest,
+  }) {
+    return _guard('list manga', () async {
+      final params = <String, dynamic>{
+        'page': page,
+        'page_size': 24,
+        'genre_include_mode': 'or',
+        'genre_exclude_mode': 'or',
+        'sort': sort.apiValue,
+        'sort_order': sort.apiOrder,
+      };
+
+      if (query.isNotEmpty) params['q'] = query;
+      final genre = _normalizeMultiValue(genreSlugs);
+      if (genre.isNotEmpty) params['genre_include'] = genre;
+      if (status.apiValue != null) params['status'] = status.apiValue;
+
+      final json = await _client.getJson(
+        '/v1/manga/list',
+        queryParameters: params,
       );
       return MangaListResponse.fromJson(json);
     });

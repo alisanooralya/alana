@@ -84,6 +84,11 @@ class _HomePageState extends ConsumerState<HomePage> {
         title: const Text('Beranda'),
         actions: [
           IconButton(
+            tooltip: 'Jelajahi genre',
+            icon: const Icon(Icons.explore_outlined),
+            onPressed: () => context.pushNamed('jelajah'),
+          ),
+          IconButton(
             tooltip: 'Cari judul',
             icon: const Icon(Icons.search),
             onPressed: () => context.pushNamed('pencarian'),
