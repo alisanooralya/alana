@@ -64,6 +64,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   Future<void> _selesai() async {
     if (_indeks == _halaman.length - 1) {
       final permission = await ref.read(notificationPermissionProvider.future);
+      if (!mounted) return;
       if (!permission.granted && permission.canRequest) {
         final lanjut = await showDialog<bool>(
           context: context,

@@ -71,6 +71,15 @@ class _BootstrapState extends ConsumerState<Bootstrap> {
             _jadwalkanPengingat();
             unawaited(ref.read(pushServiceProvider).init());
             unawaited(
+              ref
+                  .read(pushServiceProvider)
+                  .sinkronToken(
+                    SupabaseSetup.siap
+                        ? SupabaseSetup.instance.auth.currentSession?.user.id
+                        : null,
+                  ),
+            );
+            unawaited(
               ref.read(notificationPermissionProvider.notifier).refresh(),
             );
           }
@@ -188,7 +197,7 @@ class _ManhwaAppState extends ConsumerState<ManhwaApp>
       final uid = next.valueOrNull?.session?.user.id;
       unawaited(ref.read(syncServiceProvider).handleSesi(uid));
       unawaited(ref.read(pushServiceProvider).sinkronToken(uid));
-    }, fireImmediately: true);
+    });
     ref.listen(luringProvider, (previous, next) {
       if (previous == true && next == false) {
         unawaited(ref.read(syncServiceProvider).flushTertunda());

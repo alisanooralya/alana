@@ -81,6 +81,7 @@ class SettingsPage extends ConsumerWidget {
               final permission = await ref.read(
                 notificationPermissionProvider.future,
               );
+              if (!context.mounted) return;
               if (!permission.granted) {
                 if (permission.blocked) {
                   await ref
@@ -166,6 +167,7 @@ class _TilePushBab extends ConsumerWidget {
                 final current = await ref.read(
                   notificationPermissionProvider.future,
                 );
+                if (!context.mounted) return;
                 if (!current.granted) {
                   if (current.blocked) return;
                   final lanjut = await showNotificationPermissionDialog(
@@ -220,6 +222,7 @@ class _TilePengingat extends ConsumerWidget {
                 final current = await ref.read(
                   notificationPermissionProvider.future,
                 );
+                if (!context.mounted) return;
                 if (!current.granted) {
                   if (current.blocked) return;
                   final lanjut = await showNotificationPermissionDialog(
