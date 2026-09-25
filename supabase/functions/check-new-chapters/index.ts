@@ -147,15 +147,25 @@ async function ambilChapterTerbaru(mangaId: string): Promise<ChapterBaru> {
   const url =
     `https://api.shngm.io/v1/chapter/${encodeURIComponent(mangaId)}/list` +
     `?page_size=100`;
-  const res = await fetch(url, {
-    headers: {
-      'Accept': 'application/json',
-      'DNT': '1',
-      'Origin': 'https://app.shinigami.asia',
-      'Referer': 'https://app.shinigami.asia/',
-      'X-Requested-With': acakPanjang(10),
-    },
-  });
+  // Header meniru browser desktop: API memblokir UA non-browser
+  // (Deno/* kena 403) dan butuh Origin/Referer layaknya klien Flutter.
+  const headers = {
+    'Accept': 'application/json',
+    'DNT': '1',
+    'Origin': 'https://app.shinigami.asia',
+    'Referer': 'https://app.shinigami.asia/',
+    'Sec-GPC': '1',
+    'User-Agent':
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 ' +
+      '(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+    'X-Requested-With': acakPanjang(10),
+  };
+  let res = await fetch(url, { headers });
+  // Sekali coba ulang setelah jeda bila ditolak (kemungkinan rate limit).
+  if (res.status === 403 || res.status === 429) {
+    await tidur(2000);
+    res = await fetch(url, { headers });
+  }
   if (!res.ok) throw new Error(`API manhwa ${res.status}`);
   const hasil = chapterTeratas(await res.json());
   if (!hasil) throw new Error('Daftar chapter kosong');
@@ -170,6 +180,26 @@ function fcmGagalUnregistered(badan: unknown): boolean {
   }
 }
 
+// Key API baru (publishable/secret) tinggal di env JSON terpisah
+// (SUPABASE_SECRET_KEYS / SUPABASE_PUBLISHABLE_KEYS); fallback ke
+// var lama (SERVICE_ROLE/ANON) agar tetap jalan di project lama.
+function kunciDariJson(namaJson: string, namaLama: string): string {
+  try {
+    const semua = Deno.env.get(namaJson);
+    if (semua) {
+      const parsed = JSON.parse(semua) as Record<string, unknown>;
+      const v = parsed['default'];
+      if (typeof v === 'string' && v) return v;
+    }
+  } catch {
+    // Abaikan, pakai fallback.
+  }
+  return Deno.env.get(namaLama) ?? '';
+}
+
+const kunciRahasia = () =>
+  kunciDariJson('SUPABASE_SECRET_KEYS', 'SUPABASE_SERVICE_ROLE_KEY');
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -179,7 +209,7 @@ Deno.serve(async (req: Request) => {
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const serviceKey = kunciRahasia();
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
   const saJson = Deno.env.get('FIREBASE_SERVICE_ACCOUNT_JSON') ?? '';
   const mentah = req.headers.get('Authorization') ?? '';

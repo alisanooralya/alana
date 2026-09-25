@@ -28,6 +28,22 @@ function json(data: unknown, status = 200) {
   });
 }
 
+// Key API baru tinggal di env JSON terpisah; fallback ke var lama
+// agar tetap jalan di project lama (lihat check-new-chapters).
+function kunciDariJson(namaJson: string, namaLama: string): string {
+  try {
+    const semua = Deno.env.get(namaJson);
+    if (semua) {
+      const parsed = JSON.parse(semua) as Record<string, unknown>;
+      const v = parsed['default'];
+      if (typeof v === 'string' && v) return v;
+    }
+  } catch {
+    // Abaikan, pakai fallback.
+  }
+  return Deno.env.get(namaLama) ?? '';
+}
+
 const gagal = () => json({ error: GAGAL_PESAN }, 401);
 
 function ipDari(req: Request): string {
@@ -61,8 +77,14 @@ Deno.serve(async (req: Request) => {
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const anonKey = kunciDariJson(
+    'SUPABASE_PUBLISHABLE_KEYS',
+    'SUPABASE_ANON_KEY',
+  );
+  const serviceKey = kunciDariJson(
+    'SUPABASE_SECRET_KEYS',
+    'SUPABASE_SERVICE_ROLE_KEY',
+  );
   if (!supabaseUrl || !anonKey || !serviceKey) {
     return gagal();
   }
