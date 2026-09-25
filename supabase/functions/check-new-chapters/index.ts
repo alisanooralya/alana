@@ -164,11 +164,22 @@ Deno.serve(async (req: Request) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
   const saJson = Deno.env.get('FIREBASE_SERVICE_ACCOUNT_JSON') ?? '';
-  const authHeader = req.headers.get('Authorization') ?? '';
-  if (
-    !supabaseUrl || !serviceKey || !saJson ||
-    authHeader !== `Bearer ${serviceKey}`
-  ) {
+  const mentah = req.headers.get('Authorization') ?? '';
+
+  // TODO(DEBUG, SEMENTARA): hapus blok log ini setelah 401 beres.
+  // Hanya panjang + 6 karakter pertama, TIDAK PERNAH isi penuh.
+  const samarkan = (s: string) =>
+    s ? `len=${s.length} awal=${s.slice(0, 6)}` : 'KOSONG';
+  console.log(`check-new-chapters: auth diterima: ${samarkan(mentah)}`);
+  console.log(`check-new-chapters: service key env: ${samarkan(serviceKey)}`);
+
+  // Hapus prefix "Bearer " (case-insensitive) lalu trim kedua sisi
+  // agar kebal spasi/newline nyasar dari curl/env.
+  const token = mentah.replace(/^Bearer\s+/i, '').trim();
+  const kunci = serviceKey.trim();
+  const cocok = token.length > 0 && kunci.length > 0 && token === kunci;
+  console.log(`check-new-chapters: hasil cocok=${cocok}`);
+  if (!supabaseUrl || !kunci || !saJson || !cocok) {
     return json({ error: 'Unauthorized.' }, 401);
   }
 
