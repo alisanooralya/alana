@@ -197,6 +197,13 @@ class ProfilePage extends ConsumerWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.pushNamed('tentang-aplikasi'),
               ),
+              ListTile(
+                leading: const Icon(Icons.download_outlined),
+                title: const Text('Unduhan'),
+                subtitle: const Text('Chapter tersimpan untuk baca offline'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.pushNamed('unduhan'),
+              ),
               if (punyaEmail)
                 ListTile(
                   leading: const Icon(Icons.security_outlined),

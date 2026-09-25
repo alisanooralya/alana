@@ -25,6 +25,10 @@ class SettingsRepository extends Notifier<AppSettings> {
   void aturKeepScreenOn(bool aktif) {
     _tulis(state.copyWith(keepScreenOn: aktif));
   }
+
+  void aturWifiOnlyDownloads(bool aktif) {
+    _tulis(state.copyWith(wifiOnlyDownloads: aktif));
+  }
 }
 
 final settingsRepositoryProvider =

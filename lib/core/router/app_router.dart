@@ -12,6 +12,7 @@ import 'package:alana/features/auth/presentation/login_page.dart';
 import 'package:alana/features/auth/presentation/register_page.dart';
 import 'package:alana/features/auth/presentation/verify_email_page.dart';
 import 'package:alana/features/detail/presentation/detail_page.dart';
+import 'package:alana/features/downloads/presentation/downloads_page.dart';
 import 'package:alana/features/history/presentation/history_page.dart';
 import 'package:alana/features/home/presentation/home_page.dart';
 import 'package:alana/features/home/presentation/jelajah_page.dart';
@@ -236,6 +237,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                     path: 'tentang-aplikasi',
                     name: 'tentang-aplikasi',
                     builder: (context, state) => const AboutPage(),
+                  ),
+                  GoRoute(
+                    path: 'unduhan',
+                    name: 'unduhan',
+                    builder: (context, state) => const DownloadsPage(),
                   ),
                   GoRoute(
                     path: 'keamanan',

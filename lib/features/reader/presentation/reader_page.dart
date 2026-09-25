@@ -8,6 +8,8 @@ import 'package:go_router/go_router.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'package:alana/core/utils/pesan_error.dart';
+import 'package:alana/features/downloads/data/download_manager.dart';
+import 'package:alana/features/downloads/data/download_repository.dart';
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_view.dart';
@@ -58,6 +60,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
   final _scrollController = ScrollController();
   Timer? _saveTimer;
   String? _uid;
+  int _jumlahHalamanTerakhir = 0;
 
   @override
   void initState() {
@@ -102,7 +105,6 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
 
   void _simpanPosisi() {
     if (!_scrollController.hasClients) return;
-    final pages = ref.read(pageListProvider(widget.chapterId)).valueOrNull;
     ref
         .read(historyRepositoryProvider.notifier)
         .simpanPosisi(
@@ -112,7 +114,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
           chapterId: widget.chapterId,
           chapterName: widget.chapterName,
           scrollOffset: _scrollController.offset,
-          pageCount: pages?.length ?? 0,
+          pageCount: _jumlahHalamanTerakhir,
         );
   }
 
@@ -128,7 +130,12 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     });
   }
 
-  void _preloadBerikutnya(int index, List<manga.Page> pages) {
+  void _preloadBerikutnya(
+    int index,
+    List<manga.Page> pages, {
+    bool offline = false,
+  }) {
+    if (offline) return;
     for (var i = index + 1; i <= index + 2 && i < pages.length; i++) {
       unawaited(
         precacheImage(
@@ -186,12 +193,25 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
 
   @override
   Widget build(BuildContext context) {
-    final pagesAsync = ref.watch(pageListProvider(widget.chapterId));
-    final chaptersAsync = ref.watch(chapterListProvider(widget.mangaId));
+    final downloadAsync = ref.watch(downloadManagerProvider);
+    final downloadState = downloadAsync.valueOrNull;
+    final downloaded = downloadState?.entryFor(
+      DownloadRepository.keyFor(widget.mangaId, widget.chapterId),
+    );
+    final offline =
+        downloadAsync.hasValue &&
+        downloaded?.status == DownloadStatus.completed;
+    final pagesAsync = downloadAsync.isLoading
+        ? const AsyncLoading()
+        : offline
+        ? ref.watch(offlinePageListProvider(widget.chapterId))
+        : ref.watch(pageListProvider(widget.chapterId));
+    final chaptersAsync = downloadAsync.isLoading || offline
+        ? const AsyncData<List<Chapter>>(<Chapter>[])
+        : ref.watch(chapterListProvider(widget.mangaId));
     _uid = ref.watch(userIdProvider);
 
-    // Tandai chapter sedang dibaca begitu daftar gambar termuat.
-    ref.listen(pageListProvider(widget.chapterId), (previous, next) {
+    void tandaiDibaca(AsyncValue<List<manga.Page>> next) {
       final pages = next.valueOrNull;
       if (pages == null || pages.isEmpty) return;
       ref
@@ -205,7 +225,19 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
                 ? widget.chapterId
                 : widget.chapterName,
           );
-    });
+    }
+
+    if (!downloadAsync.isLoading) {
+      if (offline) {
+        ref.listen(offlinePageListProvider(widget.chapterId), (previous, next) {
+          tandaiDibaca(next);
+        });
+      } else {
+        ref.listen(pageListProvider(widget.chapterId), (previous, next) {
+          tandaiDibaca(next);
+        });
+      }
+    }
 
     final chapters = chaptersAsync.valueOrNull;
     final terlamaDulu = chapters == null ? null : _urutTerlamaDulu(chapters);
@@ -233,7 +265,22 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
       backgroundColor: Colors.black,
       appBar: _chromeTerlihat
           ? AppBar(
-              title: Text(judul, maxLines: 1, overflow: TextOverflow.ellipsis),
+              title: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      judul,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (offline)
+                    const Padding(
+                      padding: EdgeInsets.only(left: 8),
+                      child: Icon(Icons.offline_pin, size: 18),
+                    ),
+                ],
+              ),
               actions: [
                 PopupMenuButton<String>(
                   tooltip: 'Menu chapter',
@@ -292,7 +339,13 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
           loading: () => const LoadingView(),
           error: (error, _) => ErrorView(
             pesan: pesanErrorRamah(error),
-            onRetry: () => ref.invalidate(pageListProvider(widget.chapterId)),
+            onRetry: () {
+              if (offline) {
+                ref.invalidate(offlinePageListProvider(widget.chapterId));
+              } else {
+                ref.invalidate(pageListProvider(widget.chapterId));
+              }
+            },
           ),
           data: (pages) {
             if (pages.isEmpty) {
@@ -302,6 +355,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
                 ikon: Icons.image_not_supported_outlined,
               );
             }
+            _jumlahHalamanTerakhir = pages.length;
             return ListView.builder(
               controller: _scrollController,
               padding: EdgeInsets.zero,
@@ -319,8 +373,10 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
                 }
                 return ReaderImage(
                   imageUrl: pages[index].imageUrl,
+                  localPath: offline ? pages[index].imageUrl : null,
                   headers: readerImageHeaders,
-                  onLoaded: () => _preloadBerikutnya(index, pages),
+                  onLoaded: () =>
+                      _preloadBerikutnya(index, pages, offline: offline),
                 );
               },
             );

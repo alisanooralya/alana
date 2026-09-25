@@ -13,6 +13,7 @@ class AppStorage {
   static const String bookmarksBoxName = 'bookmarks';
   static const String historyBoxName = 'history';
   static const String settingsBoxName = 'settings';
+  static const String downloadsBoxName = 'downloads';
 
   static bool _siap = false;
 
@@ -31,6 +32,7 @@ class AppStorage {
         Hive.openBox(bookmarksBoxName),
         Hive.openBox(historyBoxName),
         Hive.openBox(settingsBoxName),
+        Hive.openBox(downloadsBoxName),
       ]);
       _siap = true;
     } catch (error) {
@@ -41,6 +43,7 @@ class AppStorage {
   static Box? get bookmarksBox => _siap ? Hive.box(bookmarksBoxName) : null;
   static Box? get historyBox => _siap ? Hive.box(historyBoxName) : null;
   static Box? get settingsBox => _siap ? Hive.box(settingsBoxName) : null;
+  static Box? get downloadsBox => _siap ? Hive.box(downloadsBoxName) : null;
 
   /// Kunci khusus di box user untuk daftar hapus tertunda (tombstone).
   /// Nilainya `Map` id → ISO waktu hapus. build() repository melewatinya.

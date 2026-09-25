@@ -14,6 +14,7 @@ import 'package:alana/core/storage/app_storage.dart';
 import 'package:alana/core/supabase/supabase_setup.dart';
 import 'package:alana/core/theme/app_theme.dart';
 import 'package:alana/features/auth/presentation/auth_providers.dart';
+import 'package:alana/features/downloads/data/download_manager.dart';
 import 'package:alana/features/notifikasi/data/pengingat_repository.dart';
 import 'package:alana/features/notifikasi/presentation/notification_permission_provider.dart';
 import 'package:alana/features/onboarding/data/onboarding_repository.dart';
@@ -82,6 +83,7 @@ class _BootstrapState extends ConsumerState<Bootstrap> {
             unawaited(
               ref.read(notificationPermissionProvider.notifier).refresh(),
             );
+            unawaited(ref.read(downloadManagerProvider.future));
           }
         });
   }

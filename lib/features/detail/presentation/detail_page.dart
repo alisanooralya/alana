@@ -8,6 +8,8 @@ import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_view.dart';
 import 'package:alana/core/widgets/offline_banner.dart';
 import 'package:alana/core/utils/pesan_error.dart';
+import 'package:alana/features/downloads/data/download_manager.dart';
+import 'package:alana/features/downloads/data/download_repository.dart';
 import 'package:alana/features/history/data/history_repository.dart';
 import 'package:alana/features/library/data/bookmark_repository.dart';
 import 'package:alana/features/library/data/bookmarked_manga.dart';
@@ -57,6 +59,58 @@ class _DetailPageState extends ConsumerState<DetailPage> {
       );
   }
 
+  Future<void> _konfirmasiDownloadSemua(
+    BuildContext context,
+    WidgetRef ref,
+    String mangaId,
+    MangaDetails info,
+    List<Chapter> chapters,
+  ) async {
+    if (chapters.isEmpty) return;
+    final hasil = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Download semua chapter?'),
+        content: Text(
+          '${chapters.length} chapter akan masuk ke antrean unduhan.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            icon: const Icon(Icons.download_outlined),
+            label: const Text('Masuk antrean'),
+          ),
+        ],
+      ),
+    );
+    if (hasil != true || !context.mounted) return;
+    await ref
+        .read(downloadManagerProvider.notifier)
+        .enqueueAll(
+          chapters
+              .map(
+                (chapter) => DownloadRequest(
+                  mangaId: mangaId,
+                  chapterId: chapter.url,
+                  mangaTitle: info.title,
+                  chapterTitle: chapter.name,
+                  coverUrl: info.thumbnail,
+                ),
+              )
+              .toList(),
+        );
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(content: Text('${chapters.length} chapter masuk antrean.')),
+      );
+  }
+
   void _bukaChapter(BuildContext context, MangaDetails info, Chapter chapter) {
     context.pushNamed(
       'reader',
@@ -82,6 +136,8 @@ class _DetailPageState extends ConsumerState<DetailPage> {
     }
 
     final detail = ref.watch(mangaDetailsProvider(widget.mangaId));
+    final downloads = ref.watch(downloadManagerProvider).valueOrNull;
+    final chaptersAsync = ref.watch(chapterListProvider(widget.mangaId));
 
     return Scaffold(
       appBar: AppBar(title: const Text('Detail')),
@@ -110,6 +166,25 @@ class _DetailPageState extends ConsumerState<DetailPage> {
             },
             onToggleBookmark: () => _toggleBookmark(info),
             onBukaChapter: (chapter) => _bukaChapter(context, info, chapter),
+            downloads: downloads,
+            onDownloadAll: () => _konfirmasiDownloadSemua(
+              context,
+              ref,
+              widget.mangaId,
+              info,
+              chaptersAsync.valueOrNull ?? const [],
+            ),
+            onDownloadChapter: (chapter) => ref
+                .read(downloadManagerProvider.notifier)
+                .enqueue(
+                  DownloadRequest(
+                    mangaId: widget.mangaId,
+                    chapterId: chapter.url,
+                    mangaTitle: info.title,
+                    chapterTitle: chapter.name,
+                    coverUrl: info.thumbnail,
+                  ),
+                ),
           ),
         ),
       ),
@@ -127,6 +202,9 @@ class _IsiDetail extends ConsumerWidget {
     required this.onToggleUrut,
     required this.onToggleBookmark,
     required this.onBukaChapter,
+    required this.downloads,
+    required this.onDownloadAll,
+    required this.onDownloadChapter,
   });
 
   final String mangaId;
@@ -137,6 +215,9 @@ class _IsiDetail extends ConsumerWidget {
   final VoidCallback onToggleUrut;
   final VoidCallback onToggleBookmark;
   final void Function(Chapter chapter) onBukaChapter;
+  final DownloadState? downloads;
+  final VoidCallback onDownloadAll;
+  final void Function(Chapter chapter) onDownloadChapter;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -189,6 +270,7 @@ class _IsiDetail extends ConsumerWidget {
             jumlah: chaptersAsync.valueOrNull?.length,
             terbaruDulu: terbaruDulu,
             onToggleUrut: onToggleUrut,
+            onDownloadAll: onDownloadAll,
           ),
         ),
         chaptersAsync.when(
@@ -231,6 +313,21 @@ class _IsiDetail extends ConsumerWidget {
               itemBuilder: (context, index) {
                 final chapter = tampil[index];
                 final sudah = dibaca.contains(chapter.url);
+                final download = downloads?.entryFor(
+                  DownloadRepository.keyFor(mangaId, chapter.url),
+                );
+                final statusUnduhan = download?.status;
+                final selesaiUnduh = statusUnduhan == DownloadStatus.completed;
+                final statusLabel = switch (statusUnduhan) {
+                  DownloadStatus.queued => 'Dalam antrean',
+                  DownloadStatus.downloading =>
+                    'Mengunduh ${((download?.progress ?? 0) * 100).round()}%',
+
+                  DownloadStatus.completed => 'Tersimpan',
+                  DownloadStatus.failed => 'Gagal',
+                  DownloadStatus.paused => 'Dijeda',
+                  null => null,
+                };
                 return ListTile(
                   leading: Icon(
                     sudah ? Icons.check_circle : Icons.check_circle_outline,
@@ -250,10 +347,46 @@ class _IsiDetail extends ConsumerWidget {
                           )
                         : null,
                   ),
-                  subtitle: Text(_formatTanggalChapter(chapter.dateUpload)),
-                  trailing: sudah
-                      ? const Text('Dibaca')
-                      : const Icon(Icons.chevron_right),
+                  subtitle: Text(
+                    [
+                      _formatTanggalChapter(chapter.dateUpload),
+                      if (statusLabel != null) statusLabel,
+                    ].join(' • '),
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (selesaiUnduh) const Icon(Icons.offline_pin, size: 18),
+                      if (statusUnduhan == DownloadStatus.downloading)
+                        SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(
+                            value: download?.progress ?? 0,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      else
+                        IconButton(
+                          tooltip: selesaiUnduh
+                              ? 'Chapter sudah tersimpan'
+                              : 'Unduh chapter',
+                          onPressed: selesaiUnduh
+                              ? null
+                              : () => onDownloadChapter(chapter),
+                          icon: Icon(
+                            selesaiUnduh
+                                ? Icons.download_done
+                                : Icons.download_outlined,
+                          ),
+                        ),
+                      if (sudah)
+                        const Text('Dibaca')
+                      else if (!selesaiUnduh)
+                        const Icon(Icons.chevron_right),
+                    ],
+                  ),
+
                   onTap: () => onBukaChapter(chapter),
                 );
               },
@@ -503,11 +636,13 @@ class _HeaderChapter extends StatelessWidget {
     required this.jumlah,
     required this.terbaruDulu,
     required this.onToggleUrut,
+    required this.onDownloadAll,
   });
 
   final int? jumlah;
   final bool terbaruDulu;
   final VoidCallback onToggleUrut;
+  final VoidCallback onDownloadAll;
 
   @override
   Widget build(BuildContext context) {
@@ -521,8 +656,15 @@ class _HeaderChapter extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
+          IconButton(
+            tooltip: 'Download semua chapter',
+            onPressed: jumlah == null || jumlah == 0 ? null : onDownloadAll,
+
+            icon: const Icon(Icons.download_outlined),
+          ),
           TextButton.icon(
             onPressed: onToggleUrut,
+
             icon: Icon(terbaruDulu ? Icons.arrow_downward : Icons.arrow_upward),
             label: Text(terbaruDulu ? 'Terbaru' : 'Terlama'),
           ),

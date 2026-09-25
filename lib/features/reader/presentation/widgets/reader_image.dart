@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
@@ -16,11 +18,13 @@ class ReaderImage extends StatefulWidget {
     super.key,
     required this.imageUrl,
     required this.headers,
+    this.localPath,
     this.onLoaded,
   });
 
   final String imageUrl;
   final Map<String, String> headers;
+  final String? localPath;
   final VoidCallback? onLoaded;
 
   @override
@@ -46,6 +50,25 @@ class _ReaderImageState extends State<ReaderImage> {
     // Estimasi tinggi placeholder: strip webtoon umumnya jauh lebih
     // tinggi daripada lebar layar.
     final placeholderHeight = MediaQuery.of(context).size.width * 1.5;
+
+    if (widget.localPath != null && widget.localPath!.isNotEmpty) {
+      return InteractiveViewer(
+        minScale: 1,
+        maxScale: 4,
+        panEnabled: false,
+        child: Image.file(
+          File(widget.localPath!),
+          width: double.infinity,
+          fit: BoxFit.fitWidth,
+          errorBuilder: (context, error, stackTrace) => SizedBox(
+            height: placeholderHeight,
+            child: const Center(
+              child: Text('File gambar offline tidak tersedia.'),
+            ),
+          ),
+        ),
+      );
+    }
 
     return InteractiveViewer(
       minScale: 1,

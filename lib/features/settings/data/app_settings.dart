@@ -33,6 +33,7 @@ class AppSettings {
   const AppSettings({
     this.themeMode = AppThemeMode.sistem,
     this.keepScreenOn = false,
+    this.wifiOnlyDownloads = false,
   });
 
   /// Tema tampilan.
@@ -40,22 +41,33 @@ class AppSettings {
 
   /// Layar tetap menyala selama membaca di reader.
   final bool keepScreenOn;
+  final bool wifiOnlyDownloads;
 
-  AppSettings copyWith({AppThemeMode? themeMode, bool? keepScreenOn}) {
+  AppSettings copyWith({
+    AppThemeMode? themeMode,
+    bool? keepScreenOn,
+    bool? wifiOnlyDownloads,
+  }) {
     return AppSettings(
       themeMode: themeMode ?? this.themeMode,
       keepScreenOn: keepScreenOn ?? this.keepScreenOn,
+      wifiOnlyDownloads: wifiOnlyDownloads ?? this.wifiOnlyDownloads,
     );
   }
 
   Map<String, dynamic> toMap() {
-    return {'themeMode': themeMode.name, 'keepScreenOn': keepScreenOn};
+    return {
+      'themeMode': themeMode.name,
+      'keepScreenOn': keepScreenOn,
+      'wifiOnlyDownloads': wifiOnlyDownloads,
+    };
   }
 
   factory AppSettings.fromMap(Map<String, dynamic> map) {
     return AppSettings(
       themeMode: AppThemeMode.fromName(map['themeMode']?.toString()),
       keepScreenOn: map['keepScreenOn'] == true,
+      wifiOnlyDownloads: map['wifiOnlyDownloads'] == true,
     );
   }
 }

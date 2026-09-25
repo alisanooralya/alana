@@ -60,7 +60,16 @@ class SettingsPage extends ConsumerWidget {
             value: pengaturan.keepScreenOn,
             onChanged: repo.aturKeepScreenOn,
           ),
+          SwitchListTile(
+            title: const Text('Unduh hanya via Wi-Fi'),
+            subtitle: const Text(
+              'Tunggu koneksi Wi-Fi sebelum memulai setiap chapter baru.',
+            ),
+            value: pengaturan.wifiOnlyDownloads,
+            onChanged: repo.aturWifiOnlyDownloads,
+          ),
           const Divider(),
+
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Text(
