@@ -17,6 +17,23 @@ import { SignJWT, importPKCS8 } from 'npm:jose@4';
 // Rate ke API sumber dibatasi: jeda 400ms antar manga + maks 100 manga/run.
 // Push FCM paralel terbatas 20 token sekaligus (allSettled); token yang
 // mati (UNREGISTERED) dihapus agar tidak menumpuk.
+//
+// TES MANUAL (curl) — ganti <REF> dan key yang sesuai:
+// 1. HARUS 200 (service role):
+//    curl -X POST https://<REF>.supabase.co/functions/v1/check-new-chapters \
+//      -H "Authorization: Bearer <SERVICE_ROLE_KEY>" \
+//      -H "Content-Type: application/json" -d '{}'
+// 2. HARUS 401 (anon key):
+//    curl -X POST https://<REF>.supabase.co/functions/v1/check-new-chapters \
+//      -H "Authorization: Bearer <ANON_KEY>" \
+//      -H "Content-Type: application/json" -d '{}'
+// 3. HARUS 401 (tanpa header):
+//    curl -X POST https://<REF>.supabase.co/functions/v1/check-new-chapters \
+//      -H "Content-Type: application/json" -d '{}'
+// 4. HARUS 401 (key ngawur):
+//    curl -X POST https://<REF>.supabase.co/functions/v1/check-new-chapters \
+//      -H "Authorization: Bearer salah" \
+//      -H "Content-Type: application/json" -d '{}'
 const MAX_MANGA_PER_RUN = 100;
 const JEDA_MS_ANTAR_MANGA = 400;
 const BATCH_TOKEN = 20;
@@ -163,15 +180,22 @@ Deno.serve(async (req: Request) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
   const saJson = Deno.env.get('FIREBASE_SERVICE_ACCOUNT_JSON') ?? '';
   const mentah = req.headers.get('Authorization') ?? '';
 
   // Hapus prefix "Bearer " (case-insensitive) lalu trim kedua sisi
   // agar kebal spasi/newline nyasar dari curl/env.
+  // HANYA service role yang diterima: perbandingan string biasa,
+  // BUKAN validasi JWT (anon key pun JWT valid dan harus ditolak).
   const token = mentah.replace(/^Bearer\s+/i, '').trim();
   const kunci = serviceKey.trim();
+  const anon = anonKey.trim();
   const cocok = token.length > 0 && kunci.length > 0 && token === kunci;
-  if (!supabaseUrl || !kunci || !saJson || !cocok) {
+  // Sabuk ganda: tolak eksplisit bila token sama dengan anon key,
+  // seandainya env service role bermasalah.
+  const anonLolos = anon.length > 0 && token === anon;
+  if (!supabaseUrl || !kunci || !saJson || !cocok || anonLolos) {
     return json({ error: 'Unauthorized.' }, 401);
   }
 
