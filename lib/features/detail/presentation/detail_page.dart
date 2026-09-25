@@ -8,6 +8,7 @@ import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_view.dart';
 import 'package:alana/core/widgets/offline_banner.dart';
 import 'package:alana/core/utils/pesan_error.dart';
+import 'package:alana/core/utils/share_content.dart';
 import 'package:alana/features/downloads/data/download_manager.dart';
 import 'package:alana/features/downloads/data/download_repository.dart';
 import 'package:alana/features/history/data/history_repository.dart';
@@ -246,6 +247,8 @@ class _IsiDetail extends ConsumerWidget {
               progres?.lastChapterId,
             ),
             onToggleBookmark: onToggleBookmark,
+            onShare: (shareContext) =>
+                shareManga(shareContext, info.title, mangaId),
             onBaca: () {
               final target = _targetBaca(
                 chaptersAsync.valueOrNull,
@@ -406,6 +409,7 @@ class _HeaderDetail extends StatelessWidget {
     required this.labelTombolBaca,
     required this.targetBaca,
     required this.onToggleBookmark,
+    required this.onShare,
     required this.onBaca,
   });
 
@@ -414,6 +418,7 @@ class _HeaderDetail extends StatelessWidget {
   final String labelTombolBaca;
   final Chapter? targetBaca;
   final VoidCallback onToggleBookmark;
+  final void Function(BuildContext) onShare;
   final VoidCallback onBaca;
 
   @override
@@ -496,6 +501,13 @@ class _HeaderDetail extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
+              Builder(
+                builder: (shareContext) => IconButton.outlined(
+                  tooltip: 'Bagikan judul',
+                  onPressed: () => onShare(shareContext),
+                  icon: const Icon(Icons.share_outlined),
+                ),
+              ),
               IconButton.outlined(
                 tooltip: ditandai ? 'Hapus dari Pustaka' : 'Simpan ke Pustaka',
                 isSelected: ditandai,

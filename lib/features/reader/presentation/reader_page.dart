@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'package:alana/core/utils/pesan_error.dart';
+import 'package:alana/core/utils/share_content.dart';
 import 'package:alana/features/downloads/data/download_manager.dart';
 import 'package:alana/features/downloads/data/download_repository.dart';
 import 'package:alana/core/widgets/empty_view.dart';
@@ -285,9 +286,31 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
                 PopupMenuButton<String>(
                   tooltip: 'Menu chapter',
                   onSelected: (value) {
-                    if (value == 'laporan') unawaited(_bukaLaporan());
+                    if (value == 'laporan') {
+                      unawaited(_bukaLaporan());
+                    } else if (value == 'bagikan') {
+                      unawaited(
+                        shareChapter(
+                          context,
+                          mangaTitle: widget.mangaTitle.isEmpty
+                              ? widget.mangaId
+                              : widget.mangaTitle,
+                          chapterTitle: judul,
+                          mangaId: widget.mangaId,
+                          chapterId: widget.chapterId,
+                        ),
+                      );
+                    }
                   },
                   itemBuilder: (context) => const [
+                    PopupMenuItem(
+                      value: 'bagikan',
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(Icons.share_outlined),
+                        title: Text('Bagikan chapter'),
+                      ),
+                    ),
                     PopupMenuItem(
                       value: 'laporan',
                       child: ListTile(
