@@ -70,7 +70,7 @@ class LayananNotifikasi {
         channelBabId,
         channelBabName,
         description: 'Pemberitahuan chapter baru dari server.',
-        importance: Importance.highImportance,
+        importance: Importance.high,
       );
       final android = _plugin
           .resolvePlatformSpecificImplementation<
@@ -119,7 +119,7 @@ class LayananNotifikasi {
         nama,
         channelDescription: deskripsi,
         importance: channel == channelBabId
-            ? Importance.highImportance
+            ? Importance.high
             : Importance.defaultImportance,
         priority: Priority.defaultPriority,
       ),
