@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:alana/core/notifikasi/layanan_notifikasi.dart';
 import 'package:alana/features/notifikasi/data/device_token_repository.dart';
+import 'package:alana/features/notifikasi/presentation/notification_permission_provider.dart';
 import 'package:alana/features/notifikasi/presentation/notifikasi_providers.dart';
 import 'package:alana/features/onboarding/data/onboarding_repository.dart';
 
@@ -59,6 +60,8 @@ class PushFcm {
         return;
       }
       if (!ref.read(pushAktifProvider)) return;
+      final permission = await ref.read(notificationPermissionProvider.future);
+      if (!permission.granted) return;
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null || token.isEmpty) return;
       final tersimpan = prefs.getString(DeviceTokenRepository.kunciLokal) ?? '';
@@ -77,6 +80,8 @@ class PushFcm {
     try {
       final uid = _uid;
       if (uid == null || !ref.read(pushAktifProvider)) return;
+      final permission = await ref.read(notificationPermissionProvider.future);
+      if (!permission.granted) return;
       final prefs = ref.read(sharedPreferencesProvider);
       final repo = ref.read(deviceTokenRepositoryProvider);
       final lama = prefs.getString(DeviceTokenRepository.kunciLokal) ?? '';

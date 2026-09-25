@@ -15,6 +15,7 @@ import 'package:alana/core/supabase/supabase_setup.dart';
 import 'package:alana/core/theme/app_theme.dart';
 import 'package:alana/features/auth/presentation/auth_providers.dart';
 import 'package:alana/features/notifikasi/data/pengingat_repository.dart';
+import 'package:alana/features/notifikasi/presentation/notification_permission_provider.dart';
 import 'package:alana/features/onboarding/data/onboarding_repository.dart';
 import 'package:alana/features/profile/presentation/profile_providers.dart';
 import 'package:alana/features/settings/data/app_settings.dart';
@@ -69,6 +70,9 @@ class _BootstrapState extends ConsumerState<Bootstrap> {
             setState(() => _status = _StatusSiap.siap);
             _jadwalkanPengingat();
             unawaited(ref.read(pushServiceProvider).init());
+            unawaited(
+              ref.read(notificationPermissionProvider.notifier).refresh(),
+            );
           }
         });
   }
@@ -140,31 +144,57 @@ class _LayarMuat extends StatelessWidget {
 }
 
 /// Root aplikasi pembaca manhwa.
-class ManhwaApp extends ConsumerWidget {
+class ManhwaApp extends ConsumerStatefulWidget {
   const ManhwaApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ManhwaApp> createState() => _ManhwaAppState();
+}
+
+class _ManhwaAppState extends ConsumerState<ManhwaApp>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    unawaited(_perbaruiNotifikasi());
+  }
+
+  Future<void> _perbaruiNotifikasi() async {
+    await ref.read(notificationPermissionProvider.notifier).refresh();
+    final uid = ref.read(sesiProvider).valueOrNull?.session?.user.id;
+    await ref.read(pushServiceProvider).sinkronToken(uid);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final router = ref.watch(goRouterProvider);
     final tema = ref.watch(
       settingsRepositoryProvider.select((pengaturan) => pengaturan.themeMode),
     );
 
-    // Orkestrasi sinkronisasi: login/logout dan koneksi kembali.
-    // Semua fire-and-forget; UI tidak pernah menunggu jaringan.
     ref.listen(sesiProvider, (previous, next) {
       final uid = next.valueOrNull?.session?.user.id;
       unawaited(ref.read(syncServiceProvider).handleSesi(uid));
-      // Token push mengikuti sesi: login/start → upsert, logout → hapus.
       unawaited(ref.read(pushServiceProvider).sinkronToken(uid));
-    });
+    }, fireImmediately: true);
     ref.listen(luringProvider, (previous, next) {
       if (previous == true && next == false) {
         unawaited(ref.read(syncServiceProvider).flushTertunda());
       }
     });
 
-    // Ketuk notifikasi → pindah rute (termasuk dari terminated).
     LayananNotifikasi.daftarkanNavigasi((lokasi) {
       try {
         ref.read(goRouterProvider).go(lokasi);

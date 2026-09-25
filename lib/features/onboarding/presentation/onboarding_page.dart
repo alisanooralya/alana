@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:alana/core/router/transisi.dart';
+import 'package:alana/features/notifikasi/presentation/notification_permission_provider.dart';
 import 'package:alana/features/onboarding/data/onboarding_repository.dart';
 
 class _HalamanOnboarding {
@@ -61,6 +62,35 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   }
 
   Future<void> _selesai() async {
+    if (_indeks == _halaman.length - 1) {
+      final permission = await ref.read(notificationPermissionProvider.future);
+      if (!permission.granted && permission.canRequest) {
+        final lanjut = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Aktifkan notifikasi'),
+            content: const Text(
+              'Aktifkan notifikasi supaya tahu saat chapter baru terbit '
+              'dan menerima pengingat baca.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Nanti dulu'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('Lanjutkan'),
+              ),
+            ],
+          ),
+        );
+        if (lanjut == true) {
+          await ref.read(notificationPermissionProvider.notifier).request();
+        }
+      }
+    }
     await ref.read(sudahOnboardingProvider.notifier).selesai();
     if (mounted) context.go('/masuk');
   }
