@@ -9,10 +9,9 @@ import { SignJWT, importPKCS8 } from 'npm:jose@4';
 // (dibandingkan dengan env SUPABASE_SERVICE_ROLE_KEY).
 //
 // Endpoint API manhwa SAMA dengan service Flutter:
-// - MangaApiService.getChapterList -> GET {API}/v1/chapter/{mangaId}/list
+// - MangaApiService.getMangaDetails -> GET {API}/v1/manga/detail/{mangaId}
 //   (di Flutter: base https://api.shngm.io + header Origin/Referer).
-// - Chapter terbaru = elemen dengan chapter_number terbesar
-//   (fallback: elemen pertama bila number tak terbaca).
+// - Field latest_chapter_id dan latest_chapter_number dipakai sebagai chapter terbaru.
 //
 // Rate ke API sumber dibatasi: jeda 400ms antar manga + maks 100 manga/run.
 // Push FCM paralel terbatas 20 token sekaligus (allSettled); token yang
@@ -98,44 +97,25 @@ async function tokenAksesFcm(saJson: string): Promise<string> {
   return tokenCache.token;
 }
 
-// ---- Bentuk chapter dari API (toleran beberapa shape) ----
 type ChapterBaru = { id: string; nomor: number; judul: string };
 
-function chapterTeratas(payload: unknown): ChapterBaru | null {
-  let mentah: unknown[] = [];
-  if (Array.isArray(payload)) {
-    mentah = payload;
-  } else if (payload && typeof payload === 'object') {
-    const p = payload as Record<string, unknown>;
-    for (const kunci of ['chapter_list', 'data']) {
-      if (Array.isArray(p[kunci])) {
-        mentah = p[kunci] as unknown[];
-        break;
-      }
-    }
-  }
-  let terbaik: ChapterBaru | null = null;
-  let pertama: ChapterBaru | null = null;
-  for (const item of mentah) {
-    if (!item || typeof item !== 'object') continue;
-    const m = item as Record<string, unknown>;
-    const id = String(
-      m['chapter_id'] ?? m['id'] ?? '',
-    );
-    if (!id) continue;
-    const mentahNomor = m['chapter_number'] ?? m['name'] ?? m['number'];
-    const nomor = parseFloat(String(mentahNomor ?? 'NaN'));
-    const judul = String(m['chapter_title'] ?? m['title'] ?? '');
-    const entri = {
-      id,
-      nomor: Number.isFinite(nomor) ? nomor : -1,
-      judul,
-    };
-    pertama ??= entri;
-    if (terbaik === null || entri.nomor > terbaik.nomor) terbaik = entri;
-  }
-  if (terbaik && terbaik.nomor >= 0) return terbaik;
-  return pertama;
+function chapterDariDetail(payload: unknown): ChapterBaru | null {
+  if (!payload || typeof payload !== 'object') return null;
+  const p = payload as Record<string, unknown>;
+  const data =
+    p['data'] && typeof p['data'] === 'object'
+      ? (p['data'] as Record<string, unknown>)
+      : p;
+  const id = String(data['latest_chapter_id'] ?? '');
+  if (!id) return null;
+  const nomor = Number.parseFloat(
+    String(data['latest_chapter_number'] ?? 'NaN'),
+  );
+  return {
+    id,
+    nomor: Number.isFinite(nomor) ? nomor : -1,
+    judul: String(data['latest_chapter_title'] ?? ''),
+  };
 }
 
 function acakPanjang(n: number): string {
@@ -146,13 +126,8 @@ function acakPanjang(n: number): string {
 }
 
 async function ambilChapterTerbaru(mangaId: string): Promise<ChapterBaru> {
-  // page_size kecil (30) cukup: daftar terurut terbaru dulu, dan
-  // chapterTeratas mengambil number terbesar sebagai pengaman.
   const url =
-    `https://api.shngm.io/v1/chapter/${encodeURIComponent(mangaId)}/list` +
-    `?page_size=30`;
-  // Header meniru browser desktop: API memblokir UA non-browser
-  // (Deno/* kena 403) dan butuh Origin/Referer layaknya klien Flutter.
+    `https://api.shngm.io/v1/manga/detail/${encodeURIComponent(mangaId)}`;
   const headers = {
     'Accept': 'application/json',
     'DNT': '1',
@@ -165,15 +140,17 @@ async function ambilChapterTerbaru(mangaId: string): Promise<ChapterBaru> {
     'X-Requested-With': acakPanjang(10),
   };
   let terakhir = 0;
+  let detailError = '';
   for (let coba = 0; coba <= TUNDA_ULANG_MS.length; coba++) {
     const res = await fetch(url, { headers });
     if (res.ok) {
-      const hasil = chapterTeratas(await res.json());
-      if (!hasil) throw new Error('Daftar chapter kosong');
-      return hasil;
+      const hasil = chapterDariDetail(await res.json());
+      if (hasil) return hasil;
+      throw new Error('Detail manga tidak memiliki chapter terbaru');
     }
     terakhir = res.status;
-    // Hanya 403/429 yang dicoba ulang dengan backoff.
+    const body = await res.text().catch(() => '');
+    detailError = body.replace(/\s+/g, ' ').slice(0, 300);
     if (
       (res.status === 403 || res.status === 429) &&
       coba < TUNDA_ULANG_MS.length
@@ -181,9 +158,10 @@ async function ambilChapterTerbaru(mangaId: string): Promise<ChapterBaru> {
       await tidur(TUNDA_ULANG_MS[coba]);
       continue;
     }
-    throw new Error(`API manhwa ${res.status}`);
+    break;
   }
-  throw new Error(`API manhwa ${terakhir}`);
+  const suffix = detailError ? `: ${detailError}` : '';
+  throw new Error(`API manhwa ${terakhir}${suffix}`);
 }
 
 function fcmGagalUnregistered(badan: unknown): boolean {
