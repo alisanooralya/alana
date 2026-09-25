@@ -1,13 +1,19 @@
 -- Token FCM per perangkat
 create table public.device_tokens (
   user_id uuid not null references auth.users(id) on delete cascade,
-  fcm_token text primary key,
-  updated_at timestamptz default now()
+  device_id text not null check (device_id <> ''),
+  fcm_token text not null check (fcm_token <> ''),
+  updated_at timestamptz default now(),
+  primary key (user_id, device_id)
 );
 alter table public.device_tokens enable row level security;
 create policy "kelola token sendiri" on public.device_tokens
   for all to authenticated
   using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create index device_tokens_fcm_token_idx
+  on public.device_tokens (fcm_token);
+create index device_tokens_user_updated_at_idx
+  on public.device_tokens (user_id, updated_at desc);
 
 -- Cache chapter terbaru yang diketahui, untuk dibandingkan
 create table public.manga_chapter_cache (

@@ -6,6 +6,7 @@ import 'package:alana/features/notifikasi/data/device_token_repository.dart';
 import 'package:alana/features/notifikasi/presentation/notification_permission_provider.dart';
 import 'package:alana/features/notifikasi/presentation/notifikasi_providers.dart';
 import 'package:alana/features/onboarding/data/onboarding_repository.dart';
+import 'package:alana/features/profile/presentation/profile_providers.dart';
 
 /// Handler background FCM (wajib top-level + pragma).
 /// Pesan bertipe notification+data tampil otomatis di tray;
@@ -47,30 +48,38 @@ class PushFcm {
   /// Sinkron token sesuai sesi: login/app-start → upsert;
   /// logout (uid null) → hapus baris token perangkat ini.
   Future<void> sinkronToken(String? uid) async {
-    _uid = (uid == null || uid.isEmpty) ? null : uid;
+    final uidSebelum = _uid;
+    final uidAktif = (uid == null || uid.isEmpty) ? null : uid;
+    _uid = uidAktif;
     try {
       final prefs = ref.read(sharedPreferencesProvider);
       final repo = ref.read(deviceTokenRepositoryProvider);
-      if (_uid == null) {
-        final lama = prefs.getString(DeviceTokenRepository.kunciLokal) ?? '';
-        if (lama.isNotEmpty) {
-          await repo.hapus(lama);
-          await prefs.remove(DeviceTokenRepository.kunciLokal);
+      if (uidAktif == null) {
+        final deviceId = await ref.read(deviceIdentityProvider).get();
+        if (uidSebelum != null && deviceId != null) {
+          await repo.hapus(uid: uidSebelum, deviceId: deviceId);
         }
+        await prefs.remove(DeviceTokenRepository.kunciLokal);
+        await prefs.remove(DeviceTokenRepository.kunciDeviceId);
         return;
       }
       if (!ref.read(pushAktifProvider)) return;
       final permission = await ref.read(notificationPermissionProvider.future);
       if (!permission.granted) return;
       final token = await FirebaseMessaging.instance.getToken();
-      if (token == null || token.isEmpty) return;
+      final deviceId = await ref.read(deviceIdentityProvider).get();
+      if (token == null || token.isEmpty || deviceId == null) return;
       final tersimpan = prefs.getString(DeviceTokenRepository.kunciLokal) ?? '';
-      if (token == tersimpan) return;
+      final deviceTersimpan =
+          prefs.getString(DeviceTokenRepository.kunciDeviceId) ?? '';
+      if (token == tersimpan && deviceId == deviceTersimpan) return;
       if (tersimpan.isNotEmpty) {
-        await repo.hapus(tersimpan);
+        await repo.hapusLegacy(uid: uidAktif, token: tersimpan);
       }
-      await repo.simpan(_uid!, token);
+      await repo.hapusLegacy(uid: uidAktif, token: token);
+      await repo.simpan(uid: uidAktif, deviceId: deviceId, token: token);
       await prefs.setString(DeviceTokenRepository.kunciLokal, token);
+      await prefs.setString(DeviceTokenRepository.kunciDeviceId, deviceId);
     } catch (_) {
       // Abaikan.
     }
@@ -84,13 +93,19 @@ class PushFcm {
       if (!permission.granted) return;
       final prefs = ref.read(sharedPreferencesProvider);
       final repo = ref.read(deviceTokenRepositoryProvider);
+      final deviceId = await ref.read(deviceIdentityProvider).get();
       final lama = prefs.getString(DeviceTokenRepository.kunciLokal) ?? '';
-      if (token == lama) return;
+      final deviceLama =
+          prefs.getString(DeviceTokenRepository.kunciDeviceId) ?? '';
+      if (token == lama && deviceId == deviceLama) return;
+      if (deviceId == null) return;
       if (lama.isNotEmpty) {
-        await repo.hapus(lama);
+        await repo.hapusLegacy(uid: uid, token: lama);
       }
-      await repo.simpan(uid, token);
+      await repo.hapusLegacy(uid: uid, token: token);
+      await repo.simpan(uid: uid, deviceId: deviceId, token: token);
       await prefs.setString(DeviceTokenRepository.kunciLokal, token);
+      await prefs.setString(DeviceTokenRepository.kunciDeviceId, deviceId);
     } catch (_) {
       // Abaikan.
     }
@@ -101,11 +116,15 @@ class PushFcm {
   Future<void> hapusTokenTersimpan() async {
     try {
       final prefs = ref.read(sharedPreferencesProvider);
-      final lama = prefs.getString(DeviceTokenRepository.kunciLokal) ?? '';
-      if (lama.isNotEmpty) {
-        await ref.read(deviceTokenRepositoryProvider).hapus(lama);
-        await prefs.remove(DeviceTokenRepository.kunciLokal);
+      final deviceId = await ref.read(deviceIdentityProvider).get();
+      final uid = _uid ?? ref.read(userIdProvider);
+      if (uid != null && deviceId != null) {
+        await ref
+            .read(deviceTokenRepositoryProvider)
+            .hapus(uid: uid, deviceId: deviceId);
       }
+      await prefs.remove(DeviceTokenRepository.kunciLokal);
+      await prefs.remove(DeviceTokenRepository.kunciDeviceId);
     } catch (_) {
       // Abaikan.
     }

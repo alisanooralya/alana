@@ -8,6 +8,7 @@ environment:
 
 dependencies:
   dio: ^5.11.1
+  android_id: ^0.5.2+1
   flutter:
     sdk: flutter
   flutter_riverpod: ^2.6.1
