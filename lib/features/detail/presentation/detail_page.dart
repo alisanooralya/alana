@@ -418,7 +418,7 @@ class _HeaderDetail extends StatelessWidget {
   final String labelTombolBaca;
   final Chapter? targetBaca;
   final VoidCallback onToggleBookmark;
-  final Future<void> Function(BuildContext) onShare;
+  final void Function(BuildContext) onShare;
   final VoidCallback onBaca;
 
   @override
@@ -504,11 +504,7 @@ class _HeaderDetail extends StatelessWidget {
               Builder(
                 builder: (shareContext) => IconButton.outlined(
                   tooltip: 'Bagikan judul',
-                  onPressed: () async {
-                    debugPrint('[Share] Detail share button pressed');
-                    await onShare(shareContext);
-                    debugPrint('[Share] Detail share callback completed');
-                  },
+                  onPressed: () => onShare(shareContext),
                   icon: const Icon(Icons.share_outlined),
                 ),
               ),

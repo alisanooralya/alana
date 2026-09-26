@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
+import 'package:alana/core/diagnostics/error_log.dart';
+
 import 'deep_link.dart';
 
 String mangaShareUrl(String mangaId) => mangaDeepLink(mangaId);
@@ -9,31 +11,17 @@ String chapterShareUrl(String mangaId, String chapterId) {
   return chapterDeepLink(mangaId, chapterId);
 }
 
-Future<void> shareLink(
-  BuildContext context, {
-  required String text,
-  required String link,
-}) async {
+Future<void> shareLink(BuildContext context, {required String text}) async {
   final renderBox = context.findRenderObject() as RenderBox?;
   final origin = renderBox == null
       ? null
       : renderBox.localToGlobal(Offset.zero) & renderBox.size;
-  debugPrint('[Share] shareLink started: $link, origin: $origin');
   try {
-    debugPrint('[Share] Calling SharePlus.instance.share');
-    final result = await SharePlus.instance.share(
-      ShareParams(
-        text: text,
-        uri: Uri.parse(link),
-        sharePositionOrigin: origin,
-      ),
-    );
-    debugPrint(
-      '[Share] SharePlus.instance.share completed: '
-      'status=${result.status}, raw=${result.raw}',
+    await SharePlus.instance.share(
+      ShareParams(text: text, sharePositionOrigin: origin),
     );
   } catch (error, stack) {
-    debugPrint('[Share] SharePlus.instance.share failed: $error\n$stack');
+    ErrorLog.catat(error, stack);
     if (!context.mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
@@ -45,7 +33,7 @@ Future<void> shareLink(
 
 Future<void> shareManga(BuildContext context, String title, String mangaId) {
   final link = mangaShareUrl(mangaId);
-  return shareLink(context, text: 'Baca $title di Alana! $link', link: link);
+  return shareLink(context, text: 'Baca $title di Alana! $link');
 }
 
 Future<void> shareChapter(
@@ -60,6 +48,5 @@ Future<void> shareChapter(
   return shareLink(
     context,
     text: 'Baca $mangaTitle — $chapter di Alana! $link',
-    link: link,
   );
 }
