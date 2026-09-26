@@ -80,8 +80,12 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
   @override
   Future<DownloadState> build() async {
     ref.onDispose(() => _dio.close(force: true));
+    // Dipanggil lagi begitu koneksi atau setelan berubah: antrean yang ditahan
+    // karena luring harus langsung jalan begitu online kembali.
     ref.listen(konektivitasProvider, (previous, next) {
-      if (state.valueOrNull?.waitingForWifi == true) {
+      final value = state.valueOrNull;
+      if (value == null) return;
+      if (value.waitingForWifi || value.queue.isNotEmpty) {
         unawaited(_pump());
       }
     });
@@ -112,11 +116,17 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
   }
 
   Future<void> enqueue(DownloadRequest request) async {
-    final current = state.valueOrNull;
-    if (current == null ||
-        request.mangaId.isEmpty ||
-        request.chapterId.isEmpty) {
-      return;
+    if (request.mangaId.isEmpty || request.chapterId.isEmpty) return;
+    var current = state.valueOrNull;
+    if (current == null) {
+      // build() masih memverifikasi unduhan yang tersimpan saat startup.
+      // Sebelumnya request langsung dibuang di sini padahal UI sudah
+      // mengonfirmasi ke user bahwa chapter masuk antrean.
+      try {
+        current = await future;
+      } catch (_) {
+        return;
+      }
     }
     final existing = current.entries[request.key];
     if (existing?.status == DownloadStatus.completed) return;
@@ -175,16 +185,32 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     );
   }
 
-  void cancel(String key) {
+  Future<void> cancel(String key) async {
     final current = state.valueOrNull;
     if (current == null) return;
     if (current.activeKey == key) {
       _cancelToken?.cancel('dibatalkan pengguna');
       return;
     }
+    final queue = current.queue.where((item) => item.key != key).toList();
+    final entry = current.entries[key];
+    if (entry == null) {
+      _tulis(current.copyWith(queue: queue));
+      return;
+    }
+    // Status di storage juga harus diubah. Kalau hanya dihapus dari antrean
+    // state, entry 'queued' yang masih tersimpan akan diantrekan ulang oleh
+    // build() setelah aplikasi dibuka - semua chapter yang dibatalkan mulai
+    // download dengan sendirinya.
+    final dijeda = entry.copyWith(
+      status: DownloadStatus.paused,
+      errorMessage: 'Download dibatalkan.',
+    );
+    await ref.read(downloadRepositoryProvider).save(dijeda);
     _tulis(
       current.copyWith(
-        queue: current.queue.where((item) => item.key != key).toList(),
+        entries: {...current.entries, key: dijeda},
+        queue: queue,
       ),
     );
   }
@@ -255,13 +281,17 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
       return;
     }
     if (ref.read(luringProvider)) {
-      await _gagal(
-        current,
-        request,
-        'Tidak ada koneksi internet.',
-        DownloadStatus.failed,
+      // Tahan antrean, jangan tandai gagal. Sebelumnya setiap item ditandai
+      // "Gagal - tidak ada koneksi" lalu _pump() dipanggil lagi pada kondisi
+      // luring yang sama dengan _pumping masih false, sehingga loop tidak
+      // pernah berhenti dan seluruh antrean dibongkar satu per satu.
+      _tulis(
+        current.copyWith(
+          queue: [request, ...current.queue.skip(1)],
+          message: 'Menunggu koneksi internet untuk mulai mengunduh.',
+        ),
       );
-      return _pump();
+      return;
     }
 
     _pumping = true;

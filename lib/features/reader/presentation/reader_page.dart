@@ -261,15 +261,16 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     final downloaded = downloadState?.entryFor(
       DownloadRepository.keyFor(widget.mangaId, widget.chapterId),
     );
-    final offline =
-        downloadAsync.hasValue &&
-        downloaded?.status == DownloadStatus.completed;
-    final AsyncValue<List<manga.Page>> pagesAsync = downloadAsync.isLoading
-        ? const AsyncLoading<List<manga.Page>>()
-        : offline
+    // Jangan tunggu verifikasi unduhan sebelum memuat halaman. verifyAll()
+    // memeriksa seluruh folder di startup, jadi menahan pagesAsync selama itu
+    // membuat reader menampilkan shimmer beberapa detik dan daftar chapter
+    // kosong walau jaringan sedang baik. Selama status unduhan belum
+    // diketahui, andalkan baca dari jaringan.
+    final offline = downloaded?.status == DownloadStatus.completed;
+    final AsyncValue<List<manga.Page>> pagesAsync = offline
         ? ref.watch(offlinePageListProvider(widget.chapterId))
         : ref.watch(pageListProvider(widget.chapterId));
-    final chaptersAsync = downloadAsync.isLoading || offline
+    final chaptersAsync = offline
         ? const AsyncData<List<Chapter>>(<Chapter>[])
         : ref.watch(chapterListProvider(widget.mangaId));
     _uid = ref.watch(userIdProvider);
