@@ -48,8 +48,8 @@ node index.js --once
 ```bash
 npm install -g pm2
 pm2 start ecosystem.config.js
-pm2 save
 pm2 startup
+pm2 save
 ```
 
 Jalankan perintah yang ditampilkan oleh `pm2 startup` agar service aktif kembali setelah reboot.
