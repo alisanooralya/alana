@@ -36,23 +36,29 @@ class SearchResultsController extends AsyncNotifier<PaginatedMangaState> {
       return;
     }
 
+    // Query harus dibaca SEBELUM await dan dicek ulang sesudahnya. Kalau
+    // dibaca sesudah await, permintaan page-2 memakai query yang sudah
+    // diganti dan hasilnya ditumpuk ke daftar query lama.
+    final query = ref.read(searchQueryProvider);
+    final halamanBerikutnya = saatIni.page + 1;
     state = AsyncData(
       saatIni.copyWith(isLoadingMore: true, pesanErrorMore: () => null),
     );
 
     try {
       final repository = ref.read(homeRepositoryProvider);
-      final query = ref.read(searchQueryProvider);
-      final response = await repository.search(query, page: saatIni.page + 1);
+      final response = await repository.search(query, page: halamanBerikutnya);
+      if (ref.read(searchQueryProvider) != query) return;
       state = AsyncData(
         saatIni.copyWith(
           items: [...saatIni.items, ...response.mangas],
-          page: saatIni.page + 1,
+          page: halamanBerikutnya,
           hasNext: response.hasNextPage,
           isLoadingMore: false,
         ),
       );
     } catch (error) {
+      if (ref.read(searchQueryProvider) != query) return;
       state = AsyncData(
         saatIni.copyWith(
           isLoadingMore: false,

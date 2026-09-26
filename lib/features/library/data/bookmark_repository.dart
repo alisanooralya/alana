@@ -28,6 +28,7 @@ class BookmarkRepository extends Notifier<Map<String, BookmarkedManga>> {
     _uid = uid;
     if (uid == null || uid.isEmpty) {
       _tombs = {};
+      _dibukaUntuk = null;
       return const {};
     }
     final box = AppStorage.boxUserSync('bm', uid);
@@ -36,6 +37,9 @@ class BookmarkRepository extends Notifier<Map<String, BookmarkedManga>> {
       _tombs = {};
       return const {};
     }
+    // Box sudah terbuka: kosongkan penanda supaya kalau box ini nanti
+    // tertutup, build() masih boleh mencoba membukanya lagi.
+    _dibukaUntuk = null;
     return _muat(box);
   }
 

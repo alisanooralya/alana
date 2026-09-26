@@ -30,6 +30,7 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
     _uid = uid;
     if (uid == null || uid.isEmpty) {
       _tombs = {};
+      _dibukaUntuk = null;
       return const {};
     }
     final box = AppStorage.boxUserSync('rh', uid);
@@ -38,6 +39,9 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
       _tombs = {};
       return const {};
     }
+    // Box sudah terbuka: kosongkan penanda supaya kalau box ini nanti
+    // tertutup, build() masih boleh mencoba membukanya lagi.
+    _dibukaUntuk = null;
     return _muat(box);
   }
 

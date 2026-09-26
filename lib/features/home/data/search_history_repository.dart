@@ -6,9 +6,9 @@ import 'package:alana/features/profile/presentation/profile_providers.dart';
 
 /// Riwayat pencarian: Hive per-akun di box `sm_<uid>`, lokal saja.
 ///
-/// Tidak ikut sync ke Supabase dan terhapus saat signOut karena
-/// `AppStorage.hapusBoxUser` membersihkan box `sm`. Nilai disimpan
-/// sebagai `List<String>` sehingga tidak butuh adapter.
+/// Tidak ikut sync ke Supabase dan tidak ikut terhapus saat signOut: box
+/// sudah terpisah per uid sehingga tidak bisa tercampur antar akun.
+/// Nilai disimpan sebagai `List<String>` sehingga tidak butuh adapter.
 class SearchHistoryRepository extends Notifier<List<String>> {
   /// Jumlah entri tersimpan, terbaru lebih dulu.
   static const int maks = 10;
@@ -22,13 +22,19 @@ class SearchHistoryRepository extends Notifier<List<String>> {
   List<String> build() {
     final uid = ref.watch(userIdProvider);
     _uid = uid;
-    if (uid == null || uid.isEmpty) return const [];
+    if (uid == null || uid.isEmpty) {
+      _dibukaUntuk = null;
+      return const [];
+    }
 
     final box = AppStorage.boxUserSync('sm', uid);
     if (box == null) {
       _bukaLaluMuatUlang(uid);
       return const [];
     }
+    // Box sudah terbuka: kosongkan penanda supaya kalau box ini nanti
+    // tertutup, build() masih boleh mencoba membukanya lagi.
+    _dibukaUntuk = null;
     return _muat(box);
   }
 
