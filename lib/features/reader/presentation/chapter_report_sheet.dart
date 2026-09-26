@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show PostgrestException;
 
 import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/features/profile/presentation/profile_providers.dart';
@@ -22,6 +23,7 @@ class _ChapterReportSheetState extends ConsumerState<ChapterReportSheet> {
   ChapterReportReason? _reason;
   bool _memuat = false;
   String? _error;
+  String? _errorMentah;
 
   @override
   void dispose() {
@@ -50,6 +52,7 @@ class _ChapterReportSheetState extends ConsumerState<ChapterReportSheet> {
     setState(() {
       _memuat = true;
       _error = null;
+      _errorMentah = null;
     });
 
     try {
@@ -83,6 +86,15 @@ class _ChapterReportSheetState extends ConsumerState<ChapterReportSheet> {
         setState(() {
           _memuat = false;
           _error = pesanErrorRamah(error);
+          // TODO sementara: tampilkan pesan asli Supabase apa adanya.
+          _errorMentah = error.toString();
+          if (error is PostgrestException) {
+            _errorMentah =
+                '${error.toString()}\n'
+                'code: ${error.code}\n'
+                'message: ${error.message}\n'
+                'details: ${error.details}';
+          }
         });
       }
     }
@@ -131,6 +143,7 @@ class _ChapterReportSheetState extends ConsumerState<ChapterReportSheet> {
                         : (_) => setState(() {
                             _reason = reason;
                             _error = null;
+                            _errorMentah = null;
                           }),
                   ),
               ],
@@ -148,7 +161,12 @@ class _ChapterReportSheetState extends ConsumerState<ChapterReportSheet> {
                 border: const OutlineInputBorder(),
               ),
               onChanged: (_) {
-                if (_error != null) setState(() => _error = null);
+                if (_error != null) {
+                  setState(() {
+                    _error = null;
+                    _errorMentah = null;
+                  });
+                }
               },
             ),
             if (_error != null) ...[
@@ -156,6 +174,17 @@ class _ChapterReportSheetState extends ConsumerState<ChapterReportSheet> {
               Text(
                 _error!,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ],
+            // TODO sementara: hapus blok ini setelah akar masalah diperbaiki.
+            if (_errorMentah != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _errorMentah!,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Theme.of(context).colorScheme.error,
+                ),
               ),
             ],
             const SizedBox(height: 20),
