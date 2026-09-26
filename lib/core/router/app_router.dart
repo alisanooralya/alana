@@ -4,12 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:alana/core/supabase/supabase_setup.dart';
-import 'package:alana/core/utils/deep_link.dart';
-import 'package:alana/features/about/presentation/about_page.dart';
+import 'package:alana/core/utils/deep_link.dart';import 'package:alana/features/about/presentation/about_page.dart';
 import 'package:alana/features/auth/presentation/auth_providers.dart';
 import 'package:alana/features/auth/presentation/forgot_password_page.dart';
 import 'package:alana/features/auth/presentation/login_page.dart';
 import 'package:alana/features/auth/presentation/register_page.dart';
+import 'package:alana/features/auth/presentation/reset_password_page.dart';
 import 'package:alana/features/auth/presentation/verify_email_page.dart';
 import 'package:alana/features/detail/presentation/detail_page.dart';
 import 'package:alana/features/downloads/presentation/downloads_page.dart';
@@ -58,6 +58,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   ref.listen(splashSiapProvider, (previous, next) => pemicu());
   ref.listen(pendingUsernameSetupProvider, (previous, next) => pemicu());
   ref.listen(sudahOnboardingProvider, (previous, next) => pemicu());
+  ref.listen(passwordRecoveryProvider, (previous, next) => pemicu());
 
   final router = GoRouter(
     initialLocation: '/',
@@ -67,6 +68,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final splashSiap = ref.read(splashSiapProvider);
       final sudahLihat = ref.read(sudahOnboardingProvider);
       final pendatangBaru = ref.read(pendingUsernameSetupProvider);
+      final recovery = ref.read(passwordRecoveryProvider);
       final lokasi = state.matchedLocation;
       final customTarget = _targetDeepLink(state);
       const rutePublik = {
@@ -76,9 +78,16 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         '/daftar',
         '/lupa-password',
         '/verifikasi-email',
+        resetPasswordLokasi,
       };
       if (sesiAsync.isLoading || !splashSiap) {
         return lokasi == '/splash' ? null : '/splash';
+      }
+      // Sesi recovery hanya boleh dipakai untuk mengganti password. Tanpa
+      // kunci ini user yang salah menekan tautan bisa menjelajah aplikasi
+      // dengan sesi yang token refresh-nya masih valid.
+      if (recovery && lokasi != resetPasswordLokasi) {
+        return resetPasswordLokasi;
       }
       final sesi =
           sesiAsync.valueOrNull?.session ??
@@ -89,7 +98,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       if (!sudahLihat) {
         return lokasi == '/onboarding' ? null : '/onboarding';
       }
-      if (masuk && customTarget != null) {
+      if (masuk && !recovery && customTarget != null) {
         if (pendatangBaru) return '/profil/ubah?baru=1';
         DeepLinkIntent.buang();
         return customTarget;
@@ -102,7 +111,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         if (kembali != null) DeepLinkIntent.simpan(kembali);
         return '/masuk';
       }
-      if (masuk && pendatangBaru && lokasi != '/profil/ubah') {
+      if (masuk && !recovery && pendatangBaru && lokasi != '/profil/ubah') {
         return '/profil/ubah?baru=1';
       }
       if (masuk && (lokasi == '/masuk' || lokasi == '/daftar')) {
@@ -167,6 +176,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             email: state.uri.queryParameters['email'] ?? '',
           ),
         ),
+      ),
+      GoRoute(
+        path: resetPasswordLokasi,
+        name: 'reset-password',
+        pageBuilder: (context, state) =>
+            Transisi.fade(key: state.pageKey, child: const ResetPasswordPage()),
       ),
       StatefulShellRoute.indexedStack(
         pageBuilder: (context, state, navigationShell) => Transisi.lubang(

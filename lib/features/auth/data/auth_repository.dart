@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:alana/core/config/app_config.dart';
 import 'package:alana/core/supabase/supabase_setup.dart';
+import 'package:alana/core/utils/deep_link.dart';
 
 import 'auth_validators.dart';
 
@@ -193,8 +194,15 @@ class AuthRepository {
   }
 
   /// Mengirim email reset password.
+  ///
+  /// `redirectTo` wajib: tanpa itu Supabase mengirim tautan ke Site URL
+  /// (halaman web), sehingga sesi recovery tidak pernah sampai ke aplikasi
+  /// dan akun yang lupa password tidak bisa dipulihkan dari dalam app.
   Future<void> kirimResetPassword(String email) {
-    return _client.auth.resetPasswordForEmail(email.trim());
+    return _client.auth.resetPasswordForEmail(
+      email.trim(),
+      redirectTo: resetPasswordLink(),
+    );
   }
 
   /// Mengecek apakah username sudah dipakai di tabel `profiles`.

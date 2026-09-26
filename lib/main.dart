@@ -10,6 +10,7 @@ import 'package:alana/core/notifikasi/layanan_notifikasi.dart';
 import 'package:alana/core/notifikasi/push_fcm.dart';
 import 'package:alana/core/providers/konektivitas_provider.dart';
 import 'package:alana/core/router/app_router.dart';
+import 'package:alana/core/router/deep_link_handler.dart';
 import 'package:alana/core/storage/app_storage.dart';
 import 'package:alana/core/supabase/supabase_setup.dart';
 import 'package:alana/core/theme/app_theme.dart';
@@ -61,6 +62,10 @@ class _BootstrapState extends ConsumerState<Bootstrap> {
   @override
   void initState() {
     super.initState();
+    // Deep link: tautan reset password dan tautan share. Dipanggil di
+    // initState, bukan build, supaya tidak ikut mengulang setiap kali tema
+    // berubah dan membuat langganan uriLinkStream ganda.
+    unawaited(mulaiDeepLink(ref));
     // Supabase dulu (sesi menentukan rute awal), lalu Hive + notifikasi.
     // Keduanya gagal-aman: aplikasi tetap jalan.
     SupabaseSetup.init()
@@ -213,6 +218,7 @@ class _ManhwaAppState extends ConsumerState<ManhwaApp>
         // Router belum siap; lokasi sudah ditampung layanan.
       }
     });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final lokasi = LayananNotifikasi.ambilTertunda();
       if (lokasi != null) {

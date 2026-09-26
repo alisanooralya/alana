@@ -1,5 +1,22 @@
 const alanaScheme = 'alana';
 
+/// Host deep link untuk tautan reset password dari Supabase.
+const String resetPasswordHost = 'reset-password';
+
+/// Lokasi internal halaman set password baru.
+const String resetPasswordLokasi = '/reset-password';
+
+/// Tautan tujuan yang dikirim ke Supabase sebagai `redirect_to`.
+String resetPasswordLink() => '$alanaScheme://$resetPasswordHost';
+
+/// Mengambil kode PKCE dari tautan reset password, null bila bukan tautan itu.
+String? kodeRecoveryDari(Uri uri) {
+  if (uri.scheme != alanaScheme || uri.host != resetPasswordHost) return null;
+  final kode = uri.queryParameters['code'];
+  if (kode == null || kode.isEmpty) return null;
+  return kode;
+}
+
 String mangaDeepLink(String mangaId) {
   return '$alanaScheme://manga/${Uri.encodeComponent(mangaId)}';
 }

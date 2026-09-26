@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:alana/core/supabase/supabase_setup.dart';
+import 'package:alana/core/utils/deep_link.dart';
 
 import '../data/auth_repository.dart';
 
@@ -31,6 +32,13 @@ final sudahLoginProvider = Provider<bool>((ref) {
       SupabaseSetup.instance.auth.currentSession;
   return sesi != null;
 });
+
+/// `true` bila sesi sedang dalam mode recovery password.
+///
+/// Diisi setelah tautan reset dari Supabase ditukar menjadi sesi token.
+/// Selama `true` router menahan user di [resetPasswordLokasi] supaya sesi
+/// recovery tidak dipakai menjelajah aplikasi sebelum password diganti.
+final passwordRecoveryProvider = StateProvider<bool>((ref) => false);
 
 /// `true` bila user Google baru wajib memilih username sendiri.
 ///

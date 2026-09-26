@@ -42,6 +42,18 @@
                 <data android:scheme="alana"/>
                 <data android:host="chapter"/>
             </intent-filter>
+            <!-- Tautan reset password dari Supabase. Tanpa filter ini, email
+                 "lupa password" hanya bisa dibuka di browser dan sesi recovery
+                 tidak pernah sampai ke aplikasi. URI ini juga wajib
+                 ditambahkan ke Authentication > Redirect URL di dashboard
+                 Supabase, kalau tidak Supabase tidak akan mengirim tautan. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="alana"/>
+                <data android:host="reset-password"/>
+            </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
