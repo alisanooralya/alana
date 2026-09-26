@@ -6,8 +6,11 @@
 ///
 /// - Seri (`updated` sama): remote menang agar perangkat konvergen.
 /// - Lokal pending yang kalah: gugur (ditimpa remote).
-/// - Tombstone (hapus lokal): menghapus remote kecuali remote lebih baru
-///   (dianggap dibuat ulang di perangkat lain → hidup lagi).
+/// - Tombstone: entri yang lebih baru dari waktu hapus dianggap hidup lagi
+///   (dibuat ulang di salah satu perangkat). Tombstone lokal yang masih
+///   perlu dorong ikut dikembalikan lewat [HasilGabung.tombsSisa];
+///   tombstone dari server tidak disimpan lokal karena server sudah
+///   memiliki salinannya.
 typedef EntriGabung = ({DateTime updated, Map<String, dynamic> data});
 
 class HasilGabung {
@@ -35,6 +38,7 @@ HasilGabung gabung({
   required Map<String, EntriGabung> lokal,
   required Map<String, EntriGabung> remote,
   required Map<String, DateTime> tombs,
+  Map<String, DateTime> tombsRemote = const {},
   required Map<String, dynamic> Function(Map<String, dynamic> data) keBaris,
 }) {
   final hasilLokal = <String, Map<String, dynamic>>{};
@@ -42,19 +46,36 @@ HasilGabung gabung({
   final hapusRemote = <String>[];
   final tombsSisa = <String, DateTime>{};
 
-  final semuaId = <String>{...lokal.keys, ...remote.keys, ...tombs.keys};
+  final semuaId = <String>{
+    ...lokal.keys,
+    ...remote.keys,
+    ...tombs.keys,
+    ...tombsRemote.keys,
+  };
   for (final id in semuaId) {
     final l = lokal[id];
     final r = remote[id];
-    final t = tombs[id];
+    final tLokal = tombs[id];
+    final tRemote = tombsRemote[id];
+    // Waktu hapus efektif = yang paling baru dari dua sumber.
+    DateTime? t;
+    if (tLokal != null && tRemote != null) {
+      t = tRemote.isAfter(tLokal) ? tRemote : tLokal;
+    } else {
+      t = tLokal ?? tRemote;
+    }
 
     if (t != null) {
-      if (r != null && r.updated.isAfter(t)) {
+      if (l != null && l.updated.isAfter(t)) {
+        // Dibuat ulang di perangkat ini setelah dihapus di perangkat lain.
+        hasilLokal[id] = l.data;
+        unggah.add(keBaris(l.data));
+      } else if (r != null && r.updated.isAfter(t)) {
         // Dibuat ulang di perangkat lain setelah dihapus di sini.
         hasilLokal[id] = r.data;
       } else {
         if (r != null) hapusRemote.add(id);
-        tombsSisa[id] = t;
+        if (tLokal != null) tombsSisa[id] = tLokal;
       }
       continue;
     }

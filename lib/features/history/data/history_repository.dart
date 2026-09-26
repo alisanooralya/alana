@@ -249,6 +249,8 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
       'chapter_title': e.lastChapterName,
       'scroll_position': e.scrollOffset,
       'updated_at': e.updatedAt.toIso8601String(),
+      // Bersihkan tombstone server saat entri dihidupkan ulang.
+      'deleted_at': null,
     };
   }
 }

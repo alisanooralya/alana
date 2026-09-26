@@ -198,6 +198,8 @@ class BookmarkRepository extends Notifier<Map<String, BookmarkedManga>> {
       'title': e.title,
       'cover_url': e.thumbnail,
       'created_at': e.updatedAt.toIso8601String(),
+      // Bersihkan tombstone server saat bookmark dihidupkan ulang.
+      'deleted_at': null,
     };
   }
 }

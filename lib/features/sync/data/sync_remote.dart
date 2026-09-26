@@ -17,7 +17,7 @@ class SyncRemote {
   static Future<List<Map<String, dynamic>>> tarikBookmarks(String uid) async {
     final baris = await _client()
         .from('bookmarks')
-        .select('manga_id, title, cover_url, created_at')
+        .select('manga_id, title, cover_url, created_at, deleted_at')
         .eq('user_id', uid);
     return [for (final b in baris) Map<String, dynamic>.from(b as Map)];
   }
@@ -34,13 +34,15 @@ class SyncRemote {
         .upsert(baris, onConflict: 'user_id,manga_id');
   }
 
+  /// Soft delete: baris ditandai `deleted_at` (bukan DELETE keras) supaya
+  /// perangkat lain tidak mengunggah ulang salinan lamanya.
   static Future<void> hapusBookmarks(String uid, List<String> mangaIds) async {
     if (mangaIds.isEmpty) return;
-    await _client()
-        .from('bookmarks')
-        .delete()
-        .eq('user_id', uid)
-        .inFilter('manga_id', mangaIds);
+    await _client().rpc('soft_delete_sync_rows', {
+      'p_user_id': uid,
+      'p_tabel': 'bookmarks',
+      'p_manga_ids': mangaIds,
+    });
   }
 
   // ---------- reading_history ----------
@@ -50,7 +52,7 @@ class SyncRemote {
         .from('reading_history')
         .select(
           'manga_id, manga_title, cover_url, chapter_id, '
-          'chapter_title, scroll_position, updated_at',
+          'chapter_title, scroll_position, updated_at, deleted_at',
         )
         .eq('user_id', uid);
     return [for (final b in baris) Map<String, dynamic>.from(b as Map)];
@@ -68,10 +70,10 @@ class SyncRemote {
 
   static Future<void> hapusHistory(String uid, List<String> mangaIds) async {
     if (mangaIds.isEmpty) return;
-    await _client()
-        .from('reading_history')
-        .delete()
-        .eq('user_id', uid)
-        .inFilter('manga_id', mangaIds);
+    await _client().rpc('soft_delete_sync_rows', {
+      'p_user_id': uid,
+      'p_tabel': 'reading_history',
+      'p_manga_ids': mangaIds,
+    });
   }
 }

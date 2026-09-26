@@ -94,4 +94,62 @@ void main() {
       expect(hasil.tombsSisa.keys, ['a']);
     });
   });
+
+  group('soft delete dari server', () {
+    test('salinan lokal yang basi tidak menghidupkan lagi item', () {
+      // Device A hapus (server set deleted_at), device B masih punya
+      // salinan lama. Sebelum soft delete, B akan upload ulang item ini.
+      final hasil = gabung(
+        lokal: {'a': _e('2026-01-01T00:00:00Z', 'lokal-basi')},
+        remote: const {},
+        tombs: const {},
+        tombsRemote: {'a': DateTime.parse('2026-01-03T00:00:00Z')},
+        keBaris: _baris,
+      );
+      expect(hasil.lokal.containsKey('a'), isFalse);
+      expect(hasil.unggah, isEmpty);
+      expect(hasil.hapusRemote, isEmpty);
+      // Tombstone server tidak disimpan lokal (server sudah punya salinannya).
+      expect(hasil.tombsSisa, isEmpty);
+    });
+
+    test('entri lokal yang lebih baru dari deleted_at hidup lagi', () {
+      final hasil = gabung(
+        lokal: {'a': _e('2026-01-05T00:00:00Z', 'lokal-baru')},
+        remote: const {},
+        tombs: const {},
+        tombsRemote: {'a': DateTime.parse('2026-01-03T00:00:00Z')},
+        keBaris: _baris,
+      );
+      expect(hasil.lokal['a']!['extra'], 'lokal-baru');
+      expect(hasil.unggah, hasLength(1));
+      expect(hasil.tombsSisa, isEmpty);
+    });
+
+    test('tombstone remote lebih baru menang atas tombstone lokal', () {
+      final hasil = gabung(
+        lokal: const {},
+        remote: const {},
+        tombs: {'a': DateTime.parse('2026-01-02T00:00:00Z')},
+        tombsRemote: {'a': DateTime.parse('2026-01-06T00:00:00Z')},
+        keBaris: _baris,
+      );
+      expect(hasil.lokal.containsKey('a'), isFalse);
+      // Tombstone lokal tetap tersimpan memakai waktunya sendiri.
+      expect(hasil.tombsSisa['a'], DateTime.parse('2026-01-02T00:00:00Z'));
+    });
+
+    test('entri lokal lebih baru dari tombstone lokal tidak dihapus', () {
+      // Hapus offline, lalu user buka lagi judul itu sebelum sync.
+      final hasil = gabung(
+        lokal: {'a': _e('2026-01-05T00:00:00Z', 'lokal-baru')},
+        remote: const {},
+        tombs: {'a': DateTime.parse('2026-01-03T00:00:00Z')},
+        keBaris: _baris,
+      );
+      expect(hasil.lokal['a']!['extra'], 'lokal-baru');
+      expect(hasil.unggah, hasLength(1));
+      expect(hasil.tombsSisa, isEmpty);
+    });
+  });
 }

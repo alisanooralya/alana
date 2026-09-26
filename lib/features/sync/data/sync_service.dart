@@ -34,7 +34,11 @@ class SyncService {
       final lama = _uidAktif;
       _uidAktif = null;
       if (lama != null && lama.isNotEmpty) {
-        await AppStorage.hapusBoxUser(lama);
+        // Dorong yang pending, tapi JANGAN hapus box-nya: box sudah
+        // di-namespace per uid sehingga tidak bisa tercampur antar akun,
+        // sedangkan menghapusnya membuat bookmark/progres yang dibuat
+        // offline hilang permanen saat user logout lalu login lagi.
+        await dorongSekarang(lama);
       }
       return;
     }
@@ -164,9 +168,16 @@ class SyncService {
         e.key: (updated: e.value.updatedAt, data: e.value.toMap()),
     };
     final remote = <String, EntriGabung>{};
+    final tombsRemote = <String, DateTime>{};
     for (final r in remoteRows) {
       final id = r['manga_id']?.toString() ?? '';
       if (id.isEmpty) continue;
+      final dihapus = DateTime.tryParse(r['deleted_at']?.toString() ?? '');
+      if (dihapus != null) {
+        // Soft delete di server: perlakukan sebagai tombstone, bukan data hidup.
+        tombsRemote[id] = dihapus;
+        continue;
+      }
       final waktu =
           DateTime.tryParse(r['created_at']?.toString() ?? '') ?? _epoch();
       final iso = waktu.toIso8601String();
@@ -186,6 +197,7 @@ class SyncService {
       lokal: lokal,
       remote: remote,
       tombs: repo.tombs,
+      tombsRemote: tombsRemote,
       keBaris: (data) =>
           BookmarkRepository.barisUntuk(uid, BookmarkedManga.fromMap(data)),
     );
@@ -217,9 +229,15 @@ class SyncService {
         e.key: (updated: e.value.updatedAt, data: e.value.toMap()),
     };
     final remote = <String, EntriGabung>{};
+    final tombsRemote = <String, DateTime>{};
     for (final r in remoteRows) {
       final id = r['manga_id']?.toString() ?? '';
       if (id.isEmpty) continue;
+      final dihapus = DateTime.tryParse(r['deleted_at']?.toString() ?? '');
+      if (dihapus != null) {
+        tombsRemote[id] = dihapus;
+        continue;
+      }
       final waktu =
           DateTime.tryParse(r['updated_at']?.toString() ?? '') ?? _epoch();
       final posisi = double.tryParse(r['scroll_position']?.toString() ?? '');
@@ -243,6 +261,7 @@ class SyncService {
       lokal: lokal,
       remote: remote,
       tombs: repo.tombs,
+      tombsRemote: tombsRemote,
       keBaris: (data) =>
           HistoryRepository.barisUntuk(uid, MangaReadingProgress.fromMap(data)),
     );

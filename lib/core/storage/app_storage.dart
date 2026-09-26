@@ -101,8 +101,11 @@ class AppStorage {
     await asal.clear();
   }
 
-  /// Menghapus seluruh box milik user (dipakai saat signOut agar
-  /// akun bergantian tidak bercampur; remote tetap jadi kebenaran).
+  /// Menghapus seluruh box milik user.
+  ///
+  /// Tidak dipakai di jalur signOut: box sudah terpisah per uid sehingga
+  /// tidak bisa tercampur antar akun, sedangkan menghapusnya membuat data
+  /// yang dibuat offline hilang permanen.
   static Future<void> hapusBoxUser(String uid) async {
     if (uid.isEmpty) return;
     for (final jenis in ['bm', 'rh', 'sm']) {

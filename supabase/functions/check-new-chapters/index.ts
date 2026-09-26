@@ -229,9 +229,27 @@ Deno.serve(async (req: Request) => {
   let pushGagal = 0;
 
   // 1. Daftar manga unik yang di-bookmark.
-  const { data: bm, error: errBm } = await admin
-    .from('bookmarks')
-    .select('manga_id, user_id, title, cover_url');
+  // Soft delete: baris yang `deleted_at` terisi bukan bookmark aktif lagi,
+  // jadi harus dikecualikan agar user tidak menerima push chapter yang sudah
+  // dihapus dari Pustaka. Kolom `deleted_at` berasal dari
+  // supabase/sql/bookmark_history_soft_delete.sql; kalau migrasi itu belum
+  // diterapkan, jatuhkan filternya agar cron tetap jalan.
+  // Builder PostgREST bersifat mutable, jadi retry butuh instance baru.
+  const bacaBookmark = (denganFilter: boolean) =>
+    denganFilter
+      ? admin
+          .from('bookmarks')
+          .select('manga_id, user_id, title, cover_url')
+          .is('deleted_at', null)
+      : admin.from('bookmarks').select('manga_id, user_id, title, cover_url');
+
+  let { data: bm, error: errBm } = await bacaBookmark(true);
+  if (errBm && /deleted_at|column/i.test(errBm.message)) {
+    console.warn(
+      'check-new-chapters: kolom deleted_at belum ada, lewati filter soft delete',
+    );
+    ({ data: bm, error: errBm } = await bacaBookmark(false));
+  }
   if (errBm) {
     console.error('check-new-chapters: gagal baca bookmarks', errBm.message);
     return json({ error: 'Gagal membaca bookmarks.' }, 500);
