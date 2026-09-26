@@ -45,17 +45,28 @@ bool _detailAtauReader(String lokasi) {
 }
 
 final goRouterProvider = Provider<GoRouter>((ref) {
-  final sesiAsync = ref.watch(sesiProvider);
-  final pendatangBaru = ref.watch(pendingUsernameSetupProvider);
-  final sudahLihat = ref.watch(sudahOnboardingProvider);
-  final splashSiap = ref.watch(splashSiapProvider);
-  final refresh = GoRouterRefreshStream(ref.watch(streamSesiProvider));
+  // Sesi, kesiapan splash, status onboarding, dan permintaan setup username
+  // dibaca di dalam redirect, bukan di-watch di sini. Kalau di-watch, setiap
+  // perubahan status membuat GoRouter baru yang membaca ulang
+  // initialLocation '/', sehingga navigator ikut diganti: user yang sedang
+  // membaca chapter 40 terlempar ke Beranda, stack navigasi hilang, dan
+  // extra halaman (judul chapter, sampul) ikut hilang.
+  final refresh = GoRouterRefresh([ref.watch(streamSesiProvider)]);
   ref.onDispose(refresh.dispose);
 
-  return GoRouter(
+  void pemicu() => refresh.pemicu();
+  ref.listen(splashSiapProvider, (previous, next) => pemicu());
+  ref.listen(pendingUsernameSetupProvider, (previous, next) => pemicu());
+  ref.listen(sudahOnboardingProvider, (previous, next) => pemicu());
+
+  final router = GoRouter(
     initialLocation: '/',
     refreshListenable: refresh,
     redirect: (context, state) {
+      final sesiAsync = ref.read(sesiProvider);
+      final splashSiap = ref.read(splashSiapProvider);
+      final sudahLihat = ref.read(sudahOnboardingProvider);
+      final pendatangBaru = ref.read(pendingUsernameSetupProvider);
       final lokasi = state.matchedLocation;
       final customTarget = _targetDeepLink(state);
       const rutePublik = {
@@ -298,4 +309,8 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       body: Center(child: Text('Rute ${state.uri} tidak tersedia.')),
     ),
   );
+  // GoRouter menyimpan routeInformationProvider yang berupa WidgetsBindingObserver
+  // dan routerDelegate; keduanya harus dilepas saat provider di-dispose.
+  ref.onDispose(router.dispose);
+  return router;
 });
