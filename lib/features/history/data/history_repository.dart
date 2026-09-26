@@ -212,7 +212,27 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
     Map<String, DateTime> tombs,
   ) {
     _tombs = Map<String, DateTime>.of(tombs);
-    _persist(gabungan);
+    final box = _uid == null ? null : AppStorage.boxUserSync('rh', _uid!);
+    var hasil = gabungan;
+    if (box != null) {
+      // Gabungan dihitung dari snapshot sebelum network. Menyimpan posisi baca
+      // saat reader ditutup bisa jatuh di celah itu, dan _persist() menghapus
+      // setiap kunci yang tidak ada di gabungan - posisi terbaru user hilang
+      // tepat setelah user menekan back. Entri pending yang belum ada di snapshot
+      // karena itu dipertahankan.
+      for (final key in box.keys) {
+        if (key == AppStorage.tombsKey) continue;
+        if (hasil.containsKey(key)) continue;
+        final raw = box.get(key);
+        if (raw is! Map) continue;
+        final item = MangaReadingProgress.fromMap(
+          Map<String, dynamic>.from(raw),
+        );
+        if (item.mangaId.isEmpty || !item.pending) continue;
+        hasil = {...hasil, item.mangaId: item};
+      }
+    }
+    _persist(hasil);
   }
 
   /// Menandai beberapa id sudah tersinkron.
@@ -252,7 +272,10 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
       'chapter_id': e.lastChapterId,
       'chapter_title': e.lastChapterName,
       'scroll_position': e.scrollOffset,
-      'updated_at': e.updatedAt.toIso8601String(),
+      // toUtc() wajib: kolomnya timestamptz, sedangkan toIso8601String()
+      // pada DateTime lokal tidak menghasilkan offset sehingga Postgres
+      // membacanya sebagai UTC dan menggeser waktu sesuai zona perangkat.
+      'updated_at': e.updatedAt.toUtc().toIso8601String(),
       // Bersihkan tombstone server saat entri dihidupkan ulang.
       'deleted_at': null,
     };

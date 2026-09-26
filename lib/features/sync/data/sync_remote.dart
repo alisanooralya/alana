@@ -24,14 +24,20 @@ class SyncRemote {
 
   /// Batch upsert (satu request). `created_at` ditulis ulang sebagai
   /// jam LWW karena tabel tidak punya kolom updated_at.
+  ///
+  /// Memakai RPC `upsert_sync_rows`, bukan `.upsert()` biasa: PostgREST
+  /// menyelesaikan konflik berdasarkan urutan kedatangan, sehingga push lama
+  /// dari perangkat offline bisa menimpa baris yang lebih baru.
   static Future<void> dorongBookmarks(
     String uid,
     List<Map<String, dynamic>> baris,
   ) async {
     if (baris.isEmpty) return;
-    await _client()
-        .from('bookmarks')
-        .upsert(baris, onConflict: 'user_id,manga_id');
+    await _client().rpc('upsert_sync_rows', {
+      'p_user_id': uid,
+      'p_tabel': 'bookmarks',
+      'p_rows': baris,
+    });
   }
 
   /// Soft delete: baris ditandai `deleted_at` (bukan DELETE keras) supaya
@@ -58,14 +64,17 @@ class SyncRemote {
     return [for (final b in baris) Map<String, dynamic>.from(b as Map)];
   }
 
+  /// Memakai RPC `upsert_sync_rows` untuk penjaga LWW, bukan `.upsert()` biasa.
   static Future<void> dorongHistory(
     String uid,
     List<Map<String, dynamic>> baris,
   ) async {
     if (baris.isEmpty) return;
-    await _client()
-        .from('reading_history')
-        .upsert(baris, onConflict: 'user_id,manga_id');
+    await _client().rpc('upsert_sync_rows', {
+      'p_user_id': uid,
+      'p_tabel': 'reading_history',
+      'p_rows': baris,
+    });
   }
 
   static Future<void> hapusHistory(String uid, List<String> mangaIds) async {

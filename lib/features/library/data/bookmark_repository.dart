@@ -161,7 +161,25 @@ class BookmarkRepository extends Notifier<Map<String, BookmarkedManga>> {
     Map<String, DateTime> tombs,
   ) {
     _tombs = Map<String, DateTime>.of(tombs);
-    _persist(gabungan);
+    final box = _uid == null ? null : AppStorage.boxUserSync('bm', _uid!);
+    var hasil = gabungan;
+    if (box != null) {
+      // Gabungan dihitung dari snapshot yang diambil sebelum network. Toggle
+      // bookmark yang terjadi selama sync berjalan tidak ada di snapshot itu,
+      // dan _persist() akan menghapus setiap kunci yang tidak ada di
+      // gabungan - sehingga toggle tersebut hilang. Entri pending yang belum
+      // ada di snapshot karena itu dipertahankan.
+      for (final key in box.keys) {
+        if (key == AppStorage.tombsKey) continue;
+        if (hasil.containsKey(key)) continue;
+        final raw = box.get(key);
+        if (raw is! Map) continue;
+        final item = BookmarkedManga.fromMap(Map<String, dynamic>.from(raw));
+        if (item.mangaId.isEmpty || !item.pending) continue;
+        hasil = {...hasil, item.mangaId: item};
+      }
+    }
+    _persist(hasil);
   }
 
   /// Menandai beberapa id sudah tersinkron.
@@ -201,7 +219,10 @@ class BookmarkRepository extends Notifier<Map<String, BookmarkedManga>> {
       'manga_id': e.mangaId,
       'title': e.title,
       'cover_url': e.thumbnail,
-      'created_at': e.updatedAt.toIso8601String(),
+      // toUtc() wajib: kolomnya timestamptz, sedangkan toIso8601String()
+      // pada DateTime lokal tidak menghasilkan offset sehingga Postgres
+      // membacanya sebagai UTC dan menggeser waktu sesuai zona perangkat.
+      'created_at': e.updatedAt.toUtc().toIso8601String(),
       // Bersihkan tombstone server saat bookmark dihidupkan ulang.
       'deleted_at': null,
     };

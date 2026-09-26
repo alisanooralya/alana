@@ -66,7 +66,7 @@ class DeviceTokenRepository {
       'user_id': uid,
       'device_id': deviceId,
       'fcm_token': token,
-      'updated_at': DateTime.now().toIso8601String(),
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
     }, onConflict: 'user_id,device_id');
   }
 

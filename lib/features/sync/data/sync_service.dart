@@ -61,7 +61,13 @@ class SyncService {
         SyncRemote.tarikBookmarks(uid),
         SyncRemote.tarikHistory(uid),
       ]);
+      // Sesi bisa berubah selama menunggu: user keluar lalu masuk akun lain.
+      // `_uidAktif` dicek ulang karena repo diambil lewat ref.read SETELAH
+      // await - tanpa pengecekan ini, data akun lama ditulis ke box dan state
+      // akun baru sehingga Pustaka akun B menampilkan isi privat akun A.
+      if (_uidAktif != uid) return;
       await _gabungBookmark(uid, daftar[0]);
+      if (_uidAktif != uid) return;
       await _gabungHistory(uid, daftar[1]);
     } catch (_) {
       // Offline/gagal: data lokal tetap dipakai apa adanya.
