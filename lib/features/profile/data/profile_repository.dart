@@ -29,18 +29,21 @@ class ProfileRepository {
   }
 
   /// Mengecek username dipakai user lain (di luar [kecualiUid]).
-  /// null = tidak bisa dicek, lanjutkan dan andalkan error unik DB.
+  ///
+  /// Memanggil fungsi `username_taken` yang hanya mengembalikan boolean.
+  /// Select langsung ke `profiles` selalu gagal untuk pengguna baru karena
+  /// policy select hanya berlaku bagi yang sudah login, jadi pengecekan tidak
+  /// pernah memberi jawaban. null = tidak bisa dicek; pemanggil tetap
+  /// lanjutkan dan andalkan error unik dari database.
   Future<bool?> usernameDipakai(String username, {String? kecualiUid}) async {
     try {
-      var query = _client
-          .from('profiles')
-          .select('id')
-          .eq('username', username.trim());
-      if (kecualiUid != null && kecualiUid.isNotEmpty) {
-        query = query.neq('id', kecualiUid);
-      }
-      final baris = await query.maybeSingle();
-      return baris != null;
+      final hasil = await _client.rpc('username_taken', {
+        'p_username': username,
+        'p_kecuali': (kecualiUid == null || kecualiUid.isEmpty)
+            ? null
+            : kecualiUid,
+      });
+      return hasil == true;
     } catch (_) {
       return null;
     }

@@ -205,19 +205,22 @@ class AuthRepository {
     );
   }
 
-  /// Mengecek apakah username sudah dipakai di tabel `profiles`.
+  /// Mengecek apakah username sudah dipakai.
   ///
-  /// Mengembalikan true bila sudah dipakai, false bila tersedia,
-  /// null bila tidak bisa dicek (mis. RLS) — pemanggil tetap lanjut
-  /// dan mengandalkan error unik saat daftar.
+  /// Memanggil fungsi `username_taken` (hanya mengembalikan boolean).
+  /// Select langsung ke `profiles` tidak akan pernah berhasil di layar
+  /// pendaftaran karena pemanggil masih belum punya sesi, sedangkan policy
+  /// select hanya berlaku bagi yang sudah login.
+  ///
+  /// Mengembalikan true bila sudah dipakai, false bila tersedia, null bila
+  /// tidak bisa dicek — pemanggil tetap lanjut dan mengandalkan error unik
+  /// dari database saat daftar.
   Future<bool?> usernameDipakai(String username) async {
     try {
-      final baris = await _client
-          .from('profiles')
-          .select('username')
-          .eq('username', username.trim())
-          .maybeSingle();
-      return baris != null;
+      final hasil = await _client.rpc('username_taken', {
+        'p_username': username,
+      });
+      return hasil == true;
     } catch (_) {
       return null;
     }
