@@ -153,7 +153,7 @@ class NotificationListPage extends ConsumerWidget {
                           ),
                         if (label.isNotEmpty)
                           Text(
-                            '$label lalu',
+                            label,
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                       ],

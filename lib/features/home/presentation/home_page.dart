@@ -8,6 +8,7 @@ import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_view.dart';
 import 'package:alana/core/widgets/offline_banner.dart';
 import 'package:alana/core/utils/pesan_error.dart';
+import 'package:alana/utils/relative_time.dart';
 import 'package:alana/features/notifikasi/presentation/notifikasi_providers.dart';
 import 'package:alana/models/manga.dart';
 
@@ -152,11 +153,18 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ),
                       data: (response) {
                         if (response.mangas.isEmpty) {
+                          //-copy-paste dari section sebelumnya: memunculkan
+                          // section kedua berpembaca "Populer Hari Ini" padahal
+                          // isinya rekomendasi, jadi user melihat dua section
+                          // dengan judul identik.
                           return const _SectionKosong(
-                            judul: 'Populer Hari Ini',
+                            judul: 'Rekomendasi',
                           );
                         }
-                        return PopularCarousel(mangas: response.mangas);
+                        return PopularCarousel(
+                          mangas: response.mangas,
+                          judul: 'Rekomendasi',
+                        );
                       },
                     ),
                   ),
@@ -318,7 +326,7 @@ class _LatestItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final infoChapter = manga.latestChapterNumber > 0
         ? 'Ch ${manga.latestChapterNumber}'
-              '${manga.latestChapterDate.isEmpty ? '' : ' • ${manga.latestChapterDate}'}'
+              _terbaruLabel(manga)
         : (manga.status.isEmpty ? 'Status tidak diketahui' : manga.status);
 
     return Card(
@@ -389,4 +397,10 @@ class _BawahDaftar extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Label waktu chapter terbaru, dihitung saat render.
+String _terbaruLabel(Manga manga) {
+  final label = formatRelativeTime(manga.latestChapterTime);
+  return label.isEmpty ? '' : ' • $label';
 }

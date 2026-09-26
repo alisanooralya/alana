@@ -270,11 +270,20 @@ class _GenreSelector extends ConsumerWidget {
           return ChoiceChip(
             label: Text(genre.name),
             selected: selected.contains(genre.slug),
-            onSelected: (_) {
+            onSelected: (dipilih) {
               final query = ref.read(jelajahFilterProvider);
-              ref.read(jelajahFilterProvider.notifier).state = query.copyWith(
-                genreSlugs: [genre.slug],
-              );
+              // Toggle, bukan replace..copyWith genreSlugs: [genre.slug]
+              // menimpa seluruh pilihan, jadi user yang sudah memilih tiga
+              // genre lalu mengetuk satu chip untuk mempersempit tiba-tiba
+              // kehilangan dua filter lain tanpa ada keterangan apa pun.
+              final genreBaru = <String>{...query.genreSlugs};
+              if (dipilih) {
+                genreBaru.add(genre.slug);
+              } else {
+                genreBaru.remove(genre.slug);
+              }
+              ref.read(jelajahFilterProvider.notifier).state =
+                  query.copyWith(genreSlugs: genreBaru);
             },
           );
         },

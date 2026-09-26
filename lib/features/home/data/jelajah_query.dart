@@ -18,15 +18,20 @@ class JelajahQuery {
   final MangaStatusFilter status;
   final MangaSort sort;
 
+  /// `true` bila ada penyaring yang benar-benar mempersempit hasil.
+  ///
+  /// Urutan tidak ikut dihitung: memilih "A-Z" atau "Terpopuler" hanya
+  /// mengubah urutan, bukan himpunan hasil, dan menjadikannya bagian dari
+  /// hasFilters membuat logika reset berbasis hasFilters menyesatkan.
   bool get hasFilters =>
-      genreSlugs.isNotEmpty ||
-      status != MangaStatusFilter.all ||
-      sort != MangaSort.latest;
+      genreSlugs.isNotEmpty || status != MangaStatusFilter.all;
 
+  /// Jumlah penyaring aktif yang ditampilkan pada badge.
+  ///
+  /// Urutan tidak dihitung. Sebelumnya memilih urutan saja sudah memunculkan
+  /// badge "1" padahal tidak ada penyaring yang aktif sama sekali.
   int get activeFilterCount =>
-      genreSlugs.length +
-      (status == MangaStatusFilter.all ? 0 : 1) +
-      (sort == MangaSort.latest ? 0 : 1);
+      genreSlugs.length + (status == MangaStatusFilter.all ? 0 : 1);
 
   JelajahQuery copyWith({
     Iterable<String>? genreSlugs,

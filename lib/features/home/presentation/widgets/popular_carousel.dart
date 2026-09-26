@@ -11,9 +11,17 @@ import 'package:alana/models/manga.dart';
 ///
 /// Ketuk banner untuk membuka halaman detail.
 class PopularCarousel extends StatefulWidget {
-  const PopularCarousel({super.key, required this.mangas});
+  const PopularCarousel({
+    super.key,
+    required this.mangas,
+    this.judul = 'Populer Hari Ini',
+  });
 
   final List<Manga> mangas;
+
+  /// Judul section. Data yang sama bisa dipakai untuk feed berbeda, jadi
+  /// judul tidak lagi ditulis mati di dalam widget.
+  final String judul;
 
   @override
   State<PopularCarousel> createState() => _PopularCarouselState();
@@ -69,7 +77,7 @@ class _PopularCarouselState extends State<PopularCarousel> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(
-            'Populer Hari Ini',
+            widget.judul,
             style: Theme.of(context).textTheme.titleMedium,
           ),
         ),
@@ -170,7 +178,10 @@ class _BannerPopuler extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        '#$peringkat Populer',
+                        // Angka berasal dari urutan daftar ini, bukan dari
+                        // peringkat resmi server, jadi claims "Populer"
+                        // menyesatkan untuk feed rekomendasi.
+                        '#$peringkat',
                         style: textTheme.labelSmall?.copyWith(
                           color: scheme.onPrimary,
                           fontWeight: FontWeight.bold,
@@ -201,7 +212,7 @@ class _BannerPopuler extends StatelessWidget {
                           const Icon(Icons.star, size: 16, color: Colors.amber),
                           const SizedBox(width: 4),
                           Text(
-                            manga.rating.toString(),
+                            _formatRating(manga.rating),
                             style: textTheme.bodyMedium,
                           ),
                         ],
@@ -216,4 +227,10 @@ class _BannerPopuler extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Rating dengan satu angka di belakang koma, tanpa ".0" yang tidak perlu.
+String _formatRating(num rating) {
+  if (rating == rating.roundToDouble()) return rating.toInt().toString();
+  return rating.toStringAsFixed(1);
 }

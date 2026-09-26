@@ -5,6 +5,23 @@ import 'manga_api_client.dart';
 
 /// Parses the many response shapes of the chapter list endpoint into
 /// [Chapter] models.
+/// Membersihkan nomor chapter tanpa merusak angka desimal.
+///
+/// `replaceAll('.0', '')` adalah penghapusan potongan substring di seluruh
+/// string, bukan hanya sufiks: "10.05" menjadi "105" dan "0.05" menjadi
+/// "05". Nilai desimal satu digit aman, tapi sumber yang mengirim nomor dua
+/// desimal - umum untuk chapter sampingan - akan menampilkan nomor salah
+/// tanpa pesan.
+String _nomorChapter(String mentah) {
+  final nilai = mentah.trim();
+  if (nilai.isEmpty) return '';
+  final parsed = num.tryParse(nilai);
+  if (parsed == null) return nilai;
+  if (parsed is int) return parsed.toString();
+  // Buang hanya nol desimal di akhir, sisanya biarkan.
+  return nilai.endsWith('.0') ? nilai.substring(0, nilai.length - 2) : nilai;
+}
+
 List<Chapter> parseChapterList(dynamic data, {required String mangaId}) {
   final List<dynamic> rawChapters;
   if (data is List) {
@@ -30,9 +47,9 @@ List<Chapter> parseChapterList(dynamic data, {required String mangaId}) {
       }
     }
 
-    final chapterNumber = asString(
-      item['chapter_number'] ?? item['name'] ?? item['number'],
-    ).replaceAll('.0', '');
+    final chapterNumber = _nomorChapter(
+      asString(item['chapter_number'] ?? item['name'] ?? item['number']),
+    );
     final chapterTitle = asString(item['chapter_title'] ?? item['title']);
     final chapterId = asString(item['chapter_id'] ?? item['id']);
 

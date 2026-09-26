@@ -13,7 +13,7 @@ class MangaApiClient {
   static const String cdnBaseUrl = 'https://storage.shngm.id';
 
   late final Dio _api = _createApiDio();
-  final Dio _images = Dio();
+  final Dio _images = _createImageDio();
 
   Dio _createApiDio() {
     return Dio(
@@ -22,6 +22,16 @@ class MangaApiClient {
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         headers: _apiHeaders(),
+      ),
+    );
+  }
+
+  Dio _createImageDio() {
+    return Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 60),
+        sendTimeout: const Duration(seconds: 30),
       ),
     );
   }
@@ -51,6 +61,10 @@ class MangaApiClient {
   }
 
   /// Downloads an image and returns its raw bytes.
+  ///
+  /// Melempar FormatException bila respons datang tanpa isi. Sebelumnya body
+  /// kosong diubah jadi Uint8List kosong, sehingga pemanggil yang tidak
+  /// mengecek akan menulis berkas gambar nol byte dan menganggapnya sah.
   Future<Uint8List> downloadImage(String imageUrl) async {
     final response = await _images.get<List<int>>(
       imageUrl,
@@ -59,7 +73,11 @@ class MangaApiClient {
         responseType: ResponseType.bytes,
       ),
     );
-    return Uint8List.fromList(response.data ?? const []);
+    final data = response.data;
+    if (data == null || data.isEmpty) {
+      throw FormatException('Empty image response: $imageUrl');
+    }
+    return Uint8List.fromList(data);
   }
 
   Map<String, String> _apiHeaders() {

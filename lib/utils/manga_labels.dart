@@ -3,10 +3,22 @@ library;
 
 /// Maps an API status code (1/2/3) to a readable label.
 String mangaStatusLabel(dynamic statusCode) {
-  if (statusCode == 1) return 'Ongoing';
-  if (statusCode == 2) return 'Completed';
-  if (statusCode == 3) return 'Hiatus';
-  return '';
+  // API ini bertipe longgar: json_utils menyediakan asInt/asNum justru karena
+  // angka kadang datang sebagai string. Versi lama hanya membandingkan dengan
+  // int, sehingga "1" menghasilkan label kosong dan baris status tampil
+  // tanpa tulisan sama sekali.
+  final kode = switch (statusCode) {
+    int v => v,
+    num v => v.toInt(),
+    String v => int.tryParse(v.trim()),
+    _ => null,
+  };
+  return switch (kode) {
+    1 => 'Berjalan',
+    2 => 'Selesai',
+    3 => 'Hiatus',
+    _ => '',
+  };
 }
 
 /// Maps an API country code (KR/CN/EN/JP) to a readable label.

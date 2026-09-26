@@ -127,5 +127,5 @@ class HistoryPage extends ConsumerWidget {
 
 String _relatif(MangaReadingProgress item) {
   final label = formatRelativeTime(item.updatedAt.toIso8601String());
-  return label.isEmpty ? '' : '$label lalu';
+  return label;
 }
