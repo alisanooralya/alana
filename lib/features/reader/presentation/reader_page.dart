@@ -94,8 +94,11 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     WidgetsBinding.instance.removeObserver(this);
     _saveTimer?.cancel();
     _scrollController.removeListener(_onScroll);
+    // ref masih aman dipakai di sini: ConsumerStatefulElement menandai ref
+    // tidak valid SESUDAH state.dispose() selesai. Yang tidak boleh memakai
+    // ref adalah callback async yang berjalan setelah dispose selesai, jadi
+    // dorongan berikut memakai jalur statis yang menyentuh box langsung.
     _simpanPosisi();
-    // Tanpa ref di dispose: dorong statis langsung dari box.
     unawaited(SyncService.dorongSekarang(_uid, mangaId: widget.mangaId));
     _scrollController.dispose();
     unawaited(_ImmersiveSession.lepas());

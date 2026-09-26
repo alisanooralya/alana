@@ -38,20 +38,27 @@ class LatestUpdatesController extends AsyncNotifier<PaginatedMangaState> {
       saatIni.copyWith(isLoadingMore: true, pesanErrorMore: () => null),
     );
 
+    final halamanBerikutnya = saatIni.page + 1;
     try {
       final repository = ref.read(homeRepositoryProvider);
       final response = await repository.getLatestUpdates(
-        page: saatIni.page + 1,
+        page: halamanBerikutnya,
       );
+      // Penanda: kalau build() sempat berjalan lagi (pull-to-refresh,
+      // regenerate karena state di-invalidate), snapshot di atas sudah basi
+      // dan menimpanya berarti hasil refresh yang baru dibuang, sehingga user
+      // melihat daftar lama plus satu halaman tambahan.
+      if (state.valueOrNull?.page != saatIni.page) return;
       state = AsyncData(
         saatIni.copyWith(
           items: [...saatIni.items, ...response.mangas],
-          page: saatIni.page + 1,
+          page: halamanBerikutnya,
           hasNext: response.hasNextPage,
           isLoadingMore: false,
         ),
       );
     } catch (error) {
+      if (state.valueOrNull?.page != saatIni.page) return;
       state = AsyncData(
         saatIni.copyWith(
           isLoadingMore: false,

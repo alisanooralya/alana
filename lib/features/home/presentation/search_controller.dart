@@ -49,6 +49,9 @@ class SearchResultsController extends AsyncNotifier<PaginatedMangaState> {
       final repository = ref.read(homeRepositoryProvider);
       final response = await repository.search(query, page: halamanBerikutnya);
       if (ref.read(searchQueryProvider) != query) return;
+      // Snapshot bisa basi kalau build() sempat berjalan lagi (mis. invalidate)
+      // sementara permintaan ini masih jalan.
+      if (state.valueOrNull?.page != saatIni.page) return;
       state = AsyncData(
         saatIni.copyWith(
           items: [...saatIni.items, ...response.mangas],
@@ -59,6 +62,7 @@ class SearchResultsController extends AsyncNotifier<PaginatedMangaState> {
       );
     } catch (error) {
       if (ref.read(searchQueryProvider) != query) return;
+      if (state.valueOrNull?.page != saatIni.page) return;
       state = AsyncData(
         saatIni.copyWith(
           isLoadingMore: false,

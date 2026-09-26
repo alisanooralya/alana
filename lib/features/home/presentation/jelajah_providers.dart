@@ -16,7 +16,7 @@ final jelajahFilterProvider = StateProvider<JelajahQuery>(
 );
 
 final jelajahPageProvider =
-    FutureProvider.family<MangaListResponse, JelajahPageRequest>((
+    FutureProvider.autoDispose.family<MangaListResponse, JelajahPageRequest>((
       ref,
       request,
     ) {
@@ -73,6 +73,7 @@ class JelajahController extends AsyncNotifier<PaginatedMangaState> {
         jelajahPageProvider(halamanBerikutnya).future,
       );
       if (ref.read(jelajahFilterProvider) != query) return;
+      if (state.valueOrNull?.page != saatIni.page) return;
       state = AsyncData(
         saatIni.copyWith(
           items: [...saatIni.items, ...response.mangas],
@@ -83,6 +84,7 @@ class JelajahController extends AsyncNotifier<PaginatedMangaState> {
       );
     } catch (error) {
       if (ref.read(jelajahFilterProvider) != query) return;
+      if (state.valueOrNull?.page != saatIni.page) return;
       state = AsyncData(
         saatIni.copyWith(
           isLoadingMore: false,
