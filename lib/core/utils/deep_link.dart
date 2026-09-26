@@ -41,4 +41,7 @@ class DeepLinkIntent {
     _pending = null;
     return lokasi;
   }
+
+  /// Membuang target yang belum sempat dipakai.
+  static void buang() => _pending = null;
 }

@@ -39,6 +39,12 @@ String? _targetDeepLink(GoRouterState state) {
   return internalLocationFromDeepLink(state.uri.toString());
 }
 
+/// Halaman detail/reader: satu-satunya lokasi yang layak "dikembalikan"
+/// ke user setelah ia sempat terlempar ke halaman login.
+bool _detailAtauReader(String lokasi) {
+  return lokasi.startsWith('/detail/') || lokasi.startsWith('/baca/');
+}
+
 final goRouterProvider = Provider<GoRouter>((ref) {
   final sesiAsync = ref.watch(sesiProvider);
   final pendatangBaru = ref.watch(pendingUsernameSetupProvider);
@@ -57,12 +63,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final lokasi = state.matchedLocation;
       final customTarget = _targetDeepLink(state);
-      final target =
-          customTarget ??
-          (lokasi.startsWith('/detail/') || lokasi.startsWith('/baca/')
-              ? lokasi
-              : null);
-      if (target != null) DeepLinkIntent.simpan(target);
       const rutePublik = {
         '/splash',
         '/onboarding',
@@ -85,10 +85,17 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       }
       if (masuk && customTarget != null) {
         if (pendatangBaru) return '/profil/ubah?baru=1';
-        DeepLinkIntent.ambil();
+        DeepLinkIntent.buang();
         return customTarget;
       }
-      if (!masuk && !rutePublik.contains(lokasi)) return '/masuk';
+      if (!masuk && !rutePublik.contains(lokasi)) {
+        // Hanya saat user benar-benar terlempar ke login yang lokasi
+        // lamanya disimpan, bukan setiap kali redirect berjalan.
+        final kembali =
+            customTarget ?? (_detailAtauReader(lokasi) ? lokasi : null);
+        if (kembali != null) DeepLinkIntent.simpan(kembali);
+        return '/masuk';
+      }
       if (masuk && pendatangBaru && lokasi != '/profil/ubah') {
         return '/profil/ubah?baru=1';
       }
@@ -103,7 +110,9 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         return DeepLinkIntent.ambil() ?? '/';
       }
       if (masuk && lokasi == '/profil/ubah') {
-        return DeepLinkIntent.ambil();
+        // Buang sisa target; jangan pernah mengarahkan halaman ini ke
+        // deep link lama.
+        DeepLinkIntent.buang();
       }
       return null;
     },
