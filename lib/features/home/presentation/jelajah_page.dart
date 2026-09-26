@@ -390,7 +390,6 @@ class _FilterSheetState extends State<_FilterSheet> {
                         MangaSort.latest => 'Terbaru update',
                         MangaSort.popular => 'Terpopuler',
                         MangaSort.rating => 'Rating tertinggi',
-                        MangaSort.title => 'A-Z',
                       }),
                       selected: _sort == value,
                       onSelected: (_) => setState(() => _sort = value),

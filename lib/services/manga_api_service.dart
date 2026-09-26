@@ -16,12 +16,22 @@ extension MangaStatusFilterValue on MangaStatusFilter {
   };
 }
 
-enum MangaSort { latest, popular, rating, title }
+/// Opsi urutan hasil.
+///
+/// Opsi "A-Z" sengaja tidak ada: endpoint `/v1/manga/list` tidak mendukung
+/// pengurutan alfabetis sama sekali (nilai `title`, `name`, dan `alphabet`
+/// semuanya ditolak dengan HTTP 400), jadi menawarkannya hanya menghasilkan
+/// halaman error yang tidak bisa dipulihkan.
+enum MangaSort { latest, popular, rating }
 
 extension MangaSortValue on MangaSort {
-  String get apiValue => name;
-
-  String get apiOrder => this == MangaSort.title ? 'asc' : 'desc';
+  /// Nilai yang diterima API. Nama enum tidak bisa dipakai apa adanya:
+  /// `popular` ditolak dengan 400, yang benar `popularity`.
+  String get apiValue => switch (this) {
+    MangaSort.latest => 'latest',
+    MangaSort.popular => 'popularity',
+    MangaSort.rating => 'rating',
+  };
 }
 
 /// High-level access to the Shinigami (shngm) manga API.
@@ -92,7 +102,7 @@ class MangaApiService {
         'genre_include_mode': 'or',
         'genre_exclude_mode': 'or',
         'sort': sort.apiValue,
-        'sort_order': sort.apiOrder,
+        'sort_order': 'desc',
       };
 
       if (query.isNotEmpty) params['q'] = query;
@@ -179,15 +189,48 @@ class MangaApiService {
     });
   }
 
+  /// Jumlah chapter per halaman saat menarik daftar chapter.
+  static const int _chapterPageSize = 1000;
+
+  /// Pengaman jumlah halaman yang ditarik per manga.
+  ///
+  /// `meta.total_page` datang dari server; batas ini mencegah loop tak
+  /// berakhir bila server melaporkan angka yang tidak masuk akal.
+  static const int _chapterMaxPages = 50;
+
   /// Fetches all chapters of the manga with the given [mangaId].
-  Future<List<Chapter>> getChapterList(String mangaId) {
+  ///
+  /// Daftar chapter dipaginasi: satu request dengan `page_size` besar tidak
+  /// cukup untuk seri panjang. Tanpa pemanggilan lanjutan, chapter awal
+  /// Martial Peak (3862 chapter, `total_page: 2`) tidak pernah sampai ke
+  /// aplikasi dan tidak bisa dibuka.
+  Future<List<Chapter>> getChapterList(String mangaId) async {
     return _guard('get chapter list', () async {
-      final data = await _client.getData(
-        '/v1/chapter/$mangaId/list',
-        queryParameters: {'page_size': 3000},
-      );
-      return parseChapterList(data, mangaId: mangaId);
+      final semua = <Chapter>[];
+      for (var page = 1; page <= _chapterMaxPages; page++) {
+        final json = await _client.getJson(
+          '/v1/chapter/$mangaId/list',
+          queryParameters: {'page': page, 'page_size': _chapterPageSize},
+        );
+        final batch = parseChapterList(json, mangaId: mangaId);
+        if (batch.isEmpty) break;
+        semua.addAll(batch);
+
+        final totalPage = _totalPage(json);
+        if (totalPage == null || page >= totalPage) break;
+      }
+      return semua;
     });
+  }
+
+  /// Jumlah halaman total dari amplop respons, null bila tidak ada.
+  static int? _totalPage(Map<String, dynamic> json) {
+    final meta = json['meta'];
+    if (meta is! Map) return null;
+    final value = meta['total_page'];
+    if (value is int) return value > 0 ? value : null;
+    if (value is num) return value.toInt() > 0 ? value.toInt() : null;
+    return int.tryParse(value?.toString() ?? '');
   }
 
   /// Fetches the pages (images) of the chapter with the given [chapterId].
