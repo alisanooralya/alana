@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:alana/features/auth/data/auth_repository.dart';
 import 'package:alana/features/auth/data/auth_validators.dart';
@@ -79,7 +80,13 @@ class _FormGantiPasswordState extends ConsumerState<_FormGantiPassword> {
         ..showSnackBar(
           const SnackBar(content: Text('Password berhasil diganti.')),
         );
-      Navigator.of(context).pop();
+      // Sama seperti Edit Profil: jaga-jaga kalau halaman ini dibuka tanpa
+      // ada halaman di bawahnya.
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/profil');
+      }
     } catch (error) {
       if (mounted) setState(() => _pesanError = pesanAuthRamah(error));
     } finally {

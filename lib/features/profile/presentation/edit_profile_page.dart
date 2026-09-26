@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -172,7 +173,13 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(const SnackBar(content: Text('Profil disimpan.')));
-      Navigator.of(context).pop();
+      // Halaman ini bisa dibuka lewat push (ada halaman di bawahnya) atau
+      // lewat redirect untuk pengguna baru (tidak ada halaman di bawahnya).
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/profil');
+      }
     } catch (error) {
       if (mounted) setState(() => _pesanError = pesanAuthRamah(error));
     } finally {
