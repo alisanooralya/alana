@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -63,14 +64,22 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
   String? _uid;
   int _jumlahHalamanTerakhir = 0;
 
+  /// Posisi scroll tersimpan yang belum tentu sudah bisa dicapai karena
+  /// tinggi placeholder belum mendekati tinggi sebenarnya.
+  double? _targetOffset;
+
+  /// Posisi sudah tercapai, tidak perlu mencoba lagi.
+  bool _restoreTercapai = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    if (ref.read(settingsRepositoryProvider).keepScreenOn) {
-      WakelockPlus.enable();
-    }
+    unawaited(
+      _ImmersiveSession.aktif(
+        ref.read(settingsRepositoryProvider).keepScreenOn,
+      ),
+    );
     _scrollController.addListener(_onScroll);
     // Selaraskan flag pending dengan box (dorong statis menulis box langsung).
     ref.invalidate(historyRepositoryProvider);
@@ -85,15 +94,17 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     // Tanpa ref di dispose: dorong statis langsung dari box.
     unawaited(SyncService.dorongSekarang(_uid, mangaId: widget.mangaId));
     _scrollController.dispose();
-    WakelockPlus.disable();
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    unawaited(_ImmersiveSession.lepas());
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Aplikasi background: kirim progres yang pending (best-effort).
+    // Aplikasi background: simpan posisi dulu (debounce 1 detik mungkin belum
+    // sempat jatuh), baru kirim progres yang pending.
     if (state == AppLifecycleState.paused) {
+      _saveTimer?.cancel();
+      _simpanPosisi();
       unawaited(ref.read(syncServiceProvider).flushTertunda());
     }
   }
@@ -102,6 +113,19 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
   void _onScroll() {
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(seconds: 1), _simpanPosisi);
+  }
+
+  /// Gestur user membatalkan sisa pemulihan posisi supaya lompatan tidak
+  /// melawan orang yang sedang menggulir.
+  ///
+  /// Harus lewat [UserScrollNotification], bukan listener [ScrollController]:
+  /// `jumpTo` milik [_cobaRestore] sendiri juga memicu listener scroll, jadi
+  /// pembatalan harus berada di sini agar tidak mematikan percobaan sendiri.
+  void _onUserScroll(UserScrollNotification notifikasi) {
+    if (notifikasi.direction != ScrollDirection.idle) {
+      _targetOffset = null;
+      _restoreTercapai = true;
+    }
   }
 
   void _simpanPosisi() {
@@ -123,12 +147,31 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     if (_sudahRestore) return;
     _sudahRestore = true;
     if (offset <= 0) return;
+    _targetOffset = offset;
+    // Dipanggil dari dalam build, jadi lompatan pertama harus menunggu frame
+    // selesai: belum ada klien scroll saat build pertama.
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_scrollController.hasClients) return;
-      final max = _scrollController.position.maxScrollExtent;
-      if (max <= 0) return;
-      _scrollController.jumpTo(offset.clamp(0.0, max).toDouble());
+      if (!mounted) return;
+      _cobaRestore();
     });
+  }
+
+  /// Melompat ke posisi tersimpan selama masih dalam jangkauan.
+  ///
+  /// Saat chapter baru dibuka seluruh gambar masih berupa placeholder dengan
+  /// tinggi tebakan (lebar x 1.5), padahal strip webtoon bisa 3-6 kali
+  /// lebarnya. Satu kali `jumpTo` pada kondisi itu selalu terpotong, sehingga
+  /// user terbuka beberapa halaman dari posisi sebenarnya. Karena itu
+  /// percobaan diulang setiap kali gambar berikutnya selesai dimuat.
+  void _cobaRestore() {
+    final target = _targetOffset;
+    if (target == null || _restoreTercapai) return;
+    if (!_scrollController.hasClients) return;
+    final max = _scrollController.position.maxScrollExtent;
+    if (max <= 0) return;
+    final sampai = target.clamp(0.0, max).toDouble();
+    _scrollController.jumpTo(sampai);
+    _restoreTercapai = sampai >= target - 1;
   }
 
   void _preloadBerikutnya(
@@ -136,18 +179,33 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     List<manga.Page> pages, {
     bool offline = false,
   }) {
+    // Placeholder sudah digantikan gambar asli, jadi posisi tersimpan
+    // mungkin sekarang sudah bisa dicapai.
+    _cobaRestore();
     if (offline) return;
+    final decodeWidth = _lebarDecode(context);
     for (var i = index + 1; i <= index + 2 && i < pages.length; i++) {
       unawaited(
         precacheImage(
-          CachedNetworkImageProvider(
-            pages[i].imageUrl,
-            headers: readerImageHeaders,
+          ResizeImage(
+            CachedNetworkImageProvider(
+              pages[i].imageUrl,
+              headers: readerImageHeaders,
+            ),
+            width: decodeWidth,
           ),
           context,
         ).then((_) {}, onError: (_) {}),
       );
     }
+  }
+
+  /// Lebar decode dalam piksel fisik, sama dengan yang dipakai ReaderImage.
+  static int? _lebarDecode(BuildContext context) {
+    final logical = MediaQuery.sizeOf(context).width;
+    final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 1;
+    final px = (logical * dpr).round();
+    return px > 0 ? px : null;
   }
 
   void _pindahChapter(Chapter target) {
@@ -383,29 +441,32 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
               );
             }
             _jumlahHalamanTerakhir = pages.length;
-            return ListView.builder(
-              controller: _scrollController,
-              padding: EdgeInsets.zero,
-              itemCount: pages.length,
-              itemBuilder: (context, index) {
-                if (index == 0) {
-                  // Kembalikan posisi terakhir hanya bila chapter-nya sama.
-                  final tersimpan = ref.read(
-                    historyRepositoryProvider,
-                  )[widget.mangaId];
-                  final offset = tersimpan?.lastChapterId == widget.chapterId
-                      ? tersimpan?.scrollOffset ?? 0.0
-                      : 0.0;
-                  _restorePosisi(offset);
-                }
-                return ReaderImage(
-                  imageUrl: pages[index].imageUrl,
-                  localPath: offline ? pages[index].imageUrl : null,
-                  headers: readerImageHeaders,
-                  onLoaded: () =>
-                      _preloadBerikutnya(index, pages, offline: offline),
-                );
-              },
+            return NotificationListener<UserScrollNotification>(
+              onNotification: _onUserScroll,
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: EdgeInsets.zero,
+                itemCount: pages.length,
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    // Kembalikan posisi terakhir hanya bila chapter-nya sama.
+                    final tersimpan = ref.read(
+                      historyRepositoryProvider,
+                    )[widget.mangaId];
+                    final offset = tersimpan?.lastChapterId == widget.chapterId
+                        ? tersimpan?.scrollOffset ?? 0.0
+                        : 0.0;
+                    _restorePosisi(offset);
+                  }
+                  return ReaderImage(
+                    imageUrl: pages[index].imageUrl,
+                    localPath: offline ? pages[index].imageUrl : null,
+                    headers: readerImageHeaders,
+                    onLoaded: () =>
+                        _preloadBerikutnya(index, pages, offline: offline),
+                  );
+                },
+              ),
             );
           },
         ),
@@ -421,4 +482,32 @@ List<Chapter> _urutTerlamaDulu(List<Chapter> daftar) {
     tersusun.sort((a, b) => a.dateUpload.compareTo(b.dateUpload));
   }
   return tersusun;
+}
+
+/// Immersive mode dan wakelock dipakai bersama antar halaman reader.
+///
+/// Pindah chapter memakai `pushReplacementNamed`: `initState` halaman baru
+/// berjalan lebih dulu, baru `dispose` halaman lama beberapa ratus milidetik
+/// kemudian saat transisi selesai. Kalau setiap `dispose` mematikan immersive
+/// dan wakelock, penulis terakhir selalu halaman lama, sehingga begitu saja
+/// setelah satu kali ganti chapter layar mulai redup dan status bar muncul
+/// kembali. Penghitung di bawah membuat rilis hanya terjadi saat benar-benar
+/// tidak ada reader yang menagih.
+class _ImmersiveSession {
+  const _ImmersiveSession._();
+
+  static int _peminat = 0;
+
+  static Future<void> aktif(bool keepScreenOn) async {
+    _peminat++;
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    if (keepScreenOn) await WakelockPlus.enable();
+  }
+
+  static Future<void> lepas() async {
+    if (_peminat > 0) _peminat--;
+    if (_peminat > 0) return;
+    await WakelockPlus.disable();
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+  }
 }
