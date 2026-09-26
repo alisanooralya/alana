@@ -150,9 +150,8 @@ class _DetailPageState extends ConsumerState<DetailPage> {
         ),
         data: (info) => RefreshIndicator(
           onRefresh: () async {
-            ref
-              ..invalidate(mangaDetailsProvider(widget.mangaId))
-              ..invalidate(chapterListProvider(widget.mangaId));
+            await ref.refresh(mangaDetailsProvider(widget.mangaId).future);
+            await ref.refresh(chapterListProvider(widget.mangaId).future);
           },
           child: _IsiDetail(
             mangaId: widget.mangaId,

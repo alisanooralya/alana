@@ -56,10 +56,11 @@ class _HomePageState extends ConsumerState<HomePage> {
   }
 
   Future<void> _muatUlangSemua() async {
-    ref
-      ..invalidate(popularMangaProvider)
-      ..invalidate(recommendedMangaProvider)
-      ..invalidate(latestUpdatesControllerProvider);
+    await Future.wait([
+      ref.refresh(popularMangaProvider.future),
+      ref.refresh(recommendedMangaProvider.future),
+      ref.refresh(latestUpdatesControllerProvider.future),
+    ]);
   }
 
   @override

@@ -112,7 +112,10 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         return '/masuk';
       }
       if (masuk && !recovery && pendatangBaru && lokasi != '/profil/ubah') {
-        return '/profil/ubah?baru=1';
+        // '/profil' dikecualikan supaya user bisa membuka halaman Profil dan
+        // memakai tombol Keluar. Mengunci semua lokasi membuat halaman Edit
+        // Profil jadi perangkap: menekan back hanya memantulkan user ke sini.
+        return lokasi == '/profil' ? null : '/profil/ubah?baru=1';
       }
       if (masuk && (lokasi == '/masuk' || lokasi == '/daftar')) {
         return DeepLinkIntent.ambil() ?? '/';
@@ -296,29 +299,14 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         name: 'diagnostik',
         builder: (context, state) => const DiagnosticsPage(),
       ),
-      GoRoute(
-        path: '/:mangaId',
-        name: 'deep-link-manga',
-        builder: (context, state) =>
-            DetailPage(mangaId: state.pathParameters['mangaId'] ?? ''),
-      ),
-      GoRoute(
-        path: '/:mangaId/chapter/:chapterId',
-        name: 'deep-link-chapter',
-        builder: (context, state) => ReaderPage(
-          mangaId: state.pathParameters['mangaId'] ?? '',
-          chapterId: state.pathParameters['chapterId'] ?? '',
-        ),
-      ),
-      GoRoute(
-        path: '/:mangaId/:chapterId',
-        name: 'deep-link-chapter-host',
-        builder: (context, state) => ReaderPage(
-          mangaId: state.pathParameters['mangaId'] ?? '',
-          chapterId: state.pathParameters['chapterId'] ?? '',
-        ),
-      ),
     ],
+    // Tidak ada lagi route '/:mangaId' dan '/:mangaId/:chapterId'.
+    // Keduanya menangkap semua path satu atau dua segmen yang tidak dikenal,
+    // sehingga errorBuilder di bawah tidak mungkin terpakai: '/halamn-salah'
+    // membuka DetailPage dengan id-ngawur dan berakhir di "Gagal memuat"
+    // alih-alih halaman 404. Deep link tidak membutuhkannya karena
+    // internalLocationFromDeepLink sudah mengubah alana://manga/<id> menjadi
+    // /detail/<id> sebelum router menyentuh uri.
     errorBuilder: (context, state) => Scaffold(
       appBar: AppBar(title: const Text('Halaman tidak ditemukan')),
       body: Center(child: Text('Rute ${state.uri} tidak tersedia.')),

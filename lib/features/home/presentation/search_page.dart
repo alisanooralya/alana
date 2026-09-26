@@ -7,6 +7,7 @@ import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_view.dart';
 import 'package:alana/core/widgets/offline_banner.dart';
+import 'package:alana/core/widgets/refreshable_body.dart';
 import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/features/home/data/search_history_repository.dart';
 
@@ -144,7 +145,13 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async {
-                ref.invalidate(searchResultsControllerProvider);
+                // invalidate() hanya membatalkan; tanpa await, spinner
+                // RefreshIndicator selesai dalam satu frame sebelum data
+                // selesai dimuat, jadi user tidak melihat apa pun terjadi
+                // dan bisa memicu refresh kedua.
+                await ref.refresh(
+                  searchResultsControllerProvider.future,
+                );
               },
               child: _HasilPencarian(
                 query: query,
@@ -188,16 +195,20 @@ class _HasilPencarian extends ConsumerWidget {
     }
 
     return hasil.when(
-      loading: () => const LoadingView(),
-      error: (error, _) => ErrorView(
-        pesan: pesanErrorRamah(error),
-        onRetry: () => ref.invalidate(searchResultsControllerProvider),
+      loading: () => const RefreshableBody(child: LoadingView()),
+      error: (error, _) => RefreshableBody(
+        child: ErrorView(
+          pesan: pesanErrorRamah(error),
+          onRetry: () => ref.invalidate(searchResultsControllerProvider),
+        ),
       ),
       data: (halaman) {
         if (halaman.items.isEmpty) {
-          return EmptyView(
-            judul: 'Tidak ditemukan',
-            deskripsi: 'Coba kata kunci lain untuk "$query".',
+          return RefreshableBody(
+            child: EmptyView(
+              judul: 'Tidak ditemukan',
+              deskripsi: 'Coba kata kunci lain untuk "$query".',
+            ),
           );
         }
         return CustomScrollView(

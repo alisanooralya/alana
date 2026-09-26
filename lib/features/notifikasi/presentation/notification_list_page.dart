@@ -64,7 +64,10 @@ class NotificationListPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('Notifikasi')),
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(daftarNotifikasiProvider);
+          // invalidate() hanya membatalkan cache; tanpa await spinner selesai
+          // duluan sebelum data datang, sehingga geseran tidak terasa sama
+          // sekali dan user bisa memicu refresh kedua.
+          await ref.refresh(daftarNotifikasiProvider.future);
           ref.invalidate(belumDibacaProvider);
         },
         child: daftarAsync.when(

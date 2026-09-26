@@ -326,6 +326,24 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                         )
                       : const Text('Simpan'),
                 ),
+                if (widget.baru) ...[
+                  const SizedBox(height: 8),
+                  // Jalur keluar dari redirect paksa. Tanpa ini halaman ini
+                  // jadi perangkap: redirect mengembalikan user ke sini untuk
+                  // setiap navigasi, termasuk saat menekan back, sehingga
+                  // Profil - tempat tombol Keluar berada - tidak pernah bisa
+                  // dibuka. Username bawaan dari trigger tetap dipakai kalau
+                  // user menunda, jadi menunda tidak merusak akun.
+                  TextButton(
+                    onPressed: () {
+                      ref
+                          .read(pendingUsernameSetupProvider.notifier)
+                          .state = false;
+                      context.go('/profil');
+                    },
+                    child: const Text('Nanti saja, ubah nanti'),
+                  ),
+                ],
               ],
             ),
           );

@@ -7,6 +7,7 @@ import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_view.dart';
 import 'package:alana/core/widgets/offline_banner.dart';
+import 'package:alana/core/widgets/refreshable_body.dart';
 import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/features/home/data/jelajah_query.dart';
 import 'package:alana/models/genre.dart';
@@ -128,7 +129,7 @@ class _JelajahPageState extends ConsumerState<JelajahPage>
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async {
-                ref.read(jelajahControllerProvider.notifier).muatUlang();
+                await ref.read(jelajahControllerProvider.notifier).muatUlang();
               },
               child: _JelajahResults(
                 scrollController: _scrollController,
@@ -159,17 +160,22 @@ class _JelajahResults extends ConsumerWidget {
     final hasil = ref.watch(jelajahControllerProvider);
 
     return hasil.when(
-      loading: () => const LoadingView(),
-      error: (error, _) => ErrorView(
-        pesan: pesanErrorRamah(error),
-        onRetry: () => ref.read(jelajahControllerProvider.notifier).muatUlang(),
+      loading: () => const RefreshableBody(child: LoadingView()),
+      error: (error, _) => RefreshableBody(
+        child: ErrorView(
+          pesan: pesanErrorRamah(error),
+          onRetry: () =>
+              ref.read(jelajahControllerProvider.notifier).muatUlang(),
+        ),
       ),
       data: (halaman) {
         if (halaman.items.isEmpty) {
-          return const EmptyView(
-            judul: 'Tidak ada hasil untuk filter ini',
-            deskripsi: 'Coba ubah genre, status, atau urutan hasil.',
-            ikon: Icons.search_off_outlined,
+          return const RefreshableBody(
+            child: EmptyView(
+              judul: 'Tidak ada hasil untuk filter ini',
+              deskripsi: 'Coba ubah genre, status, atau urutan hasil.',
+              ikon: Icons.search_off_outlined,
+            ),
           );
         }
 
