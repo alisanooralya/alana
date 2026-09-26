@@ -6,6 +6,7 @@ import 'package:alana/core/utils/deep_link.dart';
 import 'package:alana/core/storage/app_storage.dart';
 import 'package:alana/features/history/data/reading_history.dart';
 import 'package:alana/features/onboarding/data/onboarding_repository.dart';
+import 'package:alana/features/profile/presentation/profile_providers.dart';
 
 /// Pengingat baca lokal: menjadwalkan notifikasi untuk bacaan yang
 /// sudah 2+ hari tidak dilanjutkan. Dijadwalkan ulang tiap aplikasi
@@ -48,7 +49,7 @@ class PengingatRepository {
   /// disinggung karena selalu kalah oleh 3 yang paling lama. Judul yang sudah
   /// diberi tahu dalam [jedaUlang] dilewati, sehingga giliran bergilir.
   Future<void> jadwalkanUlang(String? uid, {int maksimal = 3}) async {
-    await LayananNotifikasi.batalkanSemua();
+    await LayananNotifikasi.batalkanPengingat(_idTerjadwal(ref));
     if (uid == null || uid.isEmpty) return;
     final box = await AppStorage.bukaBoxUser('rh', uid);
     if (box == null) return;
@@ -87,10 +88,12 @@ class PengingatRepository {
     }
 
     final kapan = _berikutnyaJam9();
+    final idsTerjadwal = <int>[];
     var i = 0;
     for (final p in terpilih) {
       if (i >= maksimal) break;
       await _tandaiDiberiTahukan(p.mangaId);
+      idsTerjadwal.add(p.mangaId.hashCode & 0x7fffffff);
       final judul = p.mangaTitle.isEmpty ? p.mangaId : p.mangaTitle;
       await LayananNotifikasi.jadwalkan(
         id: p.mangaId.hashCode & 0x7fffffff,
@@ -105,6 +108,11 @@ class PengingatRepository {
       );
       i++;
     }
+    await ref
+        .read(sharedPreferencesProvider)
+        .setStringList(_kunciIdTerjadwal, [
+          for (final id in idsTerjadwal) '$id',
+        ]);
   }
 
   /// Jam 9 pagi berikutnya (waktu lokal perangkat).
@@ -117,12 +125,55 @@ class PengingatRepository {
     return target;
   }
 
-  /// Kirim satu notifikasi uji langsung (untuk mengetes alur ketuk).
+  /// Kunci daftar ID notifikasi yang sudah dijadwalkan.
+  ///
+  /// Pembatalan memakai daftar ini, bukan cancelAll(), supaya notifikasi lain
+  /// - termasuk push chapter baru - tidak ikut terhapus.
+  static const _kunciIdTerjadwal = 'pengingat_ids';
+
+  static List<int> _idTerjadwal(Ref ref) {
+    return ref
+            .read(sharedPreferencesProvider)
+            .getStringList(_kunciIdTerjadwal)
+            ?.map((n) => int.tryParse(n))
+            .whereType<int>()
+            .toList() ??
+        const [];
+  }
+
+  static List<int> idTerjadwal(WidgetRef ref) => _idTerjadwal(ref);
+
+  /// Kirim satu notifikasi uji.
+  ///
+  /// Payload diambil dari riwayat baca supaya mengetuk notifikasi ini juga
+  /// menguji alur navigasi. Sebelumnya tidak ada payload sama sekali, sehingga
+  /// ketuk tidak melakukan apa-apa - padahal teksnya menjanjikan sebaliknya,
+  /// dan tidak ada jalan lain menguji navigasi dari notifikasi.
   Future<void> kirimUji() async {
+    final uid = ref.read(userIdProvider);
+    var payload = '';
+    var isi = 'Notifikasi pengingat akan muncul pukul 09:00.';
+    if (uid != null && uid.isNotEmpty) {
+      final box = await AppStorage.bukaBoxUser('rh', uid);
+      for (final key in box?.keys ?? const <dynamic>[]) {
+        if (key == AppStorage.tombsKey) continue;
+        final raw = box?.get(key);
+        if (raw is! Map) continue;
+        final p = MangaReadingProgress.fromMap(Map<String, dynamic>.from(raw));
+        if (p.mangaId.isEmpty) continue;
+        payload = p.lastChapterId.isEmpty
+            ? mangaDeepLink(p.mangaId)
+            : chapterDeepLink(p.mangaId, p.lastChapterId);
+        isi =
+            'Ketuk untuk membuka ${p.lastChapterName.isEmpty ? 'chapter terakhir' : p.lastChapterName}.';
+        break;
+      }
+    }
     await LayananNotifikasi.tampilkanSekarang(
       id: 999001,
       judul: 'Uji pengingat baca',
-      isi: 'Ketuk untuk memastikan navigasi berjalan.',
+      isi: isi,
+      payload: payload.isEmpty ? null : payload,
     );
   }
 }
@@ -143,7 +194,9 @@ class PengingatStatus extends Notifier<bool> {
         .setBool(PengingatRepository.kunciAktif, aktif);
     state = aktif;
     if (!aktif) {
-      await LayananNotifikasi.batalkanSemua();
+      await LayananNotifikasi.batalkanPengingat(
+        PengingatRepository.idTerjadwal(ref),
+      );
     }
   }
 }

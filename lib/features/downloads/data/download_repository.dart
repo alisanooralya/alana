@@ -122,9 +122,23 @@ class DownloadRepository {
   static String keyFor(String mangaId, String chapterId) =>
       '$mangaId::$chapterId';
 
+  /// Nama folder aman untuk sebuah id.
+  ///
+  /// Sebelumnya semua karakter di luar [A-Za-z0-9._-] diganti garis bawah,
+  /// jadi dua id berbeda bisa jadi folder sama - misalnya `a/b` dan `a?b` sama-sama
+  /// menjadi `a_b`. Unduhan kedua lalu menimpa file `001.jpg` milik yang
+  /// pertama dan verify() tetap menghitungnya lengkap, sehingga user membaca
+  /// chapter yang salah saat offline. Sekarang sufiks hash ditambahkan dari
+  /// id asli supaya pemetaannya selalu satu-ke-satu.
   static String safeSegment(String value) {
-    final result = value.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
-    return result.isEmpty ? 'unknown' : result;
+    final bersih = value.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    final dasar = bersih.isEmpty ? 'unknown' : bersih;
+    if (value.isEmpty) return dasar;
+    var hash = 0;
+    for (final unit in value.codeUnits) {
+      hash = (hash * 31 + unit) & 0x7fffffff;
+    }
+    return '$dasar-$hash';
   }
 
   Box? get _box => AppStorage.downloadsBox;
@@ -144,20 +158,38 @@ class DownloadRepository {
   }
 
   Future<Directory> chapterDirectory(String mangaId, String chapterId) async {
-    final root = await mangaDirectory(mangaId);
-    final directory = Directory('${root.path}/${safeSegment(chapterId)}');
+    final directory = await _chapterPath(mangaId, chapterId);
     await directory.create(recursive: true);
     return directory;
   }
 
+  /// Lokasi folder chapter TANPA membuatnya.
+  ///
+  /// Dipakai jalur baca dan hapus. Sebelumnya chapterDirectory() selalu
+  /// membuat folder, sehingga `deleteChapter` membuat folder yang akan
+  /// segera ia hapus, `pageFiles() membuat folder kosong untuk chapter
+  /// yang hilang, dan verifyAll() membuat folder kosong
+  /// untuk setiap entri yang rusak. Akibatnya chapter yang file-nya hilang
+  /// terlihat seperti "belum memiliki gambar" alih-alih unduhan rusak.
+  Future<Directory> _chapterPath(String mangaId, String chapterId) async {
+    final root = await downloadsRoot();
+    return Directory(
+      '${root.path}/${safeSegment(mangaId)}/${safeSegment(chapterId)}',
+    );
+  }
+
   Future<List<File>> pageFiles(String mangaId, String chapterId) async {
-    final directory = await chapterDirectory(mangaId, chapterId);
+    final directory = await _chapterPath(mangaId, chapterId);
+    if (!await directory.exists()) return const [];
     final files = await directory
         .list()
         .where((entity) => entity is File && entity.path.endsWith('.jpg'))
         .cast<File>()
         .toList();
-    files.sort((a, b) => a.path.compareTo(b.path));
+    // Urut berdasarkan nomor halaman, bukan string path. Nama file di-pad ke
+    // tiga digit, jadi perbandingan string menempatkan 1000.jpg sebelum
+    // 999.jpg dan chapter dengan lebih dari 999 halaman dibaca terbalik.
+    files.sort((a, b) => _nomorHalaman(a).compareTo(_nomorHalaman(b)));
     return files;
   }
 
@@ -196,15 +228,20 @@ class DownloadRepository {
       return chapter;
     }
     final files = await pageFiles(chapter.mangaId, chapter.chapterId);
-    final lengkap =
-        chapter.totalPages > 0 && files.length >= chapter.totalPages;
     final bytes = await _sizeOfFiles(files);
+    // Nomor halaman harus lengkap dan berurutan tanpa celah: file yang hilang
+    // di tengah tidak bisa digantikan hanya dengan menghitung jumlah file.
+    final lengkap = chapter.totalPages > 0 &&
+        files.length == chapter.totalPages &&
+        _nomorBerurutan(files, chapter.totalPages);
     return chapter.copyWith(
       downloadedPages: files.length,
       fileSizeBytes: bytes,
       status: lengkap ? DownloadStatus.completed : DownloadStatus.failed,
       errorMessage: lengkap
           ? ''
+          : files.isEmpty
+          ? 'Folder halaman tidak ditemukan. Unduh ulang chapter ini.'
           : 'Download terhenti. File belum lengkap; coba lagi.',
     );
   }
@@ -231,13 +268,14 @@ class DownloadRepository {
   }
 
   Future<void> deleteChapter(String mangaId, String chapterId) async {
-    final directory = await chapterDirectory(mangaId, chapterId);
+    final directory = await _chapterPath(mangaId, chapterId);
     if (await directory.exists()) await directory.delete(recursive: true);
     await remove(mangaId, chapterId);
   }
 
   Future<void> deleteManga(String mangaId) async {
-    final directory = await mangaDirectory(mangaId);
+    final root = await downloadsRoot();
+    final directory = Directory('${root.path}/${safeSegment(mangaId)}');
     if (await directory.exists()) await directory.delete(recursive: true);
     final box = _box;
     if (box == null) return;
@@ -252,6 +290,23 @@ class DownloadRepository {
 final downloadRepositoryProvider = Provider<DownloadRepository>((ref) {
   return const DownloadRepository();
 });
+
+/// Nomor halaman dari nama file `001.jpg`.
+int _nomorHalaman(File file) {
+  final nama = file.uri.pathSegments.isEmpty ? '' : file.uri.pathSegments.last;
+  final titik = nama.lastIndexOf('.');
+  final dasar = titik > 0 ? nama.substring(0, titik) : nama;
+  return int.tryParse(dasar) ?? 0;
+}
+
+/// `true` bila file halaman bernomor 1..total lengkap semua.
+bool _nomorBerurutan(List<File> files, int total) {
+  if (files.length != total) return false;
+  for (var i = 0; i < files.length; i++) {
+    if (_nomorHalaman(files[i]) != i + 1) return false;
+  }
+  return true;
+}
 
 int _asInt(dynamic value) {
   if (value is int) return value;

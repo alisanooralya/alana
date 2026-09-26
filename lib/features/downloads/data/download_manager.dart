@@ -161,9 +161,13 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
               errorMessage: '',
             );
     await ref.read(downloadRepositoryProvider).save(entry);
+    // "Coba lagi" untuk satu chapter yang gagal harus segera dijalankan, bukan
+    // menunggu 30 chapter lain di depan. Permintaan dienqueue dari tombol
+    // unduh dan dari pengingat mantienen urutan antrean; retry yang gagal
+    // disisipkan di depan.
     final queue = [
-      ...current.queue.where((item) => item.key != request.key),
       request,
+      ...current.queue.where((item) => item.key != request.key),
     ];
     _tulis(
       current.copyWith(
@@ -387,12 +391,20 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
       await _unduhFile(request.coverUrl, coverPath);
     }
 
+    // Ukuran total dijumlahkan dari berkas yang memang baru diunduh, bukan
+    // dari penelusuran ulang seluruh folder tiap halaman. Sebelumnya setiap
+    // iterasi memanggil _ukuranFolder sehingga satu chapter dengan N halaman
+    // melakukan O(N^2) operasi stat berkas, dan nilainya juga melompat ke
+    // jumlah file terakhir saja setiap kali unduhan dilanjutkan - sehingga
+    // ukuran yang tampil di Unduhan menyusut dari 40 MB menjadi 200 B lalu
+    // naik lagi saat download ulang berjalan.
+    var ukuranKumulatif = await _ukuranFolder(chapterDirectory);
     var current = entry.copyWith(
       totalPages: pages.length,
       status: DownloadStatus.downloading,
       coverLocalPath: coverPath,
       downloadedPages: 0,
-      fileSizeBytes: coverPath.isEmpty ? 0 : await File(coverPath).length(),
+      fileSizeBytes: ukuranKumulatif + await _ukuranFile(coverPath),
       errorMessage: '',
     );
     await repository.save(current);
@@ -429,12 +441,14 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
             _tulis(value.copyWith(liveProgress: live));
           },
         );
+        ukuranKumulatif += await _ukuranFile(path);
       }
+      // Bila berkas sudah ada karena unduhan dilanjutkan, ukurannya sudah
+      // termasuk hitungan awal sehingga tidak diukur ulang. Baris di bawah
+      // tetap jalan supaya downloadedPages ikut bertambah.
       current = current.copyWith(
         downloadedPages: index + 1,
-        fileSizeBytes:
-            await _ukuranFolder(chapterDirectory) +
-            (coverPath.isEmpty ? 0 : await File(coverPath).length()),
+        fileSizeBytes: ukuranKumulatif + await _ukuranFile(coverPath),
       );
       await repository.save(current);
       _tulis(_denganEntry(state.valueOrNull!, current));
@@ -443,9 +457,7 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     current = current.copyWith(
       status: DownloadStatus.completed,
       downloadedPages: pages.length,
-      fileSizeBytes:
-          await _ukuranFolder(chapterDirectory) +
-          (coverPath.isEmpty ? 0 : await File(coverPath).length()),
+      fileSizeBytes: ukuranKumulatif + await _ukuranFile(coverPath),
       errorMessage: '',
     );
     await repository.save(current);
@@ -490,6 +502,12 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     if (existing == null) return;
     final entry = existing.copyWith(status: status, errorMessage: message);
     await ref.read(downloadRepositoryProvider).save(entry);
+    // liveProgress juga dibersihkan di jalur gagal. Sebelumnya hanya dihapus
+    // saat sukses, jadi setiap kegagalan meninggalkan entri basi yang langsung
+    // muncul lagi begitu user menekan "Coba lagi" - bar progres melompat ke
+    // nilai percobaan lama lalu kembali ke nol - dan map-nya tumbuh satu
+    // entri per kegagalan sepanjang sesi.
+    final live = {...current.liveProgress}..remove(request.key);
     _tulis(
       _denganEntry(
         current.copyWith(
@@ -497,6 +515,7 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
           clearActive: true,
           message: cancel ? null : message,
           clearMessage: cancel,
+          liveProgress: live,
         ),
         entry,
       ),
@@ -537,12 +556,19 @@ final downloadStorageBytesProvider = FutureProvider<int>((ref) async {
   return ref.read(downloadRepositoryProvider).totalStorageBytes();
 });
 
-final offlinePageListProvider = FutureProvider.family<List<manga.Page>, String>(
-  (ref, chapterId) async {
+/// Kunci satu chapter: id manga dan id chapter-nya, bukan id chapter saja.
+///
+/// Match chapterId saja bisa menampilkan halaman manga lain kalau dua judul
+/// punya chapter dengan id yang sama - reader itu sendiri memakai
+/// `keyFor(mangaId, chapterId)` sebagai kunci di sisi unduhan, jadi kedua sisi
+/// harus memakai kunci yang sama.
+final offlinePageListProvider =
+    FutureProvider.family<List<manga.Page>, ({String mangaId, String chapterId})>(
+  (ref, kunci) async {
     final entries = await ref.read(downloadRepositoryProvider).all();
     DownloadedChapter? entry;
     for (final item in entries) {
-      if (item.chapterId == chapterId) {
+      if (item.chapterId == kunci.chapterId && item.mangaId == kunci.mangaId) {
         entry = item;
         break;
       }
@@ -562,6 +588,20 @@ final offlinePageListProvider = FutureProvider.family<List<manga.Page>, String>(
 
 bool _wifiTersedia(List<ConnectivityResult>? status) {
   return status?.contains(ConnectivityResult.wifi) == true;
+}
+
+/// Ukuran berkas, 0 bila hilang atau tidak bisa dibaca.
+///
+/// `File.length()` melempar FileSystemException kalau berkas dihapus di antara
+/// daftar dan pembacaan. coverLocalPath disimpan lintas sesi sementara
+/// berkasnya bisa hilang sendiri, jadi pemanggilnya tidak boleh ikut gagal.
+Future<int> _ukuranFile(String path) async {
+  if (path.isEmpty) return 0;
+  try {
+    return await File(path).length();
+  } catch (_) {
+    return 0;
+  }
 }
 
 Future<int> _ukuranFolder(Directory directory) async {

@@ -200,9 +200,17 @@ class LayananNotifikasi {
     }
   }
 
-  static Future<void> batalkanSemua() async {
+  /// Batalkan notifikasi milik fitur pengingat saja.
+  ///
+  /// Memakai cancelAll() seperti sebelumnya juga membatalkan notifikasi lain
+  /// yang tidak ada hubungannya, termasuk notifikasi chapter baru dari push
+  /// dan pengingat ke chapter lain. Penjadwalan ulang pengingat berjalan
+  /// setiap kali aplikasi dibuka, sehingga notifikasi lain ikut hilang tanpa
+  /// sebab.
+  static Future<void> batalkanPengingat(List<int> ids) async {
+    if (ids.isEmpty) return;
     try {
-      await _plugin.cancelAll();
+      await _plugin.cancel(ids);
     } catch (_) {
       // Abaikan.
     }

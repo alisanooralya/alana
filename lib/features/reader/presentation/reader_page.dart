@@ -71,6 +71,10 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
   /// Posisi sudah tercapai, tidak perlu mencoba lagi.
   bool _restoreTercapai = false;
 
+  /// Kunci unduhan offline untuk chapter yang sedang dibaca.
+  ({String mangaId, String chapterId}) get _kunciOffline =>
+      (mangaId: widget.mangaId, chapterId: widget.chapterId);
+
   @override
   void initState() {
     super.initState();
@@ -268,7 +272,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     // diketahui, andalkan baca dari jaringan.
     final offline = downloaded?.status == DownloadStatus.completed;
     final AsyncValue<List<manga.Page>> pagesAsync = offline
-        ? ref.watch(offlinePageListProvider(widget.chapterId))
+        ? ref.watch(offlinePageListProvider(_kunciOffline))
         : ref.watch(pageListProvider(widget.chapterId));
     final chaptersAsync = offline
         ? const AsyncData<List<Chapter>>(<Chapter>[])
@@ -293,7 +297,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
 
     if (!downloadAsync.isLoading) {
       if (offline) {
-        ref.listen(offlinePageListProvider(widget.chapterId), (previous, next) {
+        ref.listen(offlinePageListProvider(_kunciOffline), (previous, next) {
           tandaiDibaca(next);
         });
       } else {
@@ -427,7 +431,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
             pesan: pesanErrorRamah(error),
             onRetry: () {
               if (offline) {
-                ref.invalidate(offlinePageListProvider(widget.chapterId));
+                ref.invalidate(offlinePageListProvider(_kunciOffline));
               } else {
                 ref.invalidate(pageListProvider(widget.chapterId));
               }
