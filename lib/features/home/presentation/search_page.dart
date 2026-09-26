@@ -8,6 +8,7 @@ import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_view.dart';
 import 'package:alana/core/widgets/offline_banner.dart';
 import 'package:alana/core/utils/pesan_error.dart';
+import 'package:alana/features/home/data/search_history_repository.dart';
 
 import 'paginated_manga_state.dart';
 import 'search_controller.dart';
@@ -27,13 +28,19 @@ class SearchPage extends ConsumerStatefulWidget {
 class _SearchPageState extends ConsumerState<SearchPage> {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
+  final _focusNode = FocusNode();
   Timer? _debounce;
+  bool _terfokus = false;
 
   @override
   void initState() {
     super.initState();
+    // Query sengaja dikosongkan tiap kali halaman dibuka supaya kata kunci
+    // dari kunjungan sebelumnya tidak ikut terbawa.
+    ref.read(searchQueryProvider.notifier).state = '';
     _textController.addListener(_onTextChanged);
     _scrollController.addListener(_onScroll);
+    _focusNode.addListener(_onFokusChanged);
   }
 
   @override
@@ -45,7 +52,32 @@ class _SearchPageState extends ConsumerState<SearchPage> {
     _scrollController
       ..removeListener(_onScroll)
       ..dispose();
+    _focusNode
+      ..removeListener(_onFokusChanged)
+      ..dispose();
     super.dispose();
+  }
+
+  void _onFokusChanged() {
+    if (_terfokus == _focusNode.hasFocus) return;
+    setState(() => _terfokus = _focusNode.hasFocus);
+  }
+
+  void _submit(String value) {
+    final query = value.trim();
+    if (query.isEmpty) return;
+    _debounce?.cancel();
+    ref.read(searchQueryProvider.notifier).state = query;
+    ref.read(searchHistoryProvider.notifier).simpan(query);
+  }
+
+  void _pilihRiwayat(String query) {
+    _debounce?.cancel();
+    _textController
+      ..text = query
+      ..selection = TextSelection.collapsed(offset: query.length);
+    ref.read(searchQueryProvider.notifier).state = query;
+    _focusNode.unfocus();
   }
 
   void _onTextChanged() {
@@ -94,6 +126,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
             child: SearchBar(
               controller: _textController,
+              focusNode: _focusNode,
+              onSubmitted: _submit,
               hintText: 'Ketik judul manhwa…',
               leading: const Icon(Icons.search),
               trailing: [
@@ -116,6 +150,8 @@ class _SearchPageState extends ConsumerState<SearchPage> {
                 query: query,
                 hasil: hasil,
                 scrollController: _scrollController,
+                terfokus: _terfokus,
+                onPilihRiwayat: _pilihRiwayat,
               ),
             ),
           ),
@@ -130,15 +166,20 @@ class _HasilPencarian extends ConsumerWidget {
     required this.query,
     required this.hasil,
     required this.scrollController,
+    required this.terfokus,
+    required this.onPilihRiwayat,
   });
 
   final String query;
   final AsyncValue<PaginatedMangaState> hasil;
   final ScrollController scrollController;
+  final bool terfokus;
+  final ValueChanged<String> onPilihRiwayat;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (query.isEmpty) {
+      if (terfokus) return _RiwayatPencarian(onPilih: onPilihRiwayat);
       return const EmptyView(
         judul: 'Cari judul favoritmu',
         deskripsi: 'Ketik minimal satu kata untuk mulai mencari.',
@@ -215,6 +256,64 @@ class _HasilPencarian extends ConsumerWidget {
                 ),
               ),
           ],
+        );
+      },
+    );
+  }
+}
+
+/// Daftar riwayat pencarian. Muncul saat search bar difokuskan dan
+/// query kosong; ketuk entri untuk langsung mencari kata kunci itu.
+class _RiwayatPencarian extends ConsumerWidget {
+  const _RiwayatPencarian({required this.onPilih});
+
+  final ValueChanged<String> onPilih;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final riwayat = ref.watch(searchHistoryProvider);
+    if (riwayat.isEmpty) {
+      return const EmptyView(
+        judul: 'Belum ada riwayat pencarian',
+        deskripsi: 'Kata kunci yang sudah kamu cari akan muncul di sini.',
+        ikon: Icons.history_outlined,
+      );
+    }
+
+    final repository = ref.read(searchHistoryProvider.notifier);
+
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      itemCount: riwayat.length + 1,
+      separatorBuilder: (_, _) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return Row(
+            children: [
+              Text(
+                'Riwayat pencarian',
+                style: Theme.of(context).textTheme.titleSmall,
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: repository.bersihkan,
+                child: const Text('Hapus semua'),
+              ),
+            ],
+          );
+        }
+
+        final query = riwayat[index - 1];
+        return ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.history, size: 20),
+          title: Text(query, maxLines: 1, overflow: TextOverflow.ellipsis),
+          onTap: () => onPilih(query),
+          trailing: IconButton(
+            tooltip: 'Hapus dari riwayat',
+            icon: const Icon(Icons.close, size: 20),
+            onPressed: () => repository.hapus(query),
+          ),
         );
       },
     );
