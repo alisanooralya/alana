@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 import 'package:alana/core/supabase/supabase_setup.dart';
 import 'package:alana/core/utils/deep_link.dart';
 import 'package:alana/features/about/presentation/about_page.dart';
-import 'package:alana/features/auth/data/auth_repository.dart';
 import 'package:alana/features/auth/presentation/auth_providers.dart';
 import 'package:alana/features/auth/presentation/forgot_password_page.dart';
 import 'package:alana/features/auth/presentation/login_page.dart';
@@ -50,11 +49,7 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   final pendatangBaru = ref.watch(pendingUsernameSetupProvider);
   final sudahLihat = ref.watch(sudahOnboardingProvider);
   final splashSiap = ref.watch(splashSiapProvider);
-  final refresh = GoRouterRefreshStream(
-    SupabaseSetup.siap
-        ? ref.watch(authRepositoryProvider).perubahanSesi
-        : const Stream.empty(),
-  );
+  final refresh = GoRouterRefreshStream(ref.watch(streamSesiProvider));
   ref.onDispose(refresh.dispose);
 
   return GoRouter(

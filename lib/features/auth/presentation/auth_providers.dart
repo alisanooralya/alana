@@ -5,15 +5,20 @@ import 'package:alana/core/supabase/supabase_setup.dart';
 
 import '../data/auth_repository.dart';
 
-/// Stream status sesi Supabase.
+/// Stream status sesi Supabase, dinormalisasi untuk kasus Supabase belum siap.
 ///
-/// Router mendengarkan ini untuk redirect otomatis.
-/// Sesi tersimpan otomatis sehingga tetap ada setelah
-/// aplikasi ditutup dan dibuka lagi.
-final sesiProvider = StreamProvider<AuthState>((ref) {
-  if (!SupabaseSetup.siap) return const Stream.empty();
+/// Tanpa normalisasi ini stream selesai tanpa emit, dan `StreamProvider` yang
+/// seperti itu tidak pernah keluar dari `AsyncLoading` sehingga router
+/// menyandera user di `/splash` selamanya.
+final streamSesiProvider = Provider<Stream<AuthState?>>((ref) {
+  if (!SupabaseSetup.siap) return Stream<AuthState?>.value(null);
   return ref.watch(authRepositoryProvider).perubahanSesi;
 });
+
+/// Status sesi untuk redirect router dan sinkronisasi push.
+final sesiProvider = StreamProvider<AuthState?>(
+  (ref) => ref.watch(streamSesiProvider),
+);
 
 /// `true` bila ada sesi aktif (sudah login).
 ///
