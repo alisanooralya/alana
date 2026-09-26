@@ -289,6 +289,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
                     if (value == 'laporan') {
                       unawaited(_bukaLaporan());
                     } else if (value == 'bagikan') {
+                      debugPrint('[Share] Reader share menu selected');
                       unawaited(
                         shareChapter(
                           context,
@@ -298,6 +299,10 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
                           chapterTitle: judul,
                           mangaId: widget.mangaId,
                           chapterId: widget.chapterId,
+                        ).whenComplete(
+                          () => debugPrint(
+                            '[Share] Reader share callback completed',
+                          ),
                         ),
                       );
                     }

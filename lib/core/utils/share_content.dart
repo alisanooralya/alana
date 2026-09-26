@@ -18,15 +18,22 @@ Future<void> shareLink(
   final origin = renderBox == null
       ? null
       : renderBox.localToGlobal(Offset.zero) & renderBox.size;
+  debugPrint('[Share] shareLink started: $link, origin: $origin');
   try {
-    await SharePlus.instance.share(
+    debugPrint('[Share] Calling SharePlus.instance.share');
+    final result = await SharePlus.instance.share(
       ShareParams(
         text: text,
         uri: Uri.parse(link),
         sharePositionOrigin: origin,
       ),
     );
-  } catch (_) {
+    debugPrint(
+      '[Share] SharePlus.instance.share completed: '
+      'status=${result.status}, raw=${result.raw}',
+    );
+  } catch (error, stack) {
+    debugPrint('[Share] SharePlus.instance.share failed: $error\n$stack');
     if (!context.mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
