@@ -179,7 +179,11 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (_) => ChapterReportSheet(chapterId: widget.chapterId),
+      builder: (_) => ChapterReportSheet(
+        mangaId: widget.mangaId,
+        mangaTitle: widget.mangaTitle,
+        chapterId: widget.chapterId,
+      ),
     );
     if (!mounted || hasil == null) return;
     final pesan = switch (hasil) {

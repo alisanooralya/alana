@@ -10,8 +10,15 @@ import '../data/chapter_report_repository.dart';
 enum ReportSheetResult { submitted, alreadyReported }
 
 class ChapterReportSheet extends ConsumerStatefulWidget {
-  const ChapterReportSheet({super.key, required this.chapterId});
+  const ChapterReportSheet({
+    super.key,
+    required this.mangaId,
+    required this.mangaTitle,
+    required this.chapterId,
+  });
 
+  final String mangaId;
+  final String mangaTitle;
   final String chapterId;
 
   @override
@@ -70,6 +77,8 @@ class _ChapterReportSheetState extends ConsumerState<ChapterReportSheet> {
 
       await repository.kirim(
         userId: userId,
+        mangaId: widget.mangaId,
+        mangaTitle: widget.mangaTitle,
         chapterId: widget.chapterId,
         reason: reason,
         note: note,

@@ -21,7 +21,7 @@ extension ChapterReportReasonValue on ChapterReportReason {
   String get value => switch (this) {
     ChapterReportReason.gambarRusak => 'gambar_rusak',
     ChapterReportReason.gambarTidakLengkap => 'gambar_tidak_lengkap',
-    ChapterReportReason.urutanHalaman => 'urutan_halaman_salah',
+    ChapterReportReason.urutanHalaman => 'salah_urutan',
     ChapterReportReason.lainnya => 'lainnya',
   };
 }
@@ -49,6 +49,8 @@ class ReportRepository {
 
   Future<void> kirim({
     required String userId,
+    required String mangaId,
+    required String mangaTitle,
     required String chapterId,
     required ChapterReportReason reason,
     String? note,
@@ -58,6 +60,10 @@ class ReportRepository {
           .from('chapter_reports')
           .insert({
             'user_id': userId,
+            // `manga_id` dan `manga_title` NOT NULL di SQL; tanpa keduanya
+            // setiap laporan gagal dengan 23502.
+            'manga_id': mangaId,
+            'manga_title': mangaTitle.isEmpty ? '(tanpa judul)' : mangaTitle,
             'chapter_id': chapterId,
             'reason': reason.value,
             'note': note?.trim().isEmpty == true ? null : note?.trim(),
