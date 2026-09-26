@@ -210,7 +210,7 @@ class _HasilPencarian extends ConsumerWidget {
                   crossAxisCount: 3,
                   mainAxisSpacing: 8,
                   crossAxisSpacing: 8,
-                  childAspectRatio: 0.52,
+                  childAspectRatio: 0.48,
                 ),
                 itemCount: halaman.items.length,
                 itemBuilder: (context, index) {

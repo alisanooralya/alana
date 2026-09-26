@@ -6,7 +6,7 @@ class HomeSection extends StatelessWidget {
     super.key,
     required this.judul,
     required this.children,
-    this.tinggi = 230,
+    this.tinggi = 260,
   });
 
   /// Judul section, mis. 'Populer Hari Ini'.
@@ -16,6 +16,10 @@ class HomeSection extends StatelessWidget {
   final List<Widget> children;
 
   /// Tinggi area horizontal.
+  ///
+  /// Harus cukup untuk tinggi cover (lebar * 4/3) ditambah blok teks
+  /// MangaCard. Pada lebar bawaan 130 itu 173 + 78 = 251, jadi 260 memberi
+  /// ruang tanpa membuat area terlalu tinggi di layar kecil.
   final double tinggi;
 
   @override
