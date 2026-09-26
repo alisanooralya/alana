@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+/// Alamat resmi aplikasi. Kosong berarti tautannya disembunyikan dari UI.
+const String _tautanPengembang = '';
+const String _tautanPrivasi = '';
+const String _tautanHapusAkun = '';
+
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
 
@@ -80,24 +85,32 @@ class _IsiAbout extends StatelessWidget {
           deskripsi: 'API metadata dan chapter manhwa',
           url: 'https://api.shngm.io',
         ),
-        _Tautan(
-          icon: Icons.mail_outline,
-          judul: 'Kontak developer',
-          deskripsi: 'Ganti dengan email resmi developer',
-          url: 'mailto:developer@example.com',
-        ),
-        _Tautan(
-          icon: Icons.privacy_tip_outlined,
-          judul: 'Kebijakan privasi',
-          deskripsi: 'Ganti dengan URL kebijakan privasi aplikasi',
-          url: 'https://example.com/privacy',
-        ),
-        _Tautan(
-          icon: Icons.delete_outline,
-          judul: 'Hapus akun',
-          deskripsi: 'Ganti dengan URL GitHub Pages resmi',
-          url: 'https://example.com/account-deletion',
-        ),
+        // Tautan yang masih placeholder disembunyikan, bukan ditampilkan
+        // dengan alamat example.com dan deskripsi "Ganti dengan ...". User
+        // biasa mengetuk baris yang terlihat resmi lalu mendarat di halaman
+        // kosong atau domain milik pihak lain. Set _backend('') untuk
+        // menyembunyikan, isi dengan URL asli untuk menampilkannya.
+        if (_tautanPengembang.isNotEmpty)
+          _Tautan(
+            icon: Icons.mail_outline,
+            judul: 'Kontak developer',
+            deskripsi: _tautanPengembang,
+            url: 'mailto:$_tautanPengembang',
+          ),
+        if (_tautanPrivasi.isNotEmpty)
+          _Tautan(
+            icon: Icons.privacy_tip_outlined,
+            judul: 'Kebijakan privasi',
+            deskripsi: 'Kebijakan privasi aplikasi Alana',
+            url: _tautanPrivasi,
+          ),
+        if (_tautanHapusAkun.isNotEmpty)
+          _Tautan(
+            icon: Icons.delete_outline,
+            judul: 'Hapus akun',
+            deskripsi: 'Cara menghapus akun di aplikasi ini',
+            url: _tautanHapusAkun,
+          ),
         const Divider(),
         OutlinedButton.icon(
           onPressed: () {

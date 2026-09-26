@@ -116,6 +116,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
+                  // Tanpa petunjuk ini tidak ada integrasi password manager
+                  // maupun isi otomatis dari Android.
+                  autofillHints: const [AutofillHints.username],
                   validator: (value) {
                     final teks = (value ?? '').trim();
                     if (teks.isEmpty) {
@@ -136,6 +139,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 const SizedBox(height: 12),
                 PasswordField(
                   controller: _password,
+                  autofillHints: const [AutofillHints.password],
                   validator: (value) =>
                       value.isEmpty ? 'Password wajib diisi.' : null,
                   onSubmitted: (_) => _masuk(),

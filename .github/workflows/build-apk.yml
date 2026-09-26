@@ -46,14 +46,12 @@ jobs:
 
       - name: Format check
         run: dart format --output=none --set-exit-if-changed .
-        continue-on-error: true
 
       - name: Analyze
         run: flutter analyze
 
       - name: Run tests
         run: flutter test
-        continue-on-error: true
 
       - name: Siapkan keystore release (bila Secrets ada)
         run: |
@@ -64,7 +62,12 @@ jobs:
             echo "KEY_ALIAS=${{ secrets.KEY_ALIAS }}" >> "$GITHUB_ENV"
             echo "KEY_PASSWORD=${{ secrets.KEY_PASSWORD }}" >> "$GITHUB_ENV"
           else
-            echo "Secrets keystore kosong — memakai debug keys."
+            # APK yang ditandatangani dengan debug key akan beredar sebagai artefak
+            # rilis: SHA-1 Google Sign-In jadi berbeda dari build lain sehingga
+            # login Google rusak bagi user, dan siapa pun yang membuat build
+            # memegang kunci penandatanganannya. Gagalkan build, jangan diam.
+            echo "::error::Secrets keystore kosong. Build rilis memerlukan KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD."
+            exit 1
           fi
 
       # Mode APK (lihat input workflow_dispatch `apk_mode`):

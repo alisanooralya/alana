@@ -22,8 +22,13 @@ android {
         applicationId = "com.alana"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        // Target perangkat Android 13 (API 33) ke atas.
-        minSdk = 33
+        // minSdk menentukan perangkat mana yang boleh memasang APK, bukan
+        // perangkat yang jadi sasaran uji. Nilai 33 di sini membuat APK tidak
+        // bisa dipasang di Android 12 dan ke bawah, sehingga sebagian besar
+        // perangkat yang ada dikeluarkan. Semua plugin yang dipakai hanya
+        // butuh API 21, dan desugaring sudah aktif untuk
+        // flutter_local_notifications. Sasaran uji diatur lewat targetSdk.
+        minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)

@@ -66,6 +66,7 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
               controller: _email,
               keyboardType: TextInputType.emailAddress,
               textInputAction: TextInputAction.done,
+              autofillHints: const [AutofillHints.email],
               onFieldSubmitted: (_) => _kirim(),
               validator: (value) => validasiEmail(value ?? ''),
               decoration: const InputDecoration(

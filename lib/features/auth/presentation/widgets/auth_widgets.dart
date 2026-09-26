@@ -108,6 +108,7 @@ class PasswordField extends StatefulWidget {
     this.validator,
     this.textInputAction = TextInputAction.done,
     this.onSubmitted,
+    this.autofillHints,
   });
 
   final TextEditingController controller;
@@ -115,6 +116,9 @@ class PasswordField extends StatefulWidget {
   final String? Function(String)? validator;
   final TextInputAction textInputAction;
   final void Function(String)? onSubmitted;
+
+  /// Petunjuk untuk password manager dan isi otomatis.
+  final Iterable<String>? autofillHints;
 
   @override
   State<PasswordField> createState() => _PasswordFieldState();
@@ -132,6 +136,7 @@ class _PasswordFieldState extends State<PasswordField> {
       autocorrect: false,
       textInputAction: widget.textInputAction,
       onFieldSubmitted: widget.onSubmitted,
+      autofillHints: widget.autofillHints,
       validator: widget.validator == null
           ? null
           : (value) => widget.validator!(value ?? ''),

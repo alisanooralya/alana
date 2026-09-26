@@ -46,6 +46,17 @@ class ErrorLog {
     };
   }
 
+  /// Menulis log secara berurutan.
+  ///
+  /// Setiap error memicu penulisan ulang seluruh berkas. Dua error beruntun
+  /// (badai request, render loop) akan menjalankan dua writeAsString pada path
+  /// yang sama secara bersamaan, dan karena writeAsString memotong lalu menulis,
+  /// keduanya bisa saling menimpa sehingga log tersimpan terpotong - persis
+  /// saat user membuka Diagnostics untuk melaporkan bug. Antrean ini
+  /// menggabungkan penulisan beruntun menjadi satu dan melompati penulisan
+  /// yang sudah sama-sama kedaluwarsa.
+  static Future<void> _tulis = Future<void>.value();
+
   static void catat(Object error, StackTrace? stack) {
     _entries.add(
       AppErrorEntry(
@@ -58,7 +69,7 @@ class ErrorLog {
       _entries.removeRange(0, _entries.length - _maks);
     }
     versi.value++;
-    _simpanFile();
+    _tulis = _tulis.then((_) => _simpanFile()).catchError((_) {});
   }
 
   static Future<void> _simpanFile() async {

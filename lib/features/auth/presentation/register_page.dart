@@ -167,6 +167,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 TextFormField(
                   controller: _username,
                   textInputAction: TextInputAction.next,
+                  autofillHints: const [AutofillHints.newUsername],
                   validator: (value) => validasiUsername(value ?? ''),
                   decoration: InputDecoration(
                     labelText: 'Username',
@@ -185,6 +186,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
+                  autofillHints: const [AutofillHints.email],
                   validator: (value) => validasiEmail(value ?? ''),
                   decoration: const InputDecoration(
                     labelText: 'Email',
@@ -196,6 +198,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 PasswordField(
                   controller: _password,
                   textInputAction: TextInputAction.next,
+                  autofillHints: const [AutofillHints.newPassword],
                   validator: validasiPassword,
                 ),
                 const SizedBox(height: 12),
