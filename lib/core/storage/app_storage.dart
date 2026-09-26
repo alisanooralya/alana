@@ -52,16 +52,41 @@ class AppStorage {
   /// Nama box per user: `{jenis}_{uid}` (jenis: `bm`, `rh`, `sm`).
   static String boxUser(String jenis, String uid) => '${jenis}_$uid';
 
-  /// Membuka (atau mengembalikan) box milik user. Aman dipanggil ulang.
-  static Future<Box?> bukaBoxUser(String jenis, String uid) async {
-    if (!_siap || uid.isEmpty) return null;
+  /// Pembukaan box yang sedang berjalan, agar tidak ada dua Future membuka
+  /// nama box yang sama sekaligus.
+  static final Map<String, Future<Box?>> _pembukaan = {};
+
+  /// Membuka (atau mengembalikan) box milik user. Aman dipanggil berulang dan
+  /// aman dipanggil dari banyak tempat sekaligus.
+  ///
+  /// Pemeriksaan `isBoxOpen` sebelum `await` adalah check-then-act: dua
+  /// pemanggil bisa sama-sama melihat box tertutup lalu sama-sama memanggil
+  /// `Hive.openBox`, dan Hive happily mengembalikan dua instance Box atas file
+  /// yang sama. Write lewat satu instance tidak terlihat oleh yang lain, dan
+  /// saat yang kalah ditutup, tulisannya hilang - bookmark dan posisi baca
+  /// ikut hilang. Karena itu Future pembukaan di-memoisasi per nama box.
+  static Future<Box?> bukaBoxUser(String jenis, String uid) {
+    if (!_siap || uid.isEmpty) return Future.value();
+    final nama = boxUser(jenis, uid);
+    if (Hive.isBoxOpen(nama)) return Future.value(Hive.box(nama));
+    final jalan = _pembukaan[nama];
+    if (jalan != null) return jalan;
+    final future = _bukaBox(nama);
+    _pembukaan[nama] = future;
+    return future;
+  }
+
+  static Future<Box?> _bukaBox(String nama) async {
     try {
-      final nama = boxUser(jenis, uid);
+      // Box bisa saja sudah dibuka oleh pemanggil lain di antara dua cek di
+      // atas; ambil yang ada kalau begitu.
       if (Hive.isBoxOpen(nama)) return Hive.box(nama);
       return await Hive.openBox(nama);
     } catch (error) {
       lastError = error.toString();
       return null;
+    } finally {
+      _pembukaan.remove(nama);
     }
   }
 
@@ -111,6 +136,7 @@ class AppStorage {
     for (final jenis in ['bm', 'rh', 'sm']) {
       try {
         final nama = boxUser(jenis, uid);
+        _pembukaan.remove(nama);
         if (Hive.isBoxOpen(nama)) await Hive.box(nama).close();
         await Hive.deleteBoxFromDisk(nama);
       } catch (_) {

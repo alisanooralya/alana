@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:alana/core/storage/app_storage.dart';
@@ -9,10 +10,29 @@ import 'package:alana/features/history/data/reading_history.dart';
 import 'package:alana/features/library/data/bookmark_repository.dart';
 import 'package:alana/features/library/data/bookmarked_manga.dart';
 
+import '../presentation/sync_providers.dart';
+
 import 'merge.dart';
 import 'sync_remote.dart';
 
 DateTime _epoch() => DateTime.fromMillisecondsSinceEpoch(0);
+
+/// Sinyal penyegar jumlah pending setelah jalur statis menulis box langsung.
+///
+/// `dorongSekarang` sengaja tanpa `ref` supaya bisa dipanggil dari dispose
+/// Reader. Konsekuensinya perubahan flag pending di box tidak diketahui
+/// Riverpod, sehingga indikator "Menunggu sinkron (N)" menampilkan angka lama
+/// padahal datanya sudah tersimpan di server.
+final syncTick = ChangeNotifier();
+
+/// Mendaftarkan penyegaran jumlah pending ke dalam [Ref].
+///
+/// Listener dilepas lebih dulu supaya provider yang dibangun ulang tidak
+/// menumpuk listener dan memicu invalidate berkali-kali.
+void bangunkanPendingSync(Ref ref) {
+  ref.onDispose(syncTick.removeListener);
+  syncTick.addListener(() => ref.invalidate(pendingSyncProvider));
+}
 
 /// Orkestrasi sinkronisasi Supabase (sumber kebenaran lintas perangkat).
 ///
@@ -98,6 +118,8 @@ class SyncService {
       await _dorongTombs(uid, 'rh');
       await _dorongBox(uid, 'bm', mangaId);
       await _dorongTombs(uid, 'bm');
+      // Flag pending di box sudah berubah; beri tahu indikator.
+      syncTick.notifyListeners();
     } catch (_) {
       // Tetap pending; dicoba lagi pada kesempatan berikut.
     }
@@ -300,5 +322,6 @@ class SyncService {
 }
 
 final syncServiceProvider = Provider<SyncService>((ref) {
+  bangunkanPendingSync(ref);
   return SyncService(ref);
 });
