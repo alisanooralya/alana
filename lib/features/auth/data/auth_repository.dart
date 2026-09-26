@@ -83,7 +83,19 @@ class AuthRepository {
       if (hasil.status != 200 || segar == null || segar.isEmpty) {
         throw AuthException(_pesanFunctionLogin(data));
       }
-      return await _client.auth.setSession(segar);
+      // Tanpa batas waktu, pertukaran kode sesi bisa menggantung lama. Di
+      // dalam gotrue, SocketException ditelan lalu dicoba ulang dengan
+      // backoff dan penggantung hanya selesai setelah batas percobaan habis,
+      // jadi tombol "Masuk" tetap berputar tidak bisa dibatalkan selama
+      // beberapa menit dan pesan akhirnya salah (bukan masalah jaringan).
+      return await _client.auth
+          .setSession(segar)
+          .timeout(
+            const Duration(seconds: 20),
+            onTimeout: () => throw const AuthException(
+              'Sesi terlalu lama tidak terbantu. Periksa jaringan lalu coba lagi.',
+            ),
+          );
     } catch (error) {
       if (error is AuthException) rethrow;
       final teks = error.toString();
@@ -105,12 +117,27 @@ class AuthRepository {
     }
 
     final googleSignIn = GoogleSignIn.instance;
-    await googleSignIn.initialize(serverClientId: AppConfig.googleWebClientId);
-    _googleSiap = true;
+    // initialize() hanya boleh dipanggil sekali per proses; pemanggilan
+    // berulang menjalankan inisialisasi platform lagi dan menambah listener
+    // baru pada stream autentikasi platform setiap kali. Karena itu dijaga
+    // penanda, bukan dijalankan pada setiap percobaan.
+    if (!_googleSiap) {
+      await googleSignIn.initialize(
+        serverClientId: AppConfig.googleWebClientId,
+      );
+      _googleSiap = true;
+    }
 
-    var googleUser = await googleSignIn.attemptLightweightAuthentication();
-    // scopeHint: gabungkan auth+otorisasi agar tidak gagal reauth diam-diam.
-    googleUser ??= await googleSignIn.authenticate(
+    // Tombol "Lanjutkan dengan Google" adalah permintaan eksplisit, jadi
+    // authenticate() penuh dipakai: di Android layar pemilih akun muncul dan
+    // user bisa memilih akun lain. attemptLightweightAuthentication()
+    // sebelumnya mengembalikan akun yang sudah masuk di perangkat dengan
+    // tanpa UI, sehingga user yang sebenarnya ingin masuk dengan akun lain
+    // ikut masuk sebagai akun yang terpasang. authenticate() melempar
+    // GoogleSignInException saat dibatalkan, dan itu sudah dipetakan di
+    // pesanAuthRamah.
+    // scopeHint: gabungkan auth dan otorisasi agar tidak gagal reauth diam-diam.
+    final googleUser = await googleSignIn.authenticate(
       scopeHint: const ['email', 'profile'],
     );
 

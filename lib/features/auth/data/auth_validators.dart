@@ -95,6 +95,9 @@ String _dariPesan(String pesan) {
   if (t.contains('bucket not found') || t.contains('bucket_not_found')) {
     return 'Bucket penyimpanan belum ada di server.';
   }
+  if (t.contains('sesi terlalu lama')) {
+    return 'Sesi terlalu lama tidak terbantu. Periksa jaringan lalu coba lagi.';
+  }
   if (t.contains('cancelled') || t.contains('canceled')) {
     if (t.contains('reauth')) {
       return 'Login Google gagal (akun perlu otorisasi ulang). '

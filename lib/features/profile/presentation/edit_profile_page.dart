@@ -84,6 +84,22 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   }
 
   Future<void> _gantiFoto() async {
+    try {
+      await _gantiFotoInner();
+    } catch (error) {
+      // Pemilih gambar dan cropper melempar PlatformException kalau izin
+      // ditolak, tidak ada kamera, atau tidak ada aplikasi yang bisa menangani
+      // gambar. ErrorLog.pasang() memasang platformDispatcher.onError yang
+      // mengembalikan true, jadi framework menganggapnya sudah ditangani:
+      // tanpa try/catch di sini user menekan tombol dan tidak terjadi apa-apa,
+      // tanpa pesan dan tanpa spinner.
+      if (!mounted) return;
+      setState(() => _pesanError = pesanErrorRamah(error));
+      ErrorLog.catat(error, StackTrace.current);
+    }
+  }
+
+  Future<void> _gantiFotoInner() async {
     final sumber = await showModalBottomSheet<ImageSource>(
       context: context,
       builder: (context) => SafeArea(

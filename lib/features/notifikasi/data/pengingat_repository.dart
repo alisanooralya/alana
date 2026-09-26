@@ -11,12 +11,42 @@ import 'package:alana/features/onboarding/data/onboarding_repository.dart';
 /// sudah 2+ hari tidak dilanjutkan. Dijadwalkan ulang tiap aplikasi
 /// dibuka (tanpa background service).
 class PengingatRepository {
-  const PengingatRepository();
+  PengingatRepository(this.ref);
+
+  final Ref ref;
 
   static const kunciAktif = 'pengingat_baca';
 
+  /// Prefixes kunci penanda "sudah diberi tahu", satu per judul.
+  static const _prefixDiberiTahukan = 'pengingat_diberitahu_';
+
+  /// Jeda sebelum judul yang sama boleh diingatkan lagi.
+  static const Duration jedaUlang = Duration(days: 7);
+
+  /// Kapan judul ini terakhir diberi tahu, null bila belum pernah.
+  DateTime? _terakhirDiberiTahukan(String mangaId) {
+    final iso = ref
+        .read(sharedPreferencesProvider)
+        .getString('$_prefixDiberiTahukan$mangaId');
+    if (iso == null || iso.isEmpty) return null;
+    return DateTime.tryParse(iso);
+  }
+
+  Future<void> _tandaiDiberiTahukan(String mangaId) async {
+    await ref
+        .read(sharedPreferencesProvider)
+        .setString('$_prefixDiberiTahukan$mangaId', DateTime.now().toIso8601String());
+  }
+
   /// Jadwalkan ulang untuk [uid]. Batalkan dulu semua milik kita.
-  /// [maksimal]: batasi jumlah notifikasi (terlama dulu).
+  /// [maksimal]: batasi jumlah notifikasi.
+  ///
+  /// Sebelumnya Always memilih 3 judul terlama setiap kali aplikasi dibuka,
+  /// tanpa mencatat bahwa pengingatnya sudah dikirim. Akibatnya user dengan
+  /// 10 bacaan terlantar mendapat notifikasi yang sama untuk judul yang sama
+  /// setiap pagi selamanya, sementara 7 judul yang lebih baru tidak pernah
+  /// disinggung karena selalu kalah oleh 3 yang paling lama. Judul yang sudah
+  /// diberi tahu dalam [jedaUlang] dilewati, sehingga giliran bergilir.
   Future<void> jadwalkanUlang(String? uid, {int maksimal = 3}) async {
     await LayananNotifikasi.batalkanSemua();
     if (uid == null || uid.isEmpty) return;
@@ -33,12 +63,34 @@ class PengingatRepository {
       if (p.mangaId.isEmpty) continue;
       if (p.updatedAt.isBefore(batas)) basi.add(p);
     }
-    basi.sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
+    // Urut berdasarkan kapan terakhir diberi tahu, bukan kapan terakhir
+    // dibaca. Urut berdasarkan usia bacaan selalu mengembalikan 3 judul yang
+    // sama: begitu jedaUlang habis, 3 judul tertua langsung memenuhi syarat
+    // lagi dan giliran tidak pernah sampai ke sisanya. Dengan urutan ini,
+    // yang belum pernah diberi tahu didahulukan, lalu yang paling lama
+    //_since_ diberi tahu - sehingga giliran benar-benar bergilir.
+    basi.sort((a, b) {
+      final ta = _terakhirDiberiTahukan(a.mangaId);
+      final tb = _terakhirDiberiTahukan(b.mangaId);
+      if (ta == null && tb == null) return a.updatedAt.compareTo(b.updatedAt);
+      if (ta == null) return -1;
+      if (tb == null) return 1;
+      return ta.compareTo(tb);
+    });
+    final sekarang = DateTime.now();
+    final terpilih = <MangaReadingProgress>[];
+    for (final p in basi) {
+      if (terpilih.length >= maksimal) break;
+      final t = _terakhirDiberiTahukan(p.mangaId);
+      if (t != null && sekarang.difference(t) < jedaUlang) continue;
+      terpilih.add(p);
+    }
 
     final kapan = _berikutnyaJam9();
     var i = 0;
-    for (final p in basi) {
+    for (final p in terpilih) {
       if (i >= maksimal) break;
+      await _tandaiDiberiTahukan(p.mangaId);
       final judul = p.mangaTitle.isEmpty ? p.mangaId : p.mangaTitle;
       await LayananNotifikasi.jadwalkan(
         id: p.mangaId.hashCode & 0x7fffffff,
@@ -97,7 +149,7 @@ class PengingatStatus extends Notifier<bool> {
 }
 
 final pengingatRepositoryProvider = Provider<PengingatRepository>((ref) {
-  return const PengingatRepository();
+  return PengingatRepository(ref);
 });
 
 final pengingatAktifProvider = NotifierProvider<PengingatStatus, bool>(
