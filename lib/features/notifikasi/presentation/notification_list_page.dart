@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:alana/core/widgets/empty_view.dart';
+import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_view.dart';
 import 'package:alana/utils/relative_time.dart';
@@ -69,7 +70,7 @@ class NotificationListPage extends ConsumerWidget {
         child: daftarAsync.when(
           loading: () => const LoadingView(),
           error: (error, _) => ErrorView(
-            pesan: 'Gagal memuat notifikasi. $error',
+            pesan: 'Gagal memuat notifikasi. ${pesanErrorRamah(error)}',
             onRetry: () {
               ref.invalidate(daftarNotifikasiProvider);
               ref.invalidate(belumDibacaProvider);

@@ -78,6 +78,12 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   }
 
   Future<void> _daftar() async {
+    // onSubmitted dari keyboard memanggil method yang sama dengan tombol, dan
+    // tidak ikut dilebihkan oleh kondisi tombol yang disabled. Tanpa penjaga ini
+    // dua permintaan berjalan bersamaan: pada daftar, panggilan kedua
+    // mendapat 422 "user already registered" dan menampilkan pesan "email
+    // sudah terdaftar" untuk akun yang baru saja berhasil dibuat.
+    if (_memuat) return;
     FocusScope.of(context).unfocus();
     setState(() => _pesanError = null);
     if (!(_formKey.currentState?.validate() ?? false)) return;

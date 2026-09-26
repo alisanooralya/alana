@@ -37,6 +37,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Future<void> _masuk() async {
+    // onSubmitted dari keyboard memanggil method yang sama dengan tombol, dan
+    // tidak ikut dilebihkan oleh kondisi tombol yang disabled. Tanpa penjaga ini
+    // dua permintaan berjalan bersamaan: pada daftar, panggilan kedua
+    // mendapat 422 "user already registered" dan menampilkan pesan "email
+    // sudah terdaftar" untuk akun yang baru saja berhasil dibuat.
+    if (_memuat) return;
     FocusScope.of(context).unfocus();
     setState(() {
       _pesanError = null;

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:alana/core/widgets/empty_view.dart';
+import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_view.dart';
 import 'package:alana/features/auth/data/auth_repository.dart';
@@ -128,7 +129,7 @@ class ProfilePage extends ConsumerWidget {
       body: profilAsync.when(
         loading: () => const LoadingView(),
         error: (error, _) => ErrorView(
-          pesan: 'Gagal memuat profil. $error',
+          pesan: 'Gagal memuat profil. ${pesanErrorRamah(error)}',
           onRetry: () => ref.invalidate(profileProvider),
         ),
         data: (profil) {

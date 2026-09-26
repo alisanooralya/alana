@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:alana/core/widgets/empty_view.dart';
+import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/core/widgets/loading_view.dart';
 
 import '../data/download_manager.dart';
@@ -22,7 +23,7 @@ class DownloadsPage extends ConsumerWidget {
       body: downloads.when(
         loading: () => const LoadingView(),
         error: (error, _) =>
-            Center(child: Text('Gagal memuat unduhan. $error')),
+            Center(child: Text('Gagal memuat unduhan. ${pesanErrorRamah(error)}')),
         data: (state) {
           final groups = _groupByManga(state.entries.values);
           return ListView(
