@@ -71,8 +71,11 @@ List<Page> parsePageList(dynamic data) {
     final chapter = chapterData['chapter'] as Map<String, dynamic>;
     final pages = chapter['data'];
     if (pages is List && pages.isNotEmpty) {
+      // Tanpa fallback, base yang kosong membuat semua imageUrl berupa path
+      // relatif tanpa skema sehingga seluruh chapter gagal tampil.
       final base = asString(
         chapterData['base_url'] ?? chapterData['base_url_low'],
+        fallback: MangaApiClient.cdnBaseUrl,
       );
       return _buildPages(base, asString(chapter['path']), pages);
     }
@@ -110,8 +113,28 @@ List<Page> parsePageList(dynamic data) {
 List<Page> _buildPages(String base, String path, List<dynamic> pages) {
   return [
     for (var index = 0; index < pages.length; index++)
-      Page(index: index, imageUrl: '$base$path${pages[index]}'),
+      Page(
+        index: index,
+        imageUrl: _gabungUrl(base, path, _pageImageUrl(pages[index])),
+      ),
   ];
+}
+
+/// Menggabungkan base + path + nama file tanpa merusak URL.
+///
+/// Sebelumnya penyusunan ini hanya benar karena kebetulan: base_url dari
+/// server tidak berakhiran garis miring dan path diawali garis miring. Salah
+/// satu berubah saja, hasilnya `https://assets.shngm.idchapter/...` dan
+/// setiap halaman gagal dimuat dengan diam-diam - placeholder rusak tanpa
+/// pesan apa pun. Sekarang kedua sisi dinormalisasi, dan entri yang sudah
+/// berupa URL lengkap dipakai apa adanya.
+String _gabungUrl(String base, String path, String file) {
+  if (file.isEmpty) return '';
+  if (file.startsWith('http://') || file.startsWith('https://')) return file;
+  if (base.isEmpty) return '';
+  final b = base.endsWith('/') ? base.substring(0, base.length - 1) : base;
+  final p = path.startsWith('/') ? path : '/$path';
+  return '$b$p$file';
 }
 
 String _pageImageUrl(dynamic page) {

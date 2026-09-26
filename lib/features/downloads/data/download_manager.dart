@@ -13,6 +13,16 @@ import 'package:alana/models/page.dart' as manga;
 
 import 'download_repository.dart';
 
+/// Jaringan hilang di tengah unduhan (bukan sebelum dimulai).
+class DownloadKoneksiPutus implements Exception {
+  const DownloadKoneksiPutus();
+}
+
+/// Wi-Fi turun di tengah unduhan sementara mode Wi-Fi-only aktif.
+class DownloadWifiTurun implements Exception {
+  const DownloadWifiTurun();
+}
+
 class DownloadRequest {
   const DownloadRequest({
     required this.mangaId,
@@ -306,6 +316,32 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     try {
       await _unduh(request, entry);
     } catch (error) {
+      // Koneksi hilang di tengah unduhan: jeda dan kembalikan ke depan
+      // antrean. Kalau tidak dikembalikan ke antrean, item ini tidak akan
+      // pernah dilanjutkan saat koneksi datang - flag waitingForWifi hanya
+      // memanggil _pump(), dan _pump() hanya mengerjakan isi antrean.
+      if (error is DownloadKoneksiPutus || error is DownloadWifiTurun) {
+        final wifi = error is DownloadWifiTurun;
+        final kini = state.valueOrNull ?? current;
+        await _gagal(
+          kini,
+          request,
+          wifi
+              ? 'Wi-Fi terputus. Menunggu Wi-Fi.'
+              : 'Koneksi terputus, unduhan dijeda.',
+          DownloadStatus.paused,
+        );
+        _tulis(
+          (state.valueOrNull ?? kini).copyWith(
+            queue: [
+              request,
+              ...(state.valueOrNull ?? kini).queue,
+            ],
+            waitingForWifi: true,
+          ),
+        );
+        return;
+      }
       final dibatalkan =
           error is DioException && error.type == DioExceptionType.cancel;
       if (dibatalkan) {
@@ -363,6 +399,18 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     _tulis(_denganEntry(state.valueOrNull!, current));
 
     for (var index = 0; index < pages.length; index++) {
+      // "Unduh hanya di Wi-Fi" sebelumnya dicek sekali sebelum chapter dimulai.
+      // Kalau Wi-Fi putus di tengah, seluruh sisa chapter - dan semua chapter
+      // berikutnya - berjalan lewat data seluler tanpa peringatan.
+      final wifiOnly = ref.read(settingsRepositoryProvider).wifiOnlyDownloads;
+      if (wifiOnly &&
+          !_wifiTersedia(ref.read(konektivitasProvider).valueOrNull)) {
+        throw const DownloadWifiTurun();
+      }
+      if (ref.read(luringProvider)) {
+        throw const DownloadKoneksiPutus();
+      }
+
       final page = pages[index];
       final path =
           '${chapterDirectory.path}/${(index + 1).toString().padLeft(3, '0')}.jpg';

@@ -477,12 +477,26 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
 }
 
 /// Urutan baca: chapter terlama lebih dulu (fallback: urutan API).
+///
+/// `dateUpload` bernilai 0 bila tanggal chapter tidak bisa diurai. Tanpa
+/// penyaringan, satu chapter ber tanggal 0 ikut terurut dan dianggap paling
+/// tua - sehingga tombol Berikutnya/Sebelumnya melompat ke chapter yang salah
+/// dan "Lanjut Baca" bisa menunjuk chapter yang salah. Chapter tanpa tanggal
+/// yang valid karena itu tidak ikut menentukan urutan, dan fallback ke urutan
+/// API dipakai kalau tidak ada satu pun tanggal yang bisa dibaca.
 List<Chapter> _urutTerlamaDulu(List<Chapter> daftar) {
-  final tersusun = [...daftar];
-  if (tersusun.any((chapter) => chapter.dateUpload > 0)) {
-    tersusun.sort((a, b) => a.dateUpload.compareTo(b.dateUpload));
-  }
-  return tersusun;
+  final denganTanggal = daftar.where((c) => c.dateUpload > 0).toList();
+  if (denganTanggal.isEmpty) return [...daftar];
+  final idTanpaTanggal = daftar
+      .where((c) => c.dateUpload <= 0)
+      .map((c) => c.url)
+      .toSet();
+  denganTanggal.sort((a, b) => a.dateUpload.compareTo(b.dateUpload));
+  // Chapter tanpa tanggal diletakkan di akhir, bukan di awal.
+  return [
+    ...denganTanggal,
+    ...daftar.where((c) => idTanpaTanggal.contains(c.url)),
+  ];
 }
 
 /// Immersive mode dan wakelock dipakai bersama antar halaman reader.
