@@ -165,48 +165,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 path: '/',
                 name: 'beranda',
                 builder: (context, state) => const HomePage(),
-                routes: [
-                  GoRoute(
-                    path: 'jelajah',
-                    name: 'jelajah',
-                    builder: (context, state) => const JelajahPage(),
-                  ),
-                  GoRoute(
-                    path: 'cari',
-                    name: 'pencarian',
-                    builder: (context, state) => const SearchPage(),
-                  ),
-                  GoRoute(
-                    path: 'notifikasi',
-                    name: 'notifikasi',
-                    builder: (context, state) => const NotificationListPage(),
-                  ),
-                  GoRoute(
-                    path: 'detail/:mangaId',
-                    name: 'detail',
-                    builder: (context, state) => DetailPage(
-                      mangaId: state.pathParameters['mangaId'] ?? '',
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'baca/:mangaId/:chapterId',
-                    name: 'reader',
-                    builder: (context, state) {
-                      final extra = state.extra;
-                      final args = extra is Map<String, dynamic>
-                          ? extra
-                          : const <String, dynamic>{};
-                      return ReaderPage(
-                        mangaId: state.pathParameters['mangaId'] ?? '',
-                        chapterId: state.pathParameters['chapterId'] ?? '',
-                        chapterName: args['chapterName']?.toString() ?? '',
-                        mangaTitle: args['mangaTitle']?.toString() ?? '',
-                        mangaThumbnail:
-                            args['mangaThumbnail']?.toString() ?? '',
-                      );
-                    },
-                  ),
-                ],
               ),
             ],
           ),
@@ -234,46 +192,79 @@ final goRouterProvider = Provider<GoRouter>((ref) {
                 path: '/profil',
                 name: 'profil',
                 builder: (context, state) => const ProfilePage(),
-                routes: [
-                  GoRoute(
-                    path: 'ubah',
-                    name: 'ubah-profil',
-                    builder: (context, state) => EditProfilePage(
-                      baru: state.uri.queryParameters['baru'] == '1',
-                    ),
-                  ),
-                  GoRoute(
-                    path: 'tentang-aplikasi',
-                    name: 'tentang-aplikasi',
-                    builder: (context, state) => const AboutPage(),
-                  ),
-                  GoRoute(
-                    path: 'unduhan',
-                    name: 'unduhan',
-                    builder: (context, state) => const DownloadsPage(),
-                  ),
-                  GoRoute(
-                    path: 'keamanan',
-                    name: 'keamanan',
-                    builder: (context, state) => const SecurityPage(),
-                  ),
-                  GoRoute(
-                    path: 'pengaturan',
-                    name: 'pengaturan',
-                    builder: (context, state) => const SettingsPage(),
-                    routes: [
-                      GoRoute(
-                        path: 'diagnostik',
-                        name: 'diagnostik',
-                        builder: (context, state) => const DiagnosticsPage(),
-                      ),
-                    ],
-                  ),
-                ],
               ),
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/jelajah',
+        name: 'jelajah',
+        builder: (context, state) => const JelajahPage(),
+      ),
+      GoRoute(
+        path: '/cari',
+        name: 'pencarian',
+        builder: (context, state) => const SearchPage(),
+      ),
+      GoRoute(
+        path: '/notifikasi',
+        name: 'notifikasi',
+        builder: (context, state) => const NotificationListPage(),
+      ),
+      GoRoute(
+        path: '/detail/:mangaId',
+        name: 'detail',
+        builder: (context, state) =>
+            DetailPage(mangaId: state.pathParameters['mangaId'] ?? ''),
+      ),
+      GoRoute(
+        path: '/baca/:mangaId/:chapterId',
+        name: 'reader',
+        builder: (context, state) {
+          final extra = state.extra;
+          final args = extra is Map<String, dynamic>
+              ? extra
+              : const <String, dynamic>{};
+          return ReaderPage(
+            mangaId: state.pathParameters['mangaId'] ?? '',
+            chapterId: state.pathParameters['chapterId'] ?? '',
+            chapterName: args['chapterName']?.toString() ?? '',
+            mangaTitle: args['mangaTitle']?.toString() ?? '',
+            mangaThumbnail: args['mangaThumbnail']?.toString() ?? '',
+          );
+        },
+      ),
+      GoRoute(
+        path: '/profil/ubah',
+        name: 'ubah-profil',
+        builder: (context, state) =>
+            EditProfilePage(baru: state.uri.queryParameters['baru'] == '1'),
+      ),
+      GoRoute(
+        path: '/profil/tentang-aplikasi',
+        name: 'tentang-aplikasi',
+        builder: (context, state) => const AboutPage(),
+      ),
+      GoRoute(
+        path: '/profil/unduhan',
+        name: 'unduhan',
+        builder: (context, state) => const DownloadsPage(),
+      ),
+      GoRoute(
+        path: '/profil/keamanan',
+        name: 'keamanan',
+        builder: (context, state) => const SecurityPage(),
+      ),
+      GoRoute(
+        path: '/profil/pengaturan',
+        name: 'pengaturan',
+        builder: (context, state) => const SettingsPage(),
+      ),
+      GoRoute(
+        path: '/profil/pengaturan/diagnostik',
+        name: 'diagnostik',
+        builder: (context, state) => const DiagnosticsPage(),
       ),
       GoRoute(
         path: '/:mangaId',
