@@ -1,9 +1,11 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'package:alana/core/diagnostics/error_log.dart';
 import 'package:alana/core/storage/app_storage.dart';
 import 'package:alana/features/profile/presentation/profile_providers.dart';
 
@@ -130,6 +132,29 @@ class DownloadedChapter {
   }
 }
 
+/// Hasil pemindahan unduhan dari struktur lama ke folder per-user.
+class HasilMigrasi {
+  const HasilMigrasi({
+    required this.dipindahkan,
+    required this.dilewati,
+    required this.gagal,
+  });
+
+  /// Entri yang foldernya sudah dipindahkan ke folder user ini.
+  final int dipindahkan;
+
+  /// Entri yang filenya sudah ada di folder user ini, jadi yang lama
+  /// dibuang sebagai duplikat.
+  final int dilewati;
+
+  /// Entri yang gagal dipindahkan. Nilai dan file lamanya utuh.
+  final int gagal;
+
+  static const kosong = HasilMigrasi(dipindahkan: 0, dilewati: 0, gagal: 0);
+
+  bool get adaYangDikerjakan => dipindahkan > 0 || dilewati > 0 || gagal > 0;
+}
+
 /// Unduhan chapter, dipisah per akun.
 ///
 /// Isolasi dijaga di dua tempat sekaligus, karena satu saja bisa bocor:
@@ -199,13 +224,199 @@ class DownloadRepository {
 
   /// Folder induk semua unduhan, tanpa filter user.
   ///
-  /// Dipakai untuk menghitung memakai ruang disk dan untuk mendeteksi folder
+  /// Dipakai untuk menghitung memakai ruang disk dan sebagai sumber folder
   /// peninggalan struktur lama.
   static Future<Directory> downloadsRoot() async {
     final root = await getApplicationDocumentsDirectory();
     final directory = Directory('${root.path}/downloads');
     await directory.create(recursive: true);
     return directory;
+  }
+
+  /// Migrasi hanya boleh jalan sekali per aplikasi.
+  static bool _migrasiDijalankan = false;
+
+  /// Mengembalikan [_migrasiDijalankan] ke false. Hanya untuk test.
+  @visibleForTesting
+  static void resetMigrasiUntukTest() => _migrasiDijalankan = false;
+
+  /// Memindahkan unduhan berstruktur lama ke folder milik user ini.
+  ///
+  /// Struktur lama `downloads/<manga>/<chapter>/` jadi
+  /// `downloads/<user>/<manga>/<chapter>/`, dan entri Hive ditulis ulang
+  /// memakai kunci berawalan userId.
+  ///
+  /// Sumber kebenaran adalah metadata Hive, bukan pemindaian folder.
+  /// [safeSegment] menambahkan sufiks hash sehingga nama folder lama tidak
+  /// bisa dikenali sebagai punya user atau bukan; membacanya dari entri yang
+  /// sudah menyebut mangaId dan chapterId membuat lokasi folder pasti
+  /// benar.
+  ///
+  /// Dijalankan paling banyak sekali per aplikasi. Mengembalikan
+  /// [HasilMigrasi.kosong] tanpa efek kalau belum ada user pemilik, karena
+  /// memindahkan ke folder tanpa pemilik justru mengembalikan unduhan ke
+  /// folder bersama yang baru saja dipisah.
+  Future<HasilMigrasi> migrasiStrukturLama() async {
+    final box = _box;
+    if (_migrasiDijalankan || box == null || !_punyaPemilik) {
+      return HasilMigrasi.kosong;
+    }
+    // Ditandai sebelum await pertama: dua pemanggil yang berjalan bersamaan
+    // tidak akan memindahkan folder yang sama dua kali.
+    _migrasiDijalankan = true;
+
+    var dipindahkan = 0;
+    var dilewati = 0;
+    var gagal = 0;
+
+    final root = await downloadsRoot();
+    final userRoot = await userDownloadsRoot();
+    if (userRoot == null) return HasilMigrasi.kosong;
+
+    final kunciLama = <dynamic>[];
+    for (final key in box.keys) {
+      final value = box.get(key);
+      if (value is! Map) continue;
+      final sudahAdaPemilik = (value['userId']?.toString() ?? '').isNotEmpty;
+      final punyaManga = (value['mangaId']?.toString() ?? '').isNotEmpty;
+      final punyaChapter = (value['chapterId']?.toString() ?? '').isNotEmpty;
+      if (!sudahAdaPemilik && punyaManga && punyaChapter) kunciLama.add(key);
+    }
+
+    for (final key in kunciLama) {
+      try {
+        final value = box.get(key);
+        if (value is! Map) continue;
+        final lama = DownloadedChapter.fromMap(
+          Map<String, dynamic>.from(value),
+        );
+        final mangaSeg = safeSegment(lama.mangaId);
+        final chapterSeg = safeSegment(lama.chapterId);
+        final folderLama = Directory('${root.path}/$mangaSeg/$chapterSeg');
+        final folderBaru = Directory('${userRoot.path}/$mangaSeg/$chapterSeg');
+
+        final sudahAdaDiLokasiBaru = await folderBaru.exists();
+
+        if (sudahAdaDiLokasiBaru && await folderLama.exists()) {
+          // Migrasi yang sempat berjalan lalu gagal sebelum menghapus
+          // metadata. Folder barunya sudah ada, jadi yang lama duplikat.
+          await folderLama.delete(recursive: true);
+        }
+
+        if (!sudahAdaDiLokasiBaru && await folderLama.exists()) {
+          await folderBaru.parent.create(recursive: true);
+          try {
+            await folderLama.rename(folderBaru.path);
+          } on FileSystemException {
+            // rename gagal kalau tidak bisa di satu perangkat berkas.
+            await _salin(folderLama, folderBaru);
+            await folderLama.delete(recursive: true);
+          }
+        }
+
+        // Metadata tetap ditulis ulang walau foldernya tidak ada: verifyAll()
+        // akan menandainya gagal dengan pesan "folder halaman tidak ditemukan"
+        // dan user bisa mengunduh ulang, alih-alih unduhannya hilang dari
+        // daftar tanpa penjelasan.
+        final baru = lama.copyWith(
+          userId: userId,
+          coverLocalPath: _alamatCoverBaru(
+            lama.coverLocalPath,
+            rootPath: root.path,
+            userRootPath: userRoot.path,
+          ),
+        );
+        // Cover tinggal satu per manga, di folder manga dan DI LUAR folder
+        // chapter, jadi tidak ikut terikut oleh rename folder chapter di atas.
+        // Tanpa langkah ini sampul semua unduhan lama jadi hilang.
+        //
+        // Kegagalan di sini tidak menggagalkan entri: berkas halaman sudah
+        // aman di lokasi baru dan itu yang menentukan chapter terbaca.
+        try {
+          await _pindahkanCover(
+            dari: lama.coverLocalPath,
+            ke: baru.coverLocalPath,
+          );
+        } catch (error, stack) {
+          ErrorLog.catat(error, stack);
+        }
+        await box.put(
+          keyFor(userId, lama.mangaId, lama.chapterId),
+          baru.toMap(),
+        );
+        await box.delete(key);
+        // Dihitung terpisah supaya hasilnya bisa dipakai saat startup: "folder
+        // sudah ada" bukan berarti ada file yang perlu dipindahkan.
+        if (sudahAdaDiLokasiBaru) {
+          dilewati++;
+        } else {
+          dipindahkan++;
+        }
+      } catch (error, stack) {
+        // File dan metadata lama dibiarkan utuh supaya tidak ada yang hilang
+        // kalau ternyata gagal di tengah.
+        gagal++;
+        ErrorLog.catat(error, stack);
+      }
+    }
+
+    return HasilMigrasi(
+      dipindahkan: dipindahkan,
+      dilewati: dilewati,
+      gagal: gagal,
+    );
+  }
+
+  /// Menulis ulang path cover absolut supaya mengikuti folder baru.
+  ///
+  /// Hanya diganti kalau memang berada di bawah folder unduhan yang lama.
+  /// Nilai lain dibiarkan apa adanya: `coverLocalPath` bisa kosong, dan
+  /// menebak lokasi untuk string yang tidak dikenal lebih berisiko merusak
+  /// daripada membiarkannya.
+  String _alamatCoverBaru(
+    String coverLocalPath, {
+    required String rootPath,
+    required String userRootPath,
+  }) {
+    if (coverLocalPath.isEmpty) return coverLocalPath;
+    if (!coverLocalPath.startsWith('$rootPath/')) return coverLocalPath;
+    // Sisa path sudah diawali '/', jadi jangan menambahkan '/' sendiri.
+    // Segmen manga sudah ikut di sisa path dan tidak boleh ditambahkan lagi.
+    return '$userRootPath/${coverLocalPath.substring(rootPath.length + 1)}';
+  }
+
+  Future<void> _pindahkanCover({
+    required String dari,
+    required String ke,
+  }) async {
+    if (dari.isEmpty || ke.isEmpty || dari == ke) return;
+    final asal = File(dari);
+    if (!await asal.exists()) return;
+    final tujuan = File(ke);
+    // Sudah ada salinan di lokasi baru: yang lama dibiarkan saja supaya
+    // sampul yang sudah benar tidak tertimpa.
+    if (await tujuan.exists()) return;
+    await tujuan.parent.create(recursive: true);
+    try {
+      await asal.rename(tujuan.path);
+    } on FileSystemException {
+      await asal.copy(tujuan.path);
+      await asal.delete();
+    }
+  }
+
+  Future<void> _salin(Directory asal, Directory tujuan) async {
+    await tujuan.create(recursive: true);
+    await for (final entity in asal.list(recursive: true)) {
+      final relatif = entity.path.substring(asal.path.length + 1);
+      final baru = Directory('${tujuan.path}/$relatif');
+      if (entity is Directory) {
+        await baru.create(recursive: true);
+      } else if (entity is File) {
+        await baru.parent.create(recursive: true);
+        await entity.copy(baru.path);
+      }
+    }
   }
 
   Future<Directory?> mangaDirectory(String mangaId) async {
