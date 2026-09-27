@@ -14,7 +14,7 @@ String mangaStatusLabel(dynamic statusCode) {
     _ => null,
   };
   return switch (kode) {
-    1 => 'Berjalan',
+    1 => 'On Going',
     2 => 'Selesai',
     3 => 'Hiatus',
     _ => '',

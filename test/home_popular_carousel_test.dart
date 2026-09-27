@@ -34,10 +34,8 @@ void main() {
 
       await _pump(tester, PopularCarousel(mangas: mangas));
 
-      // Hanya banner pertama yang dibangun; sisanya di-cache oleh PageView
-      // sesuai viewportFraction.
       expect(find.text('#1'), findsOneWidget);
-      expect(find.text('Satu'), findsOneWidget);
+      expect(find.text('Satu'), findsWidgets);
     });
 
     testWidgets('judul panjang tidak membuat banner meluber', (tester) async {
@@ -78,7 +76,7 @@ void main() {
         title: 'Solo Leveling',
         thumbnail: '',
         url: 'solo-leveling',
-        status: 'Berjalan',
+        status: 'On Going',
         country: 'Korea',
         latestChapterNumber: 200,
         rating: 9.12,
@@ -87,12 +85,14 @@ void main() {
 
       await _pump(tester, PopularCarousel(mangas: [manga]));
 
-      expect(find.text('Solo Leveling'), findsOneWidget);
-      expect(find.text('Berjalan'), findsOneWidget);
-      expect(find.text('Korea'), findsOneWidget);
-      expect(find.text('9.1'), findsOneWidget);
-      expect(find.text('12rb'), findsOneWidget);
-      expect(find.text('Ch 200'), findsOneWidget);
+      // Daftar diulang 100 kali dan PageView membangun kartu tetangga untuk
+      // pratinjau, jadi teks yang sama muncul lebih dari sekali.
+      expect(find.text('Solo Leveling'), findsWidgets);
+      expect(find.text('On Going'), findsNWidgets(2));
+      expect(find.text('Korea'), findsNWidgets(2));
+      expect(find.text('9.1'), findsNWidgets(2));
+      expect(find.text('12rb'), findsNWidgets(2));
+      expect(find.text('Ch 200'), findsNWidgets(2));
     });
 
     testWidgets('judul tanpa chapter dan tanpa rating tetap aman', (
@@ -100,8 +100,8 @@ void main() {
     ) async {
       await _pump(tester, PopularCarousel(mangas: [_manga('Kosong')]));
 
-      expect(find.text('Kosong'), findsOneWidget);
-      expect(find.text('Belum ada chapter'), findsOneWidget);
+      expect(find.text('Kosong'), findsWidgets);
+      expect(find.text('Belum ada chapter'), findsWidgets);
       expect(tester.takeException(), isNull);
     });
   });
@@ -138,8 +138,127 @@ void main() {
 
       await tester.pump(const Duration(seconds: 3));
 
-      expect(find.text('Tunggal'), findsOneWidget);
+      // Daftar diulang 100 kali, jadi kartu tetangga yang sama ikut terbangun
+      // untuk pratinjau dan judulnya muncul lebih dari sekali.
+      expect(find.text('Tunggal'), findsWidgets);
       expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('infinite scroll', () {
+    // Maju dan mundur melewati batas daftar asli harus tetap menampilkan
+    // judul yang benar. Kalau posisi virtual tidak dipetakan balik ke urutan
+    // asli, lencana peringkat ikut salah dan carousel berhenti di ujung.
+    //
+    // `pumpAndSettle` tidak dipakai di sini: indikator autoplay sengaja
+    // berjalan tanpa henti, jadi tidak akan pernah ada frame yang tenang.
+    Future<void> geser(WidgetTester tester, int kali, {int arah = -1}) async {
+      for (var i = 0; i < kali; i++) {
+        await tester.drag(
+          find.byType(PageView),
+          Offset(400.0 * arah, 0),
+          warnIfMissed: false,
+        );
+        // Selesaikan animasi snap ke halaman berikutnya.
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+      }
+    }
+
+    testWidgets('mulai di tengah, bukan di ujung daftar', (tester) async {
+      await _pump(
+        tester,
+        PopularCarousel(
+          mangas: [_manga('Satu'), _manga('Dua'), _manga('Tiga')],
+          interval: const Duration(hours: 1),
+        ),
+      );
+
+      // Kalau controller masih di halaman 0, satu gesekan ke kiri tidak
+      // melakukan apa-apa karena itu ujung daftar.
+      await geser(tester, 1, arah: 1);
+      await geser(tester, 1, arah: 1);
+
+      expect(find.text('Tiga'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('bisa maju melewati judul terakhir', (tester) async {
+      await _pump(
+        tester,
+        PopularCarousel(
+          mangas: [_manga('Satu'), _manga('Dua'), _manga('Tiga')],
+          interval: const Duration(hours: 1),
+        ),
+      );
+
+      // Lima gesekan dari Satu: melewati Tiga, lalu memutar ke awal lagi.
+      await geser(tester, 5);
+
+      expect(find.text('Tiga'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('bisa mundur melewati judul pertama', (tester) async {
+      await _pump(
+        tester,
+        PopularCarousel(
+          mangas: [_manga('Satu'), _manga('Dua'), _manga('Tiga')],
+          interval: const Duration(hours: 1),
+        ),
+      );
+
+      // Lima gesekan ke kiri dari Satu: melewati Tiga, lalu ke Dua.
+      await geser(tester, 5, arah: 1);
+
+      expect(find.text('Dua'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('lencana peringkat milik kartu, bukan halaman aktif', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        PopularCarousel(
+          mangas: [_manga('Satu'), _manga('Dua'), _manga('Tiga')],
+          interval: const Duration(hours: 1),
+        ),
+      );
+
+      await geser(tester, 1);
+
+      // PageView membangun kartu tetangga untuk pratinjau, jadi tiga lencana
+      // terlihat berdampingan dengan angka yang berbeda. Kalau semuanya memakai
+      //[_halaman], ketiganya akan jadi satu angka yang sama.
+      expect(find.text('#1'), findsOneWidget);
+      expect(find.text('#2'), findsOneWidget);
+      expect(find.text('#3'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('indikator hanya punya pip sebanyak data asli', (tester) async {
+      await _pump(
+        tester,
+        PopularCarousel(
+          mangas: [_manga('Satu'), _manga('Dua'), _manga('Tiga')],
+          interval: const Duration(hours: 1),
+        ),
+      );
+
+      await geser(tester, 3);
+
+      // Kalau pip ikut memakai indeks virtual, baris indikator akan memanjang
+      // jadi ratusan pip setelah digeser.
+      final baris = tester.widgetList<Row>(
+        find.descendant(
+          of: find.byType(IndikatorBanner),
+          matching: find.byType(Row),
+        ),
+      );
+      expect(baris, hasLength(1));
+      final pip = (baris.single.children as List<dynamic>).length;
+      expect(pip, 3);
     });
   });
 

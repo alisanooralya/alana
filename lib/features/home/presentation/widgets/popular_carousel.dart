@@ -22,6 +22,11 @@ const double tinggiBannerPopuler = 200;
 ///
 /// Auto-advance tiap [interval], jeda selama jari sedang menggeser, dan
 /// indikator pil yang terisi mengikuti sisa waktu menuju halaman berikutnya.
+///
+/// Sifatnya tak berujung: daftar diulang banyak kali dan posisi awal
+/// diletakkan di tengah supaya pengguna bisa menggeser ke kiri maupun ke kanan
+/// tanpa pernah menyentuh ujung. Yang tampil di indikator dan lencana
+/// peringkat tetap urutan asli, bukan indeks virtual.
 class PopularCarousel extends StatefulWidget {
   const PopularCarousel({
     super.key,
@@ -45,6 +50,17 @@ class PopularCarousel extends StatefulWidget {
 
 class _PopularCarouselState extends State<PopularCarousel>
     with SingleTickerProviderStateMixin {
+  /// Berapa kali daftar asli diulang di dalam [PageView]. Nilai ini hanya
+  /// ruang cadangan: pengguna tidak akan pernah sampai ke ujung 100 putaran,
+  /// tapi pengaman tetap ada kalau ada yang menggesek cepat sekali atau
+  /// autoplay berjalan lama tanpa henti.
+  static const int _pengulangan = 100;
+
+  /// Seberapa dekat ke ujung daftar virtual sebelum posisi dikembalikan ke
+  /// tengah. Harus lebih besar dari satu supaya lompatan tidak terjadi di
+  /// tengah animasi yang sedang berjalan.
+  static const int _zonaAman = 2;
+
   late final PageController _controller;
 
   /// Berjalan dari 0 ke 1 selama [PopularCarousel.interval]. Satu controller
@@ -53,18 +69,41 @@ class _PopularCarouselState extends State<PopularCarousel>
   /// callback kalau siklus berjalan lebih lama dari satu tick.
   late final AnimationController _progres;
 
-  int _halaman = 0;
+  /// Indeks asli dalam [PopularCarousel.mangas], dipakai untuk lencana
+  /// peringkat dan indikator.
+  late int _halaman;
+
+  /// Indeks halaman di dalam [PageView], bisa jauh lebih besar karena
+  /// daftarnya diulang [_pengulangan] kali.
+  late int _virtual;
+
   bool _sedangGeser = false;
 
-  bool get _bisaGeser => widget.mangas.length > 1;
+  int get _jumlahAsli => widget.mangas.length;
+
+  int get _totalVirtual => _jumlahAsli * _pengulangan;
+
+  bool get _bisaGeser => _jumlahAsli > 1;
 
   @override
   void initState() {
     super.initState();
     _controller = PageController(viewportFraction: 0.92);
+    _halaman = 0;
+    _virtual = _jumlahAsli * (_pengulangan ~/ 2);
     _progres = AnimationController(vsync: this, duration: widget.interval)
       ..addStatusListener(_saatProgresSelesai);
     if (_bisaGeser) _progres.forward();
+
+    // PageController selalu mulai di halaman 0, sedangkan [PopularCarousel]
+    // baru di halaman tengah. Tanpa lompatan itu carousel mulai di ujung
+    // daftar sehingga menggesek ke kiri tidak melakukan apa-apa. Lompatan
+    // harus menunggu frame pertama karena PageView baru punya posisi scroll
+    // setelah ia di-layout.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_controller.hasClients) return;
+      _controller.jumpToPage(_virtual);
+    });
   }
 
   @override
@@ -75,19 +114,21 @@ class _PopularCarouselState extends State<PopularCarousel>
       _progres.duration = widget.interval;
     }
 
-    // Daftar bisa menyusut setelah provider di-invalidate. PageView akan
-    // melempar error indeks di luar jangkauan kalau halaman sekarang lebih
-    // besar daripada data baru, jadi posisi diklem di sini.
-    if (_halaman >= widget.mangas.length) {
-      _halaman = 0;
-      if (_controller.hasClients) _controller.jumpToPage(0);
+    if (widget.mangas.length != oldWidget.mangas.length) {
+      // Daftar bisa menyusut setelah provider di-invalidate. Judul yang sedang
+      // tampil harus ikut diklem, kalau tidak lencana peringkat bisa luput dari
+      // warna medali padahal masih menunjuk urutan lama.
+      if (_halaman >= _jumlahAsli) _halaman = 0;
+
+      // Dan posisi virtual harus dikembalikan ke tengah supaya tidak pernah
+      // menunjuk halaman yang tidak ada.
+      _virtual = _jumlahAsli * (_pengulangan ~/ 2);
+      if (_controller.hasClients) _controller.jumpToPage(_virtual);
       _progres.value = 0;
       return;
     }
 
-    if (widget.mangas.length != oldWidget.mangas.length && _bisaGeser) {
-      _progres.forward(from: 0);
-    }
+    if (_bisaGeser) _progres.forward(from: 0);
   }
 
   @override
@@ -128,6 +169,40 @@ class _PopularCarouselState extends State<PopularCarousel>
     return false;
   }
 
+  /// Menandai halaman baru, dan mengembalikan posisi ke tengah saat mendekati
+  /// ujung daftar virtual.
+  ///
+  /// Lompatnya tidak menggeser isi layar: [_tengahUntuk] dibangun supaya
+  /// kartu yang dituju punya urutan asli yang sama dengan yang sedang tampil.
+  /// Melompati satu siklus penuh seperti `index + _totalVirtual` justru
+  /// menabrak batas di sisi sebaliknya, dan `onPageChanged` akan memanggil
+  /// dirinya sendiri tanpa henti.
+  void _saatHalamanBerubah(int index) {
+    final asli = index % _jumlahAsli;
+    var posisi = index;
+
+    final diUjung = index < _zonaAman || index > _totalVirtual - _zonaAman - 1;
+    if (diUjung && _controller.hasClients) {
+      posisi = _tengahUntuk(asli);
+      // Tanpa animasi: kartu yang muncul setelah lompatan sama persis dengan
+      // yang sebelumnya, jadi matanya tidak sempat menangkap Perpindahan.
+      _controller.jumpToPage(posisi);
+    }
+
+    setState(() {
+      _halaman = asli;
+      _virtual = posisi;
+    });
+
+    if (_bisaGeser && !_sedangGeser) _progres.forward(from: 0);
+  }
+
+  /// Indeks di tengah daftar virtual yang tetap memuat urutan asli [asli].
+  int _tengahUntuk(int asli) {
+    final tengah = _jumlahAsli * (_pengulangan ~/ 2);
+    return tengah - (tengah % _jumlahAsli) + asli;
+  }
+
   void _buka(Manga manga) {
     if (manga.url.isEmpty) {
       ScaffoldMessenger.of(context)
@@ -153,18 +228,21 @@ class _PopularCarouselState extends State<PopularCarousel>
             height: tinggiBannerPopuler,
             child: PageView.builder(
               controller: _controller,
-              itemCount: widget.mangas.length,
-              onPageChanged: (index) {
-                setState(() => _halaman = index);
-                if (_bisaGeser && !_sedangGeser) _progres.forward(from: 0);
-              },
+              itemCount: _totalVirtual,
+              onPageChanged: _saatHalamanBerubah,
               itemBuilder: (context, index) {
-                final manga = widget.mangas[index];
+                final asli = index % _jumlahAsli;
+                final manga = widget.mangas[asli];
                 return Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: BannerPopuler(
                     manga: manga,
-                    peringkat: index + 1,
+                    // Peringkat milik kartu ini, bukan milik halaman yang
+                    // sedang aktif. PageView membangun kartu tetangga lebih
+                    // dulu supaya bisa dipratinjau, jadi kalau lencana ikut
+                    // [_halaman], tiga lencana yang terlihat sekaligus
+                    // semuanya akan sama.
+                    peringkat: asli + 1,
                     onTap: () => _buka(manga),
                   ),
                 );
@@ -174,7 +252,7 @@ class _PopularCarouselState extends State<PopularCarousel>
         ),
         const SizedBox(height: 12),
         IndikatorBanner(
-          jumlah: widget.mangas.length,
+          jumlah: _jumlahAsli,
           aktif: _halaman,
           progres: _progres,
         ),
@@ -454,8 +532,10 @@ class TeksBanner extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         BarisChip(status: manga.status, negara: manga.country),
-        const SizedBox(height: 8),
+        const SizedBox(height: 7),
         BarisAngka(manga: manga),
+        const SizedBox(height: 4),
+        BarisChapter(manga: manga),
       ],
     );
   }
@@ -566,9 +646,13 @@ class ChipMini extends StatelessWidget {
   }
 }
 
-/// Baris paling bawah: rating dan jumlah dibaca di kiri, chapter terbaru
-/// didorong ke kanan. Satu baris penuh karena menumpuknya di kolom selebar
-/// ini membuat teks kecil jadi tidak terbaca.
+/// Baris rating dan jumlah dibaca.
+///
+/// Dulu chapter terbaru ikut di baris ini dan didorong ke kanan dengan
+/// [Spacer]. Di kolom selebar banner itu rating, jumlah dibaca, dan
+/// `Ch 54 • 4 hari lalu` berebut ruang dan yang terakhir selalu terpotong jadi
+/// `Ch 54 • 4 hari...`. Sekarang chapter pindah ke barisnya sendiri lewat
+/// [BarisChapter] dan baris ini bebas berdesakan tanpa risiko terpotong.
 class BarisAngka extends StatelessWidget {
   const BarisAngka({super.key, required this.manga});
 
@@ -599,21 +683,35 @@ class BarisAngka extends StatelessWidget {
             style: const TextStyle(color: Colors.white60, fontSize: 12),
           ),
         ],
-        const Spacer(),
-        Flexible(
-          child: Text(
-            infoChapter(manga),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.end,
-            style: const TextStyle(
-              color: Colors.white70,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
       ],
+    );
+  }
+}
+
+/// Baris chapter terbaru, misalnya `Ch 54 • 4 hari lalu`.
+///
+/// Sengaja tanpa `maxLines` dan tanpa `TextOverflow.ellipsis`: teks dibiarkan
+/// membungkus ke baris berikutnya kalau tidak muat, karena waktu relatif
+/// (`4 minggu lalu`) adalah informasi yang tidak boleh hilang. Kalau tetap
+/// melebar, [FittedBox] mengecilkan hurufnya, bukan memotong.
+class BarisChapter extends StatelessWidget {
+  const BarisChapter({super.key, required this.manga});
+
+  final Manga manga;
+
+  @override
+  Widget build(BuildContext context) {
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Text(
+        infoChapter(manga),
+        style: const TextStyle(
+          color: Colors.white70,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }

@@ -1,8 +1,8 @@
 /// Mengubah stempel waktu ISO-8601 menjadi label waktu relatif singkat.
 ///
-/// Label memakai Bahasa Indonesia: `Baru`, `5 m`, `2 j`, `3 h`, `Kemarin`,
-/// `1 minggu`, `4 bulan`, `1 tahun`. String kosong bila [isoDate] null, kosong,
-/// atau tidak bisa diurai.
+/// Label memakai Bahasa Indonesia: `Baru`, `5 m`, `2 jam`, `Kemarin`,
+/// `3 hari lalu`, `1 minggu lalu`, `4 bulan lalu`, `1 tahun lalu`. String
+/// kosong bila [isoDate] null, kosong, atau tidak bisa diurai.
 String formatRelativeTime(String? isoDate) {
   if (isoDate == null || isoDate.isEmpty) return '';
 
@@ -23,7 +23,9 @@ String formatRelativeTime(String? isoDate) {
   } else if (minutes < 60) {
     return '$minutes m';
   } else if (days < 1) {
-    return '${diff.inMinutes} mnt';
+    // Bulat ke bawah, bukan ke atas: 23 jam 59 menit tetap "23 jam" supaya
+    // tidak pernah melompati label "Kemarin" yang mulai di 24 jam.
+    return '${(minutes / 60).floor()} jam';
   } else if (days == 1) {
     return 'Kemarin';
   } else if (days < 7) {
