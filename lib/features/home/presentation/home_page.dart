@@ -329,8 +329,7 @@ class _LatestItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final infoChapter = manga.latestChapterNumber > 0
-        ? 'Ch ${manga.latestChapterNumber}'
-              _terbaruLabel(manga)
+        ? 'Ch ${manga.latestChapterNumber}${_terbaruLabel(manga)}'
         : (manga.status.isEmpty ? 'Status tidak diketahui' : manga.status);
 
     return Card(

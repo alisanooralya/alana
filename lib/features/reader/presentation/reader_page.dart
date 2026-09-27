@@ -128,11 +128,13 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
   /// Harus lewat [UserScrollNotification], bukan listener [ScrollController]:
   /// `jumpTo` milik [_cobaRestore] sendiri juga memicu listener scroll, jadi
   /// pembatalan harus berada di sini agar tidak mematikan percobaan sendiri.
-  void _onUserScroll(UserScrollNotification notifikasi) {
+  bool _onUserScroll(UserScrollNotification notifikasi) {
     if (notifikasi.direction != ScrollDirection.idle) {
       _targetOffset = null;
       _restoreTercapai = true;
     }
+    // false = biarkan notifikasi diteruskan ke list (bukan arena Flutter).
+    return false;
   }
 
   void _simpanPosisi() {

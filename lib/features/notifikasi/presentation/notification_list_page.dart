@@ -67,7 +67,8 @@ class NotificationListPage extends ConsumerWidget {
           // invalidate() hanya membatalkan cache; tanpa await spinner selesai
           // duluan sebelum data datang, sehingga geseran tidak terasa sama
           // sekali dan user bisa memicu refresh kedua.
-          await ref.refresh(daftarNotifikasiProvider.future);
+          ref.invalidate(daftarNotifikasiProvider);
+          await ref.read(daftarNotifikasiProvider.future);
           ref.invalidate(belumDibacaProvider);
         },
         child: daftarAsync.when(

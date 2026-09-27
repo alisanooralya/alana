@@ -16,7 +16,6 @@ String formatRelativeTime(String? isoDate) {
   if (diff.isNegative) return 'Baru';
 
   final minutes = diff.inMinutes;
-  final hours = diff.inHours;
   final days = diff.inDays;
 
   if (minutes < 1) {

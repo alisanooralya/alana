@@ -8,8 +8,8 @@ import 'package:flutter/foundation.dart';
 /// status sesi, kesiapan splash, status onboarding, atau permintaan setup
 /// username berubah.
 ///
-/// Penting: notifyListeners harus mekanismenya untuk evaluation ulang, bukan
-/// dengan membuat ulang router. GoRouter yang dibuat ulang akan membaca ulang
+/// Penting: notifyListeners inilah mekanisme evaluates ulang redirect, bukan
+/// membuat ulang router. GoRouter yang dibuat ulang akan membaca ulang
 /// `initialLocation`, sehingga menukar navigator beserta seluruh stack
 /// navigasi dan `extra` halaman yang sedang dibuka.
 class GoRouterRefresh extends ChangeNotifier {

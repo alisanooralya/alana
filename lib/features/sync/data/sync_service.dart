@@ -23,15 +23,24 @@ DateTime _epoch() => DateTime.fromMillisecondsSinceEpoch(0);
 /// Reader. Konsekuensinya perubahan flag pending di box tidak diketahui
 /// Riverpod, sehingga indikator "Menunggu sinkron (N)" menampilkan angka lama
 /// padahal datanya sudah tersimpan di server.
-final syncTick = ChangeNotifier();
+///
+/// changeNotifierDi_refresh harus di-trigger dari dalam kelas turunannya
+/// ChangeNotifier; notifyListeners() sendiri dilindungi di Flutter.
+class _SyncTick extends ChangeNotifier {
+  void pemicu() => notifyListeners();
+}
+
+final _syncTick = _SyncTick();
 
 /// Mendaftarkan penyegaran jumlah pending ke dalam [Ref].
 ///
-/// Listener dilepas lebih dulu supaya provider yang dibangun ulang tidak
-/// menumpuk listener dan memicu invalidate berkali-kali.
+/// Listener disimpan agar bisa dilepas lagi saat provider di-dispose,
+/// supaya provider yang dibangun ulang tidak menumpuk listener dan memicu
+/// invalidate berkali-kali.
 void bangunkanPendingSync(Ref ref) {
-  ref.onDispose(syncTick.removeListener);
-  syncTick.addListener(() => ref.invalidate(pendingSyncProvider));
+  void pemicu() => ref.invalidate(pendingSyncProvider);
+  ref.onDispose(() => _syncTick.removeListener(pemicu));
+  _syncTick.addListener(pemicu);
 }
 
 /// Orkestrasi sinkronisasi Supabase (sumber kebenaran lintas perangkat).
@@ -119,7 +128,7 @@ class SyncService {
       await _dorongBox(uid, 'bm', mangaId);
       await _dorongTombs(uid, 'bm');
       // Flag pending di box sudah berubah; beri tahu indikator.
-      syncTick.notifyListeners();
+      _syncTick.pemicu();
     } catch (_) {
       // Tetap pending; dicoba lagi pada kesempatan berikut.
     }

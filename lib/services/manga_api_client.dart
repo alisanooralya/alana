@@ -13,7 +13,7 @@ class MangaApiClient {
   static const String cdnBaseUrl = 'https://storage.shngm.id';
 
   late final Dio _api = _createApiDio();
-  final Dio _images = _createImageDio();
+  late final Dio _images = _createImageDio();
 
   Dio _createApiDio() {
     return Dio(

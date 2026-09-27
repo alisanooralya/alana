@@ -48,3 +48,4 @@ class Manga {
       description: asString(json['description']),
     );
   }
+}

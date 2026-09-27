@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 import 'package:alana/core/notifikasi/layanan_notifikasi.dart';
@@ -49,7 +50,9 @@ class PengingatRepository {
   /// disinggung karena selalu kalah oleh 3 yang paling lama. Judul yang sudah
   /// diberi tahu dalam [jedaUlang] dilewati, sehingga giliran bergilir.
   Future<void> jadwalkanUlang(String? uid, {int maksimal = 3}) async {
-    await LayananNotifikasi.batalkanPengingat(_idTerjadwal(ref));
+    await LayananNotifikasi.batalkanPengingat(
+      idDari(ref.read(sharedPreferencesProvider)),
+    );
     if (uid == null || uid.isEmpty) return;
     final box = await AppStorage.bukaBoxUser('rh', uid);
     if (box == null) return;
@@ -131,17 +134,17 @@ class PengingatRepository {
   /// - termasuk push chapter baru - tidak ikut terhapus.
   static const _kunciIdTerjadwal = 'pengingat_ids';
 
-  static List<int> _idTerjadwal(Ref ref) {
-    return ref
-            .read(sharedPreferencesProvider)
+  /// Menerima [SharedPreferences] dan bukan Ref/WidgetRef karena pemanggilnya
+  /// punya dua tipe ref berbeda yang tidak saling menimpa: PengingatRepository
+  /// memakai Ref, sedangkan PengingatStatus memakai NotifierProviderRef.
+  static List<int> idDari(SharedPreferences prefs) {
+    return prefs
             .getStringList(_kunciIdTerjadwal)
             ?.map((n) => int.tryParse(n))
             .whereType<int>()
             .toList() ??
         const [];
   }
-
-  static List<int> idTerjadwal(WidgetRef ref) => _idTerjadwal(ref);
 
   /// Kirim satu notifikasi uji.
   ///
@@ -195,7 +198,9 @@ class PengingatStatus extends Notifier<bool> {
     state = aktif;
     if (!aktif) {
       await LayananNotifikasi.batalkanPengingat(
-        PengingatRepository.idTerjadwal(ref),
+        PengingatRepository.idDari(
+          ref.read(sharedPreferencesProvider),
+        ),
       );
     }
   }
