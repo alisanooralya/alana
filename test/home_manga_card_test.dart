@@ -13,8 +13,8 @@ Manga _manga(String judul, {String status = 'On Going'}) {
   );
 }
 
-/// Tinggi dan lebar kartu yang dipakai semua test di file ini, supaya
-/// perbandingan posisi antar kartu tidak dipengaruhi ukuran yang berbeda.
+/// Dipakai semua test di file ini supaya perbandingan posisi antar kartu tidak
+/// dipengaruhi ukuran yang berbeda.
 const _lebar = 120.0;
 const _tinggi = 240.0;
 
@@ -60,9 +60,8 @@ void main() {
         ),
       ]);
 
-      // Kalau status ikut mengalir di bawah judul, kartu pertama (judul satu
-      // baris) akan mengangkat statusnya sementara kartu kedua tidak. Dua
-      // koordinat ini harus identik.
+      // Kalau status mengalir di bawah judul, kartu pertama (judul satu
+      // baris) akan mengangkatnya. Dua koordinat ini harus identik.
       final pendek = tester.getTopLeft(_statusDari(0)).dy;
       final panjang = tester.getTopLeft(_statusDari(1)).dy;
 
@@ -95,10 +94,8 @@ void main() {
     testWidgets('status menempel ke dasar kartu', (tester) async {
       await _pump(tester, [_manga('Pendek')]);
 
-      // Status adalah elemen paling bawah di area teks, jadi jaraknya dari
-      // dasar kartu cuma sebilah padding (8 piksel) ditambah margin bawaan
-      // [Card] (4 piksel). Kalau status ikut mengalir, jaraknya justru
-      // bertambah sebesar tinggi baris judul.
+      // Jarak dari dasar kartu cuma padding (8) + margin bawaan [Card] (4).
+      // Kalau status mengalir, jaraknya bertambah setinggi baris judul.
       final bawahStatus = tester.getBottomLeft(_statusDari(0)).dy;
       final bawahKartu = tester.getBottomLeft(find.byType(Card)).dy;
 
@@ -139,11 +136,11 @@ void main() {
           .widget<Text>(_judulDari(0, 'Kartu pertama'))
           .style!;
 
-      // Status yang benar-benar ada harus berwarna dan berbeda dari judul.
+      // Status yang ada harus berwarna dan berbeda dari judul.
       expect(gayaBerwarna.color, isNot(gayaJudul.color));
 
-      // Tapi "Tanpa status" tidak boleh ikut berwarna: mewarnainya seperti
-      // status sungguhan membuat ketiadaan data terlihat seperti data valid.
+      // "Tanpa status" tidak boleh ikut berwarna: mewarnainya seperti status
+      // sungguhan membuat ketiadaan data terlihat seperti data valid.
       expect(gayaKosong.color, isNot(gayaBerwarna.color));
     });
   });

@@ -4,23 +4,16 @@ import 'package:go_router/go_router.dart';
 import 'package:alana/core/widgets/cover_image.dart';
 import 'package:alana/models/manga.dart';
 
-/// Kartu vertikal untuk satu judul (cover + judul + info singkat).
+/// Kartu vertikal untuk satu judul. Dipakai di daftar horizontal Beranda dan
+/// grid Pencarian/Jelajah.
 ///
-/// Dipakai di daftar horizontal Beranda dan grid Pencarian/Jelajah.
-/// Ketuk kartu membuka halaman detail.
+/// [Expanded] + [Stack] supaya tidak pernah overflow: tinggi cover mengikuti
+/// lebar (3:4), sisa tinggi dipakai teks. Versi lama menjumlahkan tinggi dari
+/// dua konstanta dan meluber di grid 3 kolom maupun saat font diperbesar.
 ///
-/// Area teks memakai [Expanded] + [Stack] supaya kartu tidak pernah overflow:
-/// tinggi cover mengikuti lebar (rasio 3:4), sedangkan tinggi teks adalah sisa
-/// dari tinggi yang diberikan parent. Pendekatan lama (tinggi kartu = hasil kali
-/// dua konstanta) meluber di grid 3 kolom dan di baris horizontal Beranda, dan
-/// akan meluber lagi begitu pengguna memperbesar font lewat setelan
-/// aksesibilitas.
-///
-/// Baris status dipatok ke dasar kartu dengan [Positioned], bukan menyatu di
-/// bawah judul. Kalau ikut mengalir, judul satu baris membuat status naik
-/// sedangkan judul dua baris menurunkannya, jadi deretan kartu terlihat
-/// bergerigi. [Padding] bawah pada judul juga mencegah baris terakhirnya menabrak
-/// baris status.
+/// Status dipatok ke dasar dengan [Positioned] supaya tidak ikut naik-turun
+/// mengikuti jumlah baris judul, dan [Padding] bawah judul mencegah baris
+/// terakhirnya menabrak status.
 class MangaCard extends StatelessWidget {
   const MangaCard({super.key, required this.manga, this.width = 130});
 
@@ -29,7 +22,7 @@ class MangaCard extends StatelessWidget {
   /// Lebar kartu. Tinggi cover mengikuti rasio 3:4.
   final double width;
 
-  /// Ruang yang harus disisakan di bawah judul untuk baris status.
+  /// Ruang untuk baris status di bawah judul.
   static const double _ruangStatus = 17;
 
   @override
@@ -37,9 +30,8 @@ class MangaCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
 
-    // Status yang tidak diketahui dibiarkan netral. Mewarnainya seperti status
-    // sungguhan membuat "Status tidak diketahui" terlihat seperti data yang
-    // valid, padahal itu sekadar ketiadaan nilai dari server.
+    // Status kosong dibiarkan netral: diberi warna status, ketiadaan data
+    // terlihat seperti data yang valid.
     final status = manga.status;
     final adaStatus = status.isNotEmpty;
 

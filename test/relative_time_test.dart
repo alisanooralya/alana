@@ -3,9 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:alana/utils/manga_labels.dart';
 import 'package:alana/utils/relative_time.dart';
 
-/// [formatRelativeTime] dipakai empat layar sekaligus: banner Populer, daftar
-/// Pembaruan Terbaru, notifikasi, dan riwayat. Label salah di sini langsung
-/// terlihat di semua layar itu, jadi setiap cabangnya dikunci dengan test.
+/// Dipakai empat layar sekaligus, jadi setiap cabangnya dikunci test.
 void main() {
   group('formatRelativeTime', () {
     String label(Duration lalu) =>
@@ -21,8 +19,7 @@ void main() {
     });
 
     test('jam menggantikan menit mentah', () {
-      // Versi lama menulis "120 mnt" untuk dua jam, dan itu yang masih muncul
-      // di Pembaruan Terbaru sebelum diperbaiki.
+      // Versi lama menulis "120 mnt" untuk dua jam.
       expect(label(const Duration(hours: 2, minutes: 5)), '2 jam');
       expect(label(const Duration(hours: 23, minutes: 59)), '23 jam');
     });
@@ -59,8 +56,8 @@ void main() {
     });
 
     test('kode yang datang sebagai string atau angka pecahan tetap kena', () {
-      // API ini bertipe longgar; membandingkan dengan int saja pernah membuat
-      // "1" menghasilkan label kosong dan baris status tampil tanpa tulisan.
+      // Membandingkan dengan int saja pernah membuat "1" menghasilkan label
+      // kosong.
       expect(mangaStatusLabel('1'), 'On Going');
       expect(mangaStatusLabel(1.0), 'On Going');
       expect(mangaStatusLabel(' 3 '), 'Hiatus');

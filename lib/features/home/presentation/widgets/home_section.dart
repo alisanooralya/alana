@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'popular_carousel.dart';
 
-/// Kepala section + daftar kartu horizontal di bawahnya.
-///
-/// Kepala section dipakai ulang dari [KepalaSection] supaya jarak antara
-/// judul dan isinya sama persis di semua section Beranda.
+/// Kepala section + daftar kartu horizontal. Memakai [KepalaSection] yang
+/// sama dengan section lain supaya posisinya konsisten.
 class HomeSection extends StatelessWidget {
   const HomeSection({
     super.key,
@@ -20,11 +18,8 @@ class HomeSection extends StatelessWidget {
   /// Daftar kartu horizontal.
   final List<Widget> children;
 
-  /// Tinggi area horizontal.
-  ///
-  /// Harus cukup untuk tinggi cover (lebar * 4/3) ditambah blok teks
-  /// MangaCard. Pada lebar bawaan 130 itu 173 + 78 = 251, jadi 260 memberi
-  /// ruang tanpa membuat area terlalu tinggi di layar kecil.
+  /// Harus cukup untuk cover (lebar * 4/3) + teks. Pada lebar bawaan 130
+  /// itu 173 + 78 = 251, jadi 260 memberi ruang tanpa terlalu tinggi.
   final double tinggi;
 
   @override

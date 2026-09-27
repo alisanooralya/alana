@@ -2,34 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:alana/core/widgets/cover_image.dart';
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
-import 'package:alana/core/widgets/loading_view.dart';
 import 'package:alana/core/widgets/offline_banner.dart';
 import 'package:alana/core/utils/pesan_error.dart';
-import 'package:alana/utils/relative_time.dart';
 import 'package:alana/features/notifikasi/presentation/notifikasi_providers.dart';
-import 'package:alana/models/manga.dart';
 
 import 'home_providers.dart';
 import 'latest_updates_controller.dart';
 import 'paginated_manga_state.dart';
 import 'widgets/home_section.dart';
+import 'widgets/loading_grid.dart';
 import 'widgets/manga_card.dart';
 import 'widgets/popular_carousel.dart';
+import 'widgets/update_card.dart';
 
-/// Berapa judul rekomendasi yang ditampilkan di list horizontal.
-///
-/// API kirim 10; section ini dipotong supaya tidak memakan satu layar penuh
-/// sebelum pengguna sampai ke daftar pembaruan.
+/// API kirim 10; dipotong supaya tidak memakan satu layar penuh.
 const int _jumlahRekomendasi = 6;
 
-/// Halaman Beranda.
-///
-/// Fase 2: section populer dan rekomendasi (halaman pertama) plus
-/// daftar pembaruan terbaru dengan infinite scroll. Pencarian ada
-/// di rute `/cari`. Halaman detail menyusul di Fase 3.
+/// Halaman Beranda: carousel Populer, list Rekomendasi, dan grid Pembaruan
+/// Terbaru dengan infinite scroll. Pencarian ada di rute `/cari`.
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
@@ -163,11 +155,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                         if (response.mangas.isEmpty) {
                           return const _SectionKosong(judul: 'Rekomendasi');
                         }
-                        // API mengirim 10 judul. Dipotong karena section ini
-                        // hanya pemanis di antara carousel Populer dan daftar
-                        // pembaruan: sepuluh kartu horizontal memakan satu
-                        // layar penuh sebelum pengguna sampai ke konten yang
-                        // sebenarnya mereka cari.
+                        // Dipotong: sepuluh kartu horizontal memakan satu
+                        // layar penuh sebelum pengguna sampai ke pembaruan.
                         return HomeSection(
                           judul: 'Rekomendasi',
                           children: [
@@ -185,7 +174,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                   terbaru.when(
                     loading: () =>
-                        const SliverToBoxAdapter(child: LoadingView()),
+                        SliverToBoxAdapter(child: LoadingGrid(itemCount: 4)),
                     error: (error, _) => SliverToBoxAdapter(
                       child: ErrorView(
                         pesan: pesanErrorRamah(error),
@@ -205,20 +194,31 @@ class _HomePageState extends ConsumerState<HomePage> {
                           ),
                         );
                       }
+
+                      // Tinggi sel dari lebar layar, bukan childAspectRatio,
+                      // supaya semua sel sama tinggi dan chip pasti muat.
+                      final tinggi = hitungTinggiSel(
+                        MediaQuery.sizeOf(context).width,
+                      );
+
                       return SliverMainAxisGroup(
                         slivers: [
-                          SliverList.separated(
-                            itemCount: halaman.items.length,
-                            separatorBuilder: (context, index) =>
-                                const SizedBox(height: 4),
-                            itemBuilder: (context, index) {
-                              return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                ),
-                                child: _LatestItem(manga: halaman.items[index]),
-                              );
-                            },
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: paddingHorizontalUpdate,
+                            ),
+                            sliver: SliverGrid.builder(
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    mainAxisSpacing: 18,
+                                    crossAxisSpacing: jarakAntarSelUpdate,
+                                    mainAxisExtent: tinggi,
+                                  ),
+                              itemCount: halaman.items.length,
+                              itemBuilder: (context, index) =>
+                                  UpdateCard(manga: halaman.items[index]),
+                            ),
                           ),
                           SliverToBoxAdapter(
                             child: _BawahDaftar(halaman: halaman),
@@ -311,40 +311,6 @@ class _SectionKosong extends StatelessWidget {
   }
 }
 
-class _LatestItem extends StatelessWidget {
-  const _LatestItem({required this.manga});
-
-  final Manga manga;
-
-  @override
-  Widget build(BuildContext context) {
-    final infoChapter = manga.latestChapterNumber > 0
-        ? 'Ch ${manga.latestChapterNumber}${_terbaruLabel(manga)}'
-        : (manga.status.isEmpty ? 'Status tidak diketahui' : manga.status);
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: ListTile(
-        contentPadding: const EdgeInsets.all(8),
-        leading: CoverImage(imageUrl: manga.thumbnail),
-        title: Text(manga.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-        subtitle: Text(infoChapter),
-        onTap: () {
-          if (manga.url.isEmpty) {
-            ScaffoldMessenger.of(context)
-              ..hideCurrentSnackBar()
-              ..showSnackBar(
-                const SnackBar(content: Text('ID judul tidak tersedia.')),
-              );
-            return;
-          }
-          context.pushNamed('detail', pathParameters: {'mangaId': manga.url});
-        },
-      ),
-    );
-  }
-}
-
 class _BawahDaftar extends ConsumerWidget {
   const _BawahDaftar({required this.halaman});
 
@@ -390,10 +356,4 @@ class _BawahDaftar extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// Label waktu chapter terbaru, dihitung saat render.
-String _terbaruLabel(Manga manga) {
-  final label = formatRelativeTime(manga.latestChapterTime);
-  return label.isEmpty ? '' : ' • $label';
 }

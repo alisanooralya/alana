@@ -4,8 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:alana/features/home/presentation/widgets/popular_carousel.dart';
 import 'package:alana/models/manga.dart';
 
-/// Manga tanpa thumbnail: [CoverImage] lalu menampilkan ikon, tidak memanggil
-/// jaringan. Widget carousel jadi bisa diuji tanpa HTTP mock.
+/// Tanpa thumbnail supaya [CoverImage] tidak memanggil jaringan; widget
+/// carousel jadi bisa diuji tanpa HTTP mock.
 Manga _manga(String judul, {int ch = 0, num rating = 0, int dilihat = 0}) {
   return Manga(
     title: judul,
@@ -62,8 +62,7 @@ void main() {
         ),
       );
 
-      // Satu indikator untuk carousel ini; pip-nya sendiri tidak punya
-      // teks jadi tidak bisa dihitung lewat find.text.
+      // Pipnya tidak punya teks jadi tidak bisa dihitung lewat find.text.
       expect(find.byType(IndikatorBanner), findsOneWidget);
     });
   });
@@ -85,8 +84,8 @@ void main() {
 
       await _pump(tester, PopularCarousel(mangas: [manga]));
 
-      // Daftar diulang 100 kali dan PageView membangun kartu tetangga untuk
-      // pratinjau, jadi teks yang sama muncul lebih dari sekali.
+      // Teks yang sama muncul lebih dari sekali karena kartu tetangga ikut
+      // terbangun untuk pratinjau.
       expect(find.text('Solo Leveling'), findsWidgets);
       expect(find.text('On Going'), findsNWidgets(2));
       expect(find.text('Korea'), findsNWidgets(2));
@@ -138,20 +137,15 @@ void main() {
 
       await tester.pump(const Duration(seconds: 3));
 
-      // Daftar diulang 100 kali, jadi kartu tetangga yang sama ikut terbangun
-      // untuk pratinjau dan judulnya muncul lebih dari sekali.
+      // Kartu tetangga yang sama ikut terbangun untuk pratinjau.
       expect(find.text('Tunggal'), findsWidgets);
       expect(tester.takeException(), isNull);
     });
   });
 
   group('infinite scroll', () {
-    // Maju dan mundur melewati batas daftar asli harus tetap menampilkan
-    // judul yang benar. Kalau posisi virtual tidak dipetakan balik ke urutan
-    // asli, lencana peringkat ikut salah dan carousel berhenti di ujung.
-    //
-    // `pumpAndSettle` tidak dipakai di sini: indikator autoplay sengaja
-    // berjalan tanpa henti, jadi tidak akan pernah ada frame yang tenang.
+    // `pumpAndSettle` tidak dipakai: indikator autoplay berjalan tanpa henti,
+    // jadi tidak akan pernah ada frame yang tenang.
     Future<void> geser(WidgetTester tester, int kali, {int arah = -1}) async {
       for (var i = 0; i < kali; i++) {
         await tester.drag(
@@ -174,8 +168,7 @@ void main() {
         ),
       );
 
-      // Kalau controller masih di halaman 0, satu gesekan ke kiri tidak
-      // melakukan apa-apa karena itu ujung daftar.
+      // Kalau controller masih di halaman 0, gesekan ke kiri tidak berguna.
       await geser(tester, 1, arah: 1);
       await geser(tester, 1, arah: 1);
 
@@ -192,7 +185,7 @@ void main() {
         ),
       );
 
-      // Lima gesekan dari Satu: melewati Tiga, lalu memutar ke awal lagi.
+      // Melewati Tiga, lalu memutar ke awal lagi.
       await geser(tester, 5);
 
       expect(find.text('Tiga'), findsOneWidget);
@@ -208,7 +201,7 @@ void main() {
         ),
       );
 
-      // Lima gesekan ke kiri dari Satu: melewati Tiga, lalu ke Dua.
+      // Melewati Tiga, lalu ke Dua.
       await geser(tester, 5, arah: 1);
 
       expect(find.text('Dua'), findsOneWidget);
@@ -228,9 +221,8 @@ void main() {
 
       await geser(tester, 1);
 
-      // PageView membangun kartu tetangga untuk pratinjau, jadi tiga lencana
-      // terlihat berdampingan dengan angka yang berbeda. Kalau semuanya memakai
-      //[_halaman], ketiganya akan jadi satu angka yang sama.
+      // PageView membangun tetangga untuk pratinjau, jadi tiga lencana terlihat
+      // berdampingan. Kalau semuanya memakai[_halaman], ketiganya sama.
       expect(find.text('#1'), findsOneWidget);
       expect(find.text('#2'), findsOneWidget);
       expect(find.text('#3'), findsOneWidget);
@@ -248,8 +240,7 @@ void main() {
 
       await geser(tester, 3);
 
-      // Kalau pip ikut memakai indeks virtual, baris indikator akan memanjang
-      // jadi ratusan pip setelah digeser.
+      // Kalau pip memakai indeks virtual, barisnya jadi ratusan pip.
       final baris = tester.widgetList<Row>(
         find.descendant(
           of: find.byType(IndikatorBanner),
@@ -285,8 +276,8 @@ void main() {
       final tanpaWaktu = _manga('X', ch: 12);
       expect(infoChapter(tanpaWaktu), 'Ch 12');
 
-      // Selisih 5 menit 30 detik supaya inMinutes Pasti 5, bukan 4 karena
-      // mikrodetik yang hilang saat dikonversi ke string.
+      // 5 menit 30 detik supaya inMinutes pasti 5, bukan 4 karena mikrodetik
+      // yang hilang saat dikonversi ke string.
       final denganWaktu = Manga(
         title: 'X',
         thumbnail: '',

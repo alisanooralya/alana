@@ -1,6 +1,24 @@
 import 'package:alana/utils/json_utils.dart';
 import 'package:alana/utils/manga_labels.dart';
 
+/// Satu chapter yang baru rilis, untuk daftar pembaruan.
+class Chapter {
+  final int number;
+
+  /// ISO-8601 mentah, bukan label: label dihitung saat ditampilkan supaya
+  /// "2 jam lalu" tidak kedaluwarsa selama feed masih di-cache.
+  final String createdAt;
+
+  const Chapter({required this.number, this.createdAt = ''});
+
+  factory Chapter.fromJson(Map<String, dynamic> json) {
+    return Chapter(
+      number: asInt(json['chapter_number']),
+      createdAt: asString(json['created_at']),
+    );
+  }
+}
+
 /// A manga/manhwa entry from list endpoints.
 class Manga {
   final String title;
@@ -8,17 +26,23 @@ class Manga {
   final String url;
   final String status;
 
-  /// Waktu chapter terbaru dalam ISO-8601 mentah.
-  /// Disimpan mentah, bukan sebagai label, supaya label selalu dihitung
-  /// saat ditampilkan. Versi lama mem-bake label saat parsing, dan karena
-  /// feed di-cache selama proses berjalan, chapter yang diupdate lima
-  /// menit sebelum aplikasi dibuka tetap terbaca "5 menit lalu" berjam-jam.
+  /// ISO-8601 mentah, bukan label. Versi lama mem-bake label saat parsing,
+  /// jadi chapter yang diupdate lima menit sebelum aplikasi dibuka tetap
+  /// terbaca "5 menit lalu" berjam-jam selama feed masih di-cache.
   final String latestChapterTime;
   final int latestChapterNumber;
   final String country;
   final int viewCount;
   final num rating;
   final String description;
+
+  /// Kode apa adanya (KR/CN/EN/JP), berbeda dari [country] yang sudah berupa
+  /// nama panjang. Untuk bendera, karena "Korea" tidak bisa dikembalikan jadi
+  /// emoji.
+  final String countryCode;
+
+  /// Chapter terbaru lebih dulu. Hanya endpoint daftar yang membawanya.
+  final List<Chapter> chapters;
 
   const Manga({
     required this.title,
@@ -28,12 +52,16 @@ class Manga {
     this.latestChapterTime = '',
     this.latestChapterNumber = 0,
     this.country = '',
+    this.countryCode = '',
     this.viewCount = 0,
     this.rating = 0,
     this.description = '',
+    this.chapters = const [],
   });
 
   factory Manga.fromJson(Map<String, dynamic> json) {
+    final kodeNegara = asString(json['country_id']);
+
     return Manga(
       title: asString(json['title'], fallback: 'Unknown'),
       thumbnail: asString(
@@ -43,10 +71,38 @@ class Manga {
       status: mangaStatusLabel(json['status']),
       latestChapterTime: asString(json['latest_chapter_time']),
       latestChapterNumber: asInt(json['latest_chapter_number']),
-      country: countryLabel(asString(json['country_id'])),
+      country: countryLabel(kodeNegara),
+      countryCode: kodeNegara,
       viewCount: asInt(json['view_count']),
       rating: asNum(json['user_rate']),
       description: asString(json['description']),
+      chapters: _parseChapters(json['chapters']),
     );
+  }
+
+  /// API bertipe longgar dan kadang mengirim null atau objek aneh. Nomor 0
+  /// dibuang karena akan tampil sebagai "Chapter 0".
+  static List<Chapter> _parseChapters(dynamic raw) {
+    if (raw is! List) return const [];
+
+    final hasil = <Chapter>[];
+    for (final item in raw) {
+      if (item is! Map) continue;
+      final chapter = Chapter.fromJson(Map<String, dynamic>.from(item));
+      if (chapter.number > 0) hasil.add(chapter);
+      if (hasil.length == 3) break;
+    }
+    return List.unmodifiable(hasil);
+  }
+
+  /// Chapter terbaru, maksimal [jumlah]. Kalau endpoint tidak mengirim
+  /// `chapters`, chapter dirakit dari [latestChapterNumber] dan
+  /// [latestChapterTime] supaya sel tidak kosong sama sekali.
+  List<Chapter> chapterTerbaru({int jumlah = 2}) {
+    if (chapters.isNotEmpty) {
+      return jumlah >= chapters.length ? chapters : chapters.sublist(0, jumlah);
+    }
+    if (latestChapterNumber <= 0) return const [];
+    return [Chapter(number: latestChapterNumber, createdAt: latestChapterTime)];
   }
 }
