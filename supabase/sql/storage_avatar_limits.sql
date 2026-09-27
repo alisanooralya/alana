@@ -21,12 +21,16 @@ set local lock_timeout = '3s';
 
 -- Parser integer yang aman.
 --
--- Ada masalah di versi lama:
---   coalesce(((storage.metadata(name))->>'size')::bigint, 0) < 5242880
--- coalesce TIDAK melindungi dari error cast. Cast dievaluasi lebih dulu,
--- jadi begitu nilai size bukan angka, statement mati dengan
--- "invalid input syntax for type bigint" -- bukan sekadar menolak upload.
--- Dengan case ini, cast hanya dijalankan kalau teksnya benar-benar digit.
+-- Dua masalah di versi lama:
+--   1. (storage.metadata(name)) tidak ada. Helper yang tersedia hanya
+--      storage.foldername(name) dan storage.extension(name). Metadata adalah
+--      KOLOM milik storage.objects, jadi ditulis metadata->>'size', tanpa
+--      pemanggilan fungsi. (error 42883 kalau dipanggil sebagai fungsi)
+--   2. coalesce(metadata->>'size'::bigint, 0) tidak melindungi dari error
+--      cast. Cast dievaluasi lebih dulu oleh Postgres, jadi begitu size
+--      bukan angka, statement mati dengan "invalid input syntax for type
+--      bigint" -- bukan sekadar menolak upload. Dengan case di sini, cast
+--      hanya dijalankan kalau teksnya benar-benar digit.
 create or replace function public.angka_aman(p_teks text)
 returns bigint
 language sql
@@ -50,8 +54,8 @@ create policy "upload avatar ke folder sendiri" on storage.objects
   with check (
     bucket_id = 'avatars'
     and (storage.foldername(name))[1] = auth.uid()::text
-    and (storage.metadata(name))->>'mimetype' like 'image/%'
-    and public.angka_aman((storage.metadata(name))->>'size') < 5242880
+    and metadata->>'mimetype' like 'image/%'
+    and public.angka_aman(metadata->>'size') < 5242880
   );
 
 -- Batasi juga saat update/overwrite file yang sama.
@@ -63,8 +67,27 @@ create policy "update avatar sendiri" on storage.objects
   with check (
     bucket_id = 'avatars'
     and (storage.foldername(name))[1] = auth.uid()::text
-    and (storage.metadata(name))->>'mimetype' like 'image/%'
-    and public.angka_aman((storage.metadata(name))->>'size') < 5242880
+    and metadata->>'mimetype' like 'image/%'
+    and public.angka_aman(metadata->>'size') < 5242880
   );
 
 commit;
+
+-- VERIFIKASI (jalankan terpisah, setelah commit di atas).
+--
+-- Policy ini hanya berguna kalau metadata sudah terisi saat baris
+-- storage.objects di-insert. Kalau kolom metadata masih kosong pada saat
+-- itu, kedua check(metadata) bernilai NULL dan policy akan menolak SEMUA
+-- upload avatar, bukan hanya yang nakal.
+--
+-- Cek dulu apakah metadata terisi pada objek yang sudah ada:
+--
+--   select name, metadata
+--   from storage.objects
+--   where bucket_id = 'avatars'
+--   limit 5;
+--
+-- Kalau kolom metadata kosong semua, Storage API pada proyek ini mengisi
+-- size/mimetype dengan cara lain. Dalam kasus itu HAPUS dua baris check
+-- metadata dari kedua policy di atas dan andalkan storage.foldername saja
+-- untuk kepemilikan folder.
