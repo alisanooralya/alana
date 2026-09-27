@@ -19,6 +19,12 @@ import 'widgets/home_section.dart';
 import 'widgets/manga_card.dart';
 import 'widgets/popular_carousel.dart';
 
+/// Berapa judul rekomendasi yang ditampilkan di list horizontal.
+///
+/// API kirim 10; section ini dipotong supaya tidak memakan satu layar penuh
+/// sebelum pengguna sampai ke daftar pembaruan.
+const int _jumlahRekomendasi = 6;
+
 /// Halaman Beranda.
 ///
 /// Fase 2: section populer dan rekomendasi (halaman pertama) plus
@@ -124,8 +130,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                 slivers: [
                   SliverToBoxAdapter(
                     child: populer.when(
-                      loading: () =>
-                          const _SectionMemuat(judul: 'Populer Hari Ini'),
+                      loading: () => const PopularCarouselPlaceholder(
+                        judul: 'Populer Hari Ini',
+                      ),
                       error: (error, _) => _SectionGagal(
                         judul: 'Populer Hari Ini',
                         pesan: pesanErrorRamah(error),
@@ -137,12 +144,9 @@ class _HomePageState extends ConsumerState<HomePage> {
                             judul: 'Populer Hari Ini',
                           );
                         }
-                        return HomeSection(
+                        return PopularCarousel(
+                          mangas: response.mangas,
                           judul: 'Populer Hari Ini',
-                          children: [
-                            for (final manga in response.mangas)
-                              MangaCard(manga: manga),
-                          ],
                         );
                       },
                     ),
@@ -157,30 +161,27 @@ class _HomePageState extends ConsumerState<HomePage> {
                       ),
                       data: (response) {
                         if (response.mangas.isEmpty) {
-                          //-copy-paste dari section sebelumnya: memunculkan
-                          // section kedua berpembaca "Populer Hari Ini" padahal
-                          // isinya rekomendasi, jadi user melihat dua section
-                          // dengan judul identik.
                           return const _SectionKosong(judul: 'Rekomendasi');
                         }
-                        return PopularCarousel(
-                          mangas: response.mangas,
+                        // API mengirim 10 judul. Dipotong karena section ini
+                        // hanya pemanis di antara carousel Populer dan daftar
+                        // pembaruan: sepuluh kartu horizontal memakan satu
+                        // layar penuh sebelum pengguna sampai ke konten yang
+                        // sebenarnya mereka cari.
+                        return HomeSection(
                           judul: 'Rekomendasi',
+                          children: [
+                            for (final manga in response.mangas.take(
+                              _jumlahRekomendasi,
+                            ))
+                              MangaCard(manga: manga),
+                          ],
                         );
                       },
                     ),
                   ),
                   const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                      child: Text(
-                        'Pembaruan Terbaru',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                    child: KepalaSection(judul: 'Pembaruan Terbaru'),
                   ),
                   terbaru.when(
                     loading: () =>
@@ -247,10 +248,7 @@ class _SectionMemuat extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text(judul, style: Theme.of(context).textTheme.titleMedium),
-        ),
+        KepalaSection(judul: judul),
         const SizedBox(
           height: 120,
           child: Center(child: CircularProgressIndicator()),
@@ -277,12 +275,9 @@ class _SectionGagal extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
+        KepalaSection(judul: judul),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text(judul, style: Theme.of(context).textTheme.titleMedium),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Row(
             children: [
               Expanded(child: Text(pesan)),
@@ -306,12 +301,9 @@ class _SectionKosong extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text(judul, style: Theme.of(context).textTheme.titleMedium),
-        ),
+        KepalaSection(judul: judul),
         const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 16),
+          padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Text('Belum ada data.'),
         ),
       ],

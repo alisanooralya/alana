@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 
-/// Kepala section Beranda: judul + slot daftar horizontal di bawahnya.
+import 'popular_carousel.dart';
+
+/// Kepala section + daftar kartu horizontal di bawahnya.
+///
+/// Kepala section dipakai ulang dari [KepalaSection] supaya jarak antara
+/// judul dan isinya sama persis di semua section Beranda.
 class HomeSection extends StatelessWidget {
   const HomeSection({
     super.key,
@@ -9,7 +14,7 @@ class HomeSection extends StatelessWidget {
     this.tinggi = 260,
   });
 
-  /// Judul section, mis. 'Populer Hari Ini'.
+  /// Judul section, mis. 'Rekomendasi'.
   final String judul;
 
   /// Daftar kartu horizontal.
@@ -28,17 +33,14 @@ class HomeSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text(judul, style: Theme.of(context).textTheme.titleMedium),
-        ),
+        KepalaSection(judul: judul),
         SizedBox(
           height: tinggi,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             itemCount: children.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 8),
+            separatorBuilder: (context, index) => const SizedBox(width: 10),
             itemBuilder: (context, index) => children[index],
           ),
         ),
