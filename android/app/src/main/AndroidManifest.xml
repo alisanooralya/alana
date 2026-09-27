@@ -3,6 +3,11 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <!-- Required for local reading reminders (runtime request on Android 13+). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Wajib agar receiver di bawah tahu perangkat baru saja dinyalakan.
+         Android menghapus semua alarm saat reboot, jadi tanpa izin ini
+         pengingat baca yang sudah dijadwalkan hilang permanen setelah
+         perangkat dimatikan. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <application
         android:label="Alana"
         android:name="${applicationName}"
@@ -76,6 +81,34 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Pengingat baca memakai flutter_local_notifications zonedSchedule.
+            Sejak versi 16, plugin hanya mendeklarasikan permission paling
+            minimum di manifest-nya sendiri dan TIDAK lagi mendaftarkan
+            receiver-nya, jadi deklarasi di sini wajib ada. Tanpa
+            ScheduledNotificationReceiver, alarm yang sudah terjadwal tidak
+            pernah ditembakkan. Tanpa ScheduledNotificationBootReceiver,
+            pengingat hilang untuk selamanya setiap kali perangkat reboot
+            karena Android menghapus semua alarm saat itu.
+
+             Tidak perlu ActionBroadcastReceiver: aplikasi tidak memakai
+             tombol aksi di dalam notifikasi (tidak ada
+             AndroidNotificationAction), dan callback saat notifikasi diketuk
+             ditangani plugin di dalam proses, bukan lewat receiver itu.
+             Tidak perlu juga SCHEDULE_EXACT_ALARM/USE_EXACT_ALARM karena
+             jadwal memakai AndroidScheduleMode.inexactAllowWhileIdle. -->
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+                <action android:name="android.intent.action.QUICKBOOT_POWERON"/>
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON"/>
+            </intent-filter>
+        </receiver>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
