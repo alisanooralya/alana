@@ -15,11 +15,8 @@ final jelajahFilterProvider = StateProvider<JelajahQuery>(
   (ref) => JelajahQuery.defaultQuery,
 );
 
-final jelajahPageProvider =
-    FutureProvider.autoDispose.family<MangaListResponse, JelajahPageRequest>((
-      ref,
-      request,
-    ) {
+final jelajahPageProvider = FutureProvider.autoDispose
+    .family<MangaListResponse, JelajahPageRequest>((ref, request) {
       return ref
           .watch(homeRepositoryProvider)
           .explore(query: request.query, page: request.page);

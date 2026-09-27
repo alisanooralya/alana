@@ -25,7 +25,8 @@ String pesanErrorRamah(Object error) {
       return 'Gagal menghubungi server. Coba lagi nanti.';
     }
     if (kode == 404) return 'Data tidak ditemukan di server.';
-    if (kode == 400) return 'Permintaan ditolak server. Coba ubah filter lalu coba lagi.';
+    if (kode == 400)
+      return 'Permintaan ditolak server. Coba ubah filter lalu coba lagi.';
     if (kode >= 500) return 'Server sedang bermasalah. Coba lagi nanti.';
     return 'Gagal memuat (kode $kode). Coba lagi.';
   }

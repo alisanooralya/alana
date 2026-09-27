@@ -231,7 +231,8 @@ class DownloadRepository {
     final bytes = await _sizeOfFiles(files);
     // Nomor halaman harus lengkap dan berurutan tanpa celah: file yang hilang
     // di tengah tidak bisa digantikan hanya dengan menghitung jumlah file.
-    final lengkap = chapter.totalPages > 0 &&
+    final lengkap =
+        chapter.totalPages > 0 &&
         files.length == chapter.totalPages &&
         _nomorBerurutan(files, chapter.totalPages);
     return chapter.copyWith(

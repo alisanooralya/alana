@@ -337,10 +337,7 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
         );
         _tulis(
           (state.valueOrNull ?? kini).copyWith(
-            queue: [
-              request,
-              ...(state.valueOrNull ?? kini).queue,
-            ],
+            queue: [request, ...(state.valueOrNull ?? kini).queue],
             waitingForWifi: true,
           ),
         );
@@ -563,28 +560,30 @@ final downloadStorageBytesProvider = FutureProvider<int>((ref) async {
 /// `keyFor(mangaId, chapterId)` sebagai kunci di sisi unduhan, jadi kedua sisi
 /// harus memakai kunci yang sama.
 final offlinePageListProvider =
-    FutureProvider.family<List<manga.Page>, ({String mangaId, String chapterId})>(
-  (ref, kunci) async {
-    final entries = await ref.read(downloadRepositoryProvider).all();
-    DownloadedChapter? entry;
-    for (final item in entries) {
-      if (item.chapterId == kunci.chapterId && item.mangaId == kunci.mangaId) {
-        entry = item;
-        break;
+    FutureProvider.family<
+      List<manga.Page>,
+      ({String mangaId, String chapterId})
+    >((ref, kunci) async {
+      final entries = await ref.read(downloadRepositoryProvider).all();
+      DownloadedChapter? entry;
+      for (final item in entries) {
+        if (item.chapterId == kunci.chapterId &&
+            item.mangaId == kunci.mangaId) {
+          entry = item;
+          break;
+        }
       }
-    }
-    if (entry == null || entry.status != DownloadStatus.completed) {
-      return const [];
-    }
-    final files = await ref
-        .read(downloadRepositoryProvider)
-        .pageFiles(entry.mangaId, entry.chapterId);
-    return [
-      for (var index = 0; index < files.length; index++)
-        manga.Page(index: index + 1, imageUrl: files[index].path),
-    ];
-  },
-);
+      if (entry == null || entry.status != DownloadStatus.completed) {
+        return const [];
+      }
+      final files = await ref
+          .read(downloadRepositoryProvider)
+          .pageFiles(entry.mangaId, entry.chapterId);
+      return [
+        for (var index = 0; index < files.length; index++)
+          manga.Page(index: index + 1, imageUrl: files[index].path),
+      ];
+    });
 
 bool _wifiTersedia(List<ConnectivityResult>? status) {
   return status?.contains(ConnectivityResult.wifi) == true;

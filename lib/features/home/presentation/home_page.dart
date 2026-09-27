@@ -161,9 +161,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                           // section kedua berpembaca "Populer Hari Ini" padahal
                           // isinya rekomendasi, jadi user melihat dua section
                           // dengan judul identik.
-                          return const _SectionKosong(
-                            judul: 'Rekomendasi',
-                          );
+                          return const _SectionKosong(judul: 'Rekomendasi');
                         }
                         return PopularCarousel(
                           mangas: response.mangas,

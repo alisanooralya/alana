@@ -22,8 +22,9 @@ class DownloadsPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('Unduhan')),
       body: downloads.when(
         loading: () => const LoadingView(),
-        error: (error, _) =>
-            Center(child: Text('Gagal memuat unduhan. ${pesanErrorRamah(error)}')),
+        error: (error, _) => Center(
+          child: Text('Gagal memuat unduhan. ${pesanErrorRamah(error)}'),
+        ),
         data: (state) {
           final groups = _groupByManga(state.entries.values);
           return ListView(

@@ -7,6 +7,7 @@ class Manga {
   final String thumbnail;
   final String url;
   final String status;
+
   /// Waktu chapter terbaru dalam ISO-8601 mentah.
   /// Disimpan mentah, bukan sebagai label, supaya label selalu dihitung
   /// saat ditampilkan. Versi lama mem-bake label saat parsing, dan karena

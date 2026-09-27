@@ -128,8 +128,7 @@ class PushFcm {
       final tersimpan = prefs.getString(DeviceTokenRepository.kunciLokal) ?? '';
       final deviceTersimpan =
           prefs.getString(DeviceTokenRepository.kunciDeviceId) ?? '';
-      final samaDenganLokal =
-          token == tersimpan && deviceId == deviceTersimpan;
+      final samaDenganLokal = token == tersimpan && deviceId == deviceTersimpan;
       if (samaDenganLokal && _masihSegar(prefs)) return;
       if (tersimpan.isNotEmpty) {
         await repo.hapusLegacy(uid: uidAktif, token: tersimpan);
@@ -138,10 +137,7 @@ class PushFcm {
       await repo.simpan(uid: uidAktif, deviceId: deviceId, token: token);
       await prefs.setString(DeviceTokenRepository.kunciLokal, token);
       await prefs.setString(DeviceTokenRepository.kunciDeviceId, deviceId);
-      await prefs.setString(
-        _kunciVerifikasi,
-        DateTime.now().toIso8601String(),
-      );
+      await prefs.setString(_kunciVerifikasi, DateTime.now().toIso8601String());
     } catch (_) {
       // Abaikan: dicoba lagi pada pemanggilan berikutnya.
     }

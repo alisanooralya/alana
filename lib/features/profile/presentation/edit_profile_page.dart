@@ -220,8 +220,9 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       appBar: AppBar(title: const Text('Edit Profil')),
       body: profilAsync.when(
         loading: () => const LoadingView(),
-        error: (error, _) =>
-            Center(child: Text('Gagal memuat profil. ${pesanErrorRamah(error)}')),
+        error: (error, _) => Center(
+          child: Text('Gagal memuat profil. ${pesanErrorRamah(error)}'),
+        ),
         data: (profil) {
           if (profil == null || uid == null || uid.isEmpty) {
             return const Center(
@@ -352,9 +353,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   // user menunda, jadi menunda tidak merusak akun.
                   TextButton(
                     onPressed: () {
-                      ref
-                          .read(pendingUsernameSetupProvider.notifier)
-                          .state = false;
+                      ref.read(pendingUsernameSetupProvider.notifier).state =
+                          false;
                       context.go('/profil');
                     },
                     child: const Text('Nanti saja, ubah nanti'),

@@ -282,8 +282,9 @@ class _GenreSelector extends ConsumerWidget {
               } else {
                 genreBaru.remove(genre.slug);
               }
-              ref.read(jelajahFilterProvider.notifier).state =
-                  query.copyWith(genreSlugs: genreBaru);
+              ref.read(jelajahFilterProvider.notifier).state = query.copyWith(
+                genreSlugs: genreBaru,
+              );
             },
           );
         },

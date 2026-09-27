@@ -15,7 +15,8 @@ final popularMangaProvider = FutureProvider.autoDispose<MangaListResponse>((
 });
 
 /// Daftar rekomendasi (halaman pertama).
-final recommendedMangaProvider =
-    FutureProvider.autoDispose<MangaListResponse>((ref) {
+final recommendedMangaProvider = FutureProvider.autoDispose<MangaListResponse>((
+  ref,
+) {
   return ref.watch(homeRepositoryProvider).getRecommended();
 });

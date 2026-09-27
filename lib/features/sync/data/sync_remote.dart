@@ -33,22 +33,24 @@ class SyncRemote {
     List<Map<String, dynamic>> baris,
   ) async {
     if (baris.isEmpty) return;
-    await _client().rpc('upsert_sync_rows', params: {
-      'p_user_id': uid,
-      'p_tabel': 'bookmarks',
-      'p_rows': baris,
-    });
+    await _client().rpc(
+      'upsert_sync_rows',
+      params: {'p_user_id': uid, 'p_tabel': 'bookmarks', 'p_rows': baris},
+    );
   }
 
   /// Soft delete: baris ditandai `deleted_at` (bukan DELETE keras) supaya
   /// perangkat lain tidak mengunggah ulang salinan lamanya.
   static Future<void> hapusBookmarks(String uid, List<String> mangaIds) async {
     if (mangaIds.isEmpty) return;
-    await _client().rpc('soft_delete_sync_rows', params: {
-      'p_user_id': uid,
-      'p_tabel': 'bookmarks',
-      'p_manga_ids': mangaIds,
-    });
+    await _client().rpc(
+      'soft_delete_sync_rows',
+      params: {
+        'p_user_id': uid,
+        'p_tabel': 'bookmarks',
+        'p_manga_ids': mangaIds,
+      },
+    );
   }
 
   // ---------- reading_history ----------
@@ -70,19 +72,21 @@ class SyncRemote {
     List<Map<String, dynamic>> baris,
   ) async {
     if (baris.isEmpty) return;
-    await _client().rpc('upsert_sync_rows', params: {
-      'p_user_id': uid,
-      'p_tabel': 'reading_history',
-      'p_rows': baris,
-    });
+    await _client().rpc(
+      'upsert_sync_rows',
+      params: {'p_user_id': uid, 'p_tabel': 'reading_history', 'p_rows': baris},
+    );
   }
 
   static Future<void> hapusHistory(String uid, List<String> mangaIds) async {
     if (mangaIds.isEmpty) return;
-    await _client().rpc('soft_delete_sync_rows', params: {
-      'p_user_id': uid,
-      'p_tabel': 'reading_history',
-      'p_manga_ids': mangaIds,
-    });
+    await _client().rpc(
+      'soft_delete_sync_rows',
+      params: {
+        'p_user_id': uid,
+        'p_tabel': 'reading_history',
+        'p_manga_ids': mangaIds,
+      },
+    );
   }
 }

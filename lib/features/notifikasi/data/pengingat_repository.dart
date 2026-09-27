@@ -37,7 +37,10 @@ class PengingatRepository {
   Future<void> _tandaiDiberiTahukan(String mangaId) async {
     await ref
         .read(sharedPreferencesProvider)
-        .setString('$_prefixDiberiTahukan$mangaId', DateTime.now().toIso8601String());
+        .setString(
+          '$_prefixDiberiTahukan$mangaId',
+          DateTime.now().toIso8601String(),
+        );
   }
 
   /// Jadwalkan ulang untuk [uid]. Batalkan dulu semua milik kita.
@@ -111,11 +114,9 @@ class PengingatRepository {
       );
       i++;
     }
-    await ref
-        .read(sharedPreferencesProvider)
-        .setStringList(_kunciIdTerjadwal, [
-          for (final id in idsTerjadwal) '$id',
-        ]);
+    await ref.read(sharedPreferencesProvider).setStringList(_kunciIdTerjadwal, [
+      for (final id in idsTerjadwal) '$id',
+    ]);
   }
 
   /// Jam 9 pagi berikutnya (waktu lokal perangkat).
@@ -198,9 +199,7 @@ class PengingatStatus extends Notifier<bool> {
     state = aktif;
     if (!aktif) {
       await LayananNotifikasi.batalkanPengingat(
-        PengingatRepository.idDari(
-          ref.read(sharedPreferencesProvider),
-        ),
+        PengingatRepository.idDari(ref.read(sharedPreferencesProvider)),
       );
     }
   }

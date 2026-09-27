@@ -290,7 +290,11 @@ class _IsiDetail extends ConsumerWidget {
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  Expanded(child: Text('Gagal memuat chapter. ${pesanErrorRamah(error)}')),
+                  Expanded(
+                    child: Text(
+                      'Gagal memuat chapter. ${pesanErrorRamah(error)}',
+                    ),
+                  ),
                   TextButton(
                     onPressed: () =>
                         ref.invalidate(chapterListProvider(mangaId)),

@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:alana/core/supabase/supabase_setup.dart';
-import 'package:alana/core/utils/deep_link.dart';import 'package:alana/features/about/presentation/about_page.dart';
+import 'package:alana/core/utils/deep_link.dart';
+import 'package:alana/features/about/presentation/about_page.dart';
 import 'package:alana/features/auth/presentation/auth_providers.dart';
 import 'package:alana/features/auth/presentation/forgot_password_page.dart';
 import 'package:alana/features/auth/presentation/login_page.dart';

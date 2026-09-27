@@ -37,12 +37,15 @@ class ProfileRepository {
   /// lanjutkan dan andalkan error unik dari database.
   Future<bool?> usernameDipakai(String username, {String? kecualiUid}) async {
     try {
-      final hasil = await _client.rpc('username_taken', params: {
-        'p_username': username,
-        'p_kecuali': (kecualiUid == null || kecualiUid.isEmpty)
-            ? null
-            : kecualiUid,
-      });
+      final hasil = await _client.rpc(
+        'username_taken',
+        params: {
+          'p_username': username,
+          'p_kecuali': (kecualiUid == null || kecualiUid.isEmpty)
+              ? null
+              : kecualiUid,
+        },
+      );
       return hasil == true;
     } catch (_) {
       return null;
