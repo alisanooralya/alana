@@ -17,6 +17,22 @@ create table if not exists public.chapter_reports (
 
 alter table public.chapter_reports enable row level security;
 
+-- Batasi nilai reason di sisi database, bukan cuma di enum Dart.
+--
+-- Enum di aplikasi sudah tertutup, jadi daftar di sini harus sama persis
+-- dengan ChapterReportReason.value. Kalau tidak sinkron, laporan yang lolos
+-- dari UI akan ditolak server dengan 23514 dan user tidak akan pernah tahu
+-- penyebabnya. Nilainya persis huruf kecil semua: CHECK ini case-sensitive,
+-- 'Gambar_Rusak' ditolak.
+--
+-- Postgres tidak punya ADD CONSTRAINT IF NOT EXISTS, jadi pakai pola yang
+-- sama seperti policy di bawah: drop dulu kalau ada, baru buat.
+alter table public.chapter_reports
+  drop constraint if exists chapter_reports_reason_check;
+alter table public.chapter_reports
+  add constraint chapter_reports_reason_check
+  check (reason in ('gambar_rusak', 'gambar_tidak_lengkap', 'salah_urutan', 'lainnya'));
+
 drop policy if exists "kirim laporan sendiri" on public.chapter_reports;
 create policy "kirim laporan sendiri" on public.chapter_reports
   for insert to authenticated with check (auth.uid() = user_id);
