@@ -10,10 +10,43 @@
 -- mengecek keberadaan username. Itu memang konsekuensi dari fitur "cek
 -- ketersediaan username" dan jauh lebih baik daripada membocorkan seluruh
 -- tabel. Bila ini dianggap perlu, batasi lewat edge function.
+--
+-- File ini SENGAJA tidak menyentuh storage.objects. Jalankan
+-- supabase/sql/storage_avatar_limits.sql sebagai langkah TERPISAH.
+-- Catatan deadlock ada di bawah.
+
+-- Deadlock 40P01 yang pernah terjadi:
+--   Process A waits for AccessExclusiveLock on storage.objects
+--   Process B waits for AccessShareLock on profiles
+-- Penyebabnya transaksi ini terlalu panjang: sambil memegang lock profiles
+-- (AccessExclusiveLock dari CREATE/DROP POLICY) ia meminta lock eksklusif di
+-- storage.objects, sementara request PostgREST atau Storage API memegang
+-- AccessShareLock di storage.objects lalu mau membaca profiles. Karena dua
+-- tabel itu di-lock dengan urutan berbeda, keduanya saling tunggu.
+--
+-- Perbaikannya: jangan pernah memegang lock profiles dan storage.objects
+-- dalam satu transaksi. Bagian storage sudah dipisah ke file sendiri, dan
+-- file itu memakai lock_timeout supaya gagal cepat (55P03) alih-alih
+-- deadlock, lalu tinggal diulang.
+--
+-- lock_timeout di sini hanya berlaku untuk sesi SQL Editor ini, tidak
+-- disimpan sebagai default database.
 
 begin;
 
+-- Fail fast (3 detik) alih-alih menunggu/deadlock. 55P03 = lock_not_available
+-- dan aman diulang karena semua pernyataan di file ini idempotent.
+set local lock_timeout = '3s';
+
+-- Policy lama dibuang dan diganti. Tabel profiles tidak punya traffic
+-- Storage API, jadi lock di sini relatif singkat.
+--
+-- Dua nama ikut di-drop supaya file ini idempotent. CREATE POLICY tidak
+-- idempotent: kalau policy dengan nama sama sudah ada, statement itu gagal
+-- dengan "policy ... already exists". Nama pertama adalah policy lama,
+-- nama kedua adalah hasil dari file ini bila dijalankan ulang.
 drop policy if exists "profil bisa dibaca user login" on public.profiles;
+drop policy if exists "profil bisa dibaca pemilik sendiri" on public.profiles;
 
 create policy "profil bisa dibaca pemilik sendiri" on public.profiles
   for select to authenticated using (auth.uid() = id);
@@ -41,32 +74,5 @@ $$;
 -- pendaftaran, sebelum user punya sesi.
 revoke all on function public.username_taken(text, uuid) from public;
 grant execute on function public.username_taken(text, uuid) to anon, authenticated;
-
--- Batasi upload avatar: hanya gambar, maksimal 5 MB, ke folder sendiri.
--- Tanpa ini klien (bukan aplikasi) bisa mengisi folder user dengan berkas
--- sebesar 50 MB sehingga avatar gagal dimuat.
-drop policy if exists "upload avatar ke folder sendiri" on storage.objects;
-
-create policy "upload avatar ke folder sendiri" on storage.objects
-  for insert to authenticated
-  with check (
-    bucket_id = 'avatars'
-    and (storage.foldername(name))[1] = auth.uid()::text
-    and (storage.metadata(name))->>'mimetype' like 'image/%'
-    and coalesce(((storage.metadata(name))->>'size')::bigint, 0) < 5242880
-  );
-
--- Batasi juga saat update/overwrite file yang sama.
-drop policy if exists "update avatar sendiri" on storage.objects;
-
-create policy "update avatar sendiri" on storage.objects
-  for update to authenticated
-  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text)
-  with check (
-    bucket_id = 'avatars'
-    and (storage.foldername(name))[1] = auth.uid()::text
-    and (storage.metadata(name))->>'mimetype' like 'image/%'
-    and coalesce(((storage.metadata(name))->>'size')::bigint, 0) < 5242880
-  );
 
 commit;
