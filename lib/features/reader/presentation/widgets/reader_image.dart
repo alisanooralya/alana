@@ -3,7 +3,41 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-/// Satu gambar halaman di reader vertikal (ber-cache).
+/// Berapa kali tinggi viewport dipakai sebagai batas tinggi decode.
+///
+/// Strip webtoon dari API ini umumnya 800 x 9700. Karena Flutter tidak pernah
+/// memperbesar, batas lebar sama sekali tidak berefek kalau gambar sumber
+/// lebih sempit daripada layar fisikal - di ponsel 400 x 800 dpr 3, lebar
+/// fisikanya 1200 px sedangkan sumbernya cuma 800 px. Yang membatasi hanya
+/// tinggi.
+///
+/// Dua kali tinggi viewport berarti satu gambar decode menutup dua layar
+/// penuh, cukup untuk menggeser tanpa bagian yang belum terlihat ikut terpotong
+/// kasar. Strip 800 x 9700 di perangkat itu jadi 395 x 4800, turun dari
+/// sekitar 30 MB ke sekitar 7,6 MB. Empat halaman yang hidup bersamaan jadi
+/// di bawah 32 MB, sebelumnya lebih dari 110 MB.
+///
+/// Menaikkan nilai ini tidak menambah ketajaman: gambar sumber 800 px tetap
+/// akan diperbesar saat digambar di layar dpr 3; yang kita atur hanya berapa
+/// tinggi yang didecode.
+const faktorTinggiDecode = 2;
+
+/// Batas dimensi decode dalam piksel fisik.
+///
+/// Dipisah dari widget supaya bisa diuji tanpa `MediaQuery`. Nilai `null`
+/// berarti biarkan Flutter yang menentukan.
+({int? width, int? height}) batasDecode({
+  required double lebarLogis,
+  required double tinggiLogis,
+  required double dpr,
+  int faktorTinggi = faktorTinggiDecode,
+}) {
+  final px = (lebarLogis * dpr).round();
+  final py = (tinggiLogis * dpr * faktorTinggi).round();
+  return (width: px > 0 ? px : null, height: py > 0 ? py : null);
+}
+
+/// [ReaderImage] menampilkan satu gambar halaman di reader vertikal
 ///
 /// - Full-width tanpa jarak (diatur list induk).
 /// - Cache disk + memori: gambar yang sudah dibuka tidak diunduh ulang.
@@ -71,17 +105,23 @@ class _ReaderImageState extends State<ReaderImage> {
     });
   }
 
-  /// Lebar decode dalam piksel fisik: cukup untuk ukuran tampil di layar.
+  /// Batas dimensi decode: lebar mengikuti lebar layar, tinggi dibatasi
+  /// beberapa kali tinggi layar.
   ///
-  /// Tanpa batas ini Flutter men-decode gambar pada ukuran aslinya. Strip
-  /// webtoon dari API ini berukuran sekitar 800 x 9700, yaitu sekitar 30 MB
-  /// per halaman sebagai bitmap ARGB8; sepuluh halaman sudah melampaui
-  /// batas cache gambar Flutter sehingga terjadi thrashing terus-menerus.
-  static int? _decodeWidth(BuildContext context) {
-    final logical = MediaQuery.sizeOf(context).width;
-    final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 1;
-    final px = (logical * dpr).round();
-    return px > 0 ? px : null;
+  /// Tanpa batas tinggi, gambar yang sangat panjang hanya dilebihkan lebar,
+  /// sehingga tinggi decode-nya tetap mengikuti aslinya. Strip webtoon
+  /// 800 x 9700 jadi sekitar 800 x 9700, yaitu hampir 30 MB per halaman.
+  ///
+  /// Rasio aspek tetap terjaga karena kedua batas dipakai dengan
+  /// [ResizeImagePolicy.fit], yang hanya memperkecil dan tidak pernah
+  /// membesar.
+  ({int? width, int? height}) _batasDecode(BuildContext context) {
+    final ukuran = MediaQuery.sizeOf(context);
+    return batasDecode(
+      lebarLogis: ukuran.width,
+      tinggiLogis: ukuran.height,
+      dpr: MediaQuery.maybeDevicePixelRatioOf(context) ?? 1,
+    );
   }
 
   @override
@@ -89,7 +129,7 @@ class _ReaderImageState extends State<ReaderImage> {
     // Estimasi tinggi placeholder: strip webtoon umumnya jauh lebih
     // tinggi daripada lebar layar.
     final placeholderHeight = MediaQuery.of(context).size.width * 1.5;
-    final decodeWidth = _decodeWidth(context);
+    final batas = _batasDecode(context);
 
     final viewer = InteractiveViewer(
       transformationController: _transform,
@@ -104,7 +144,8 @@ class _ReaderImageState extends State<ReaderImage> {
               File(widget.localPath!),
               width: double.infinity,
               fit: BoxFit.fitWidth,
-              cacheWidth: decodeWidth,
+              cacheWidth: batas.width,
+              cacheHeight: batas.height,
               errorBuilder: (context, error, stackTrace) => SizedBox(
                 height: placeholderHeight,
                 child: const Center(
@@ -122,7 +163,15 @@ class _ReaderImageState extends State<ReaderImage> {
               imageBuilder: (context, imageProvider) {
                 _notifyLoaded();
                 return Image(
-                  image: ResizeImage(imageProvider, width: decodeWidth),
+                  image: ResizeImage(
+                    imageProvider,
+                    width: batas.width,
+                    height: batas.height,
+                    // fit: skala agar muat dalam batas dengan rasio aspek
+                    // terjaga. Tanpa ini ResizeImage memakai policy exact dan
+                    // meregangkan gambar yang tidak sesuai rasio.
+                    policy: ResizeImagePolicy.fit,
+                  ),
                   width: double.infinity,
                   fit: BoxFit.fitWidth,
                 );

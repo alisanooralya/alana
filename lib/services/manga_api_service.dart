@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:alana/models/models.dart';
 
 import 'manga_api_client.dart';
@@ -242,10 +240,6 @@ class MangaApiService {
   }
 
   /// Downloads the raw bytes of an image.
-  Future<Uint8List> downloadImage(String imageUrl) {
-    return _client.downloadImage(imageUrl);
-  }
-
   Future<T> _guard<T>(String action, Future<T> Function() request) async {
     try {
       return await request();

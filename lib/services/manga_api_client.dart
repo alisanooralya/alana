@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 
@@ -13,7 +12,6 @@ class MangaApiClient {
   static const String cdnBaseUrl = 'https://storage.shngm.id';
 
   late final Dio _api = _createApiDio();
-  late final Dio _images = _createImageDio();
 
   Dio _createApiDio() {
     return Dio(
@@ -22,16 +20,6 @@ class MangaApiClient {
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         headers: _apiHeaders(),
-      ),
-    );
-  }
-
-  Dio _createImageDio() {
-    return Dio(
-      BaseOptions(
-        connectTimeout: const Duration(seconds: 30),
-        receiveTimeout: const Duration(seconds: 60),
-        sendTimeout: const Duration(seconds: 30),
       ),
     );
   }
@@ -60,43 +48,11 @@ class MangaApiClient {
     return data;
   }
 
-  /// Downloads an image and returns its raw bytes.
-  ///
-  /// Melempar FormatException bila respons datang tanpa isi. Sebelumnya body
-  /// kosong diubah jadi Uint8List kosong, sehingga pemanggil yang tidak
-  /// mengecek akan menulis berkas gambar nol byte dan menganggapnya sah.
-  Future<Uint8List> downloadImage(String imageUrl) async {
-    final response = await _images.get<List<int>>(
-      imageUrl,
-      options: Options(
-        headers: _imageHeaders(),
-        responseType: ResponseType.bytes,
-      ),
-    );
-    final data = response.data;
-    if (data == null || data.isEmpty) {
-      throw FormatException('Empty image response: $imageUrl');
-    }
-    return Uint8List.fromList(data);
-  }
-
   Map<String, String> _apiHeaders() {
     return {
       'Accept': 'application/json',
       'DNT': '1',
       'Origin': webBaseUrl,
-      'Sec-GPC': '1',
-      'X-Requested-With': _randomString(Random().nextInt(20) + 1),
-    };
-  }
-
-  Map<String, String> _imageHeaders() {
-    return {
-      'Accept':
-          'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
-      'DNT': '1',
-      'Referer': '$webBaseUrl/',
-      'Sec-Fetch-Dest': 'empty',
       'Sec-GPC': '1',
       'X-Requested-With': _randomString(Random().nextInt(20) + 1),
     };
