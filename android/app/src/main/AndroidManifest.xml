@@ -6,7 +6,9 @@
     <application
         android:label="Alana"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:allowBackup="false"
+        android:fullBackupContent="false">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -24,6 +26,20 @@
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme"
               />
+            <!-- Supabase menyimpan sesi dan refresh token di keystore lewat
+                 flutter_secure_storage. Kunci AES-nya tinggal di Android
+                 Keystore dan tidak ikut ter-backup ke Google Drive, jadi
+                 prefs yang terenkripsi tidak boleh ikut disalin. Kalau ikut,
+                 hasil restore ke perangkat lain tidak bisa di-unwrap lagi dan
+                 aplikasi gagal membaca sesi dengan
+                 "InvalidKeyException: Failed to unwrap key".
+
+                 allowBackup="false" dipilih, bukan sekadar mengecualikan
+                 prefs miliknya: Hive juga menyimpan box downloads yang bisa
+                 ratusan MB, dan auto-backup akan diam-diam gagal karena
+                 kuota. Bookmark dan reading progress sudah disinkronkan ke
+                 Supabase, jadi yang hilang dari backup hanyalah setelan
+                 lokal. -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
