@@ -208,11 +208,14 @@ class LayananNotifikasi {
   /// setiap kali aplikasi dibuka, sehingga notifikasi lain ikut hilang tanpa
   /// sebab.
   static Future<void> batalkanPengingat(List<int> ids) async {
-    if (ids.isEmpty) return;
-    try {
-      await _plugin.cancel(ids);
-    } catch (_) {
-      // Abaikan.
+    // Plugin hanya punya cancel() untuk satu notifikasi dan cancelAll() untuk
+    // semuanya, jadi dibatalkan satu per satu.
+    for (final id in ids) {
+      try {
+        await _plugin.cancel(id: id);
+      } catch (_) {
+        // Abaikan: notifikasi yang sudah hilang tidak perlu dibatalkan.
+      }
     }
   }
 

@@ -145,13 +145,12 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async {
-                // invalidate() hanya membatalkan; tanpa await, spinner
+                // invalidate() hanya membatalkan cache; tanpa await, spinner
                 // RefreshIndicator selesai dalam satu frame sebelum data
                 // selesai dimuat, jadi user tidak melihat apa pun terjadi
                 // dan bisa memicu refresh kedua.
-                await ref.refresh(
-                  searchResultsControllerProvider.future,
-                );
+                ref.invalidate(searchResultsControllerProvider);
+                await ref.read(searchResultsControllerProvider.future);
               },
               child: _HasilPencarian(
                 query: query,

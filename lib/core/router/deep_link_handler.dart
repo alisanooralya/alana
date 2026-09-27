@@ -1,10 +1,8 @@
 import 'dart:async';
 
 import 'package:app_links/app_links.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
 import 'package:alana/core/supabase/supabase_setup.dart';
 import 'package:alana/core/utils/deep_link.dart';
@@ -21,14 +19,13 @@ final deepLinkAppLinks = AppLinks();
 Future<void> mulaiDeepLink(WidgetRef ref) async {
   unawaited(_dengarkan(deepLinkAppLinks.uriLinkStream, ref));
 
-  String? awal;
+  Uri? awal;
   try {
     awal = await deepLinkAppLinks.getInitialLink();
   } catch (error) {
     debugPrint('deep link awal gagal dibaca: $error');
   }
-  if (awal == null || awal.isEmpty) return;
-  await _tangani(Uri.tryParse(awal), ref);
+  await _tangani(awal, ref);
 }
 
 Future<void> _dengarkan(Stream<Uri> stream, WidgetRef ref) async {
@@ -65,7 +62,12 @@ Future<void> _tukarKode(String kode, WidgetRef ref) async {
 /// Menunda navigasi satu frame supaya router sudah siap menerima target.
 void _buka(WidgetRef ref, String lokasi) {
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (!ref.mounted) return;
-    ref.read(goRouterProvider).go(lokasi);
+    // WidgetRef tidak punya `mounted`; ref provider ini hidup selama aplikasi
+    // berjalan, jadi yang perlu dijaga hanya router-nya sudah siap.
+    try {
+      ref.read(goRouterProvider).go(lokasi);
+    } catch (error) {
+      debugPrint('navigasi deep link gagal: $error');
+    }
   });
 }

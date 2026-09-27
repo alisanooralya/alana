@@ -244,7 +244,7 @@ class AuthRepository {
   /// dari database saat daftar.
   Future<bool?> usernameDipakai(String username) async {
     try {
-      final hasil = await _client.rpc('username_taken', {
+      final hasil = await _client.rpc('username_taken', params: {
         'p_username': username,
       });
       return hasil == true;

@@ -11,18 +11,12 @@ import '../data/detail_repository.dart';
 /// chapter penuhnya (sampai ribuan objek Chapter) tetap hidup sampai proses
 /// ditutup.
 final mangaDetailsProvider =
-    FutureProvider.autoDispose.family<MangaDetails, String>(
-  ref,
-  mangaId,
-) {
-  return ref.watch(detailRepositoryProvider).getDetails(mangaId);
-});
+    FutureProvider.autoDispose.family<MangaDetails, String>((ref, mangaId) {
+      return ref.watch(detailRepositoryProvider).getDetails(mangaId);
+    });
 
 /// Daftar chapter satu judul berdasarkan ID-nya.
 final chapterListProvider =
-    FutureProvider.autoDispose.family<List<Chapter>, String>(
-  ref,
-  mangaId,
-) {
-  return ref.watch(detailRepositoryProvider).getChapters(mangaId);
-});
+    FutureProvider.autoDispose.family<List<Chapter>, String>((ref, mangaId) {
+      return ref.watch(detailRepositoryProvider).getChapters(mangaId);
+    });
