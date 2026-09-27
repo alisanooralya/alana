@@ -9,12 +9,18 @@ import 'package:alana/models/manga.dart';
 /// Dipakai di daftar horizontal Beranda dan grid Pencarian/Jelajah.
 /// Ketuk kartu membuka halaman detail.
 ///
-/// Area teks memakai [Expanded] + [Flexible] supaya kartu tidak pernah
-/// overflow: tinggi cover mengikuti lebar (rasio 3:4), sedangkan tinggi
-/// teks adalah sisa dari tinggi yang diberikan parent. Pendekatan lama
-/// (tinggi kartu = hasil kali dua konstanta) meluber di grid 3 kolom dan
-/// di baris horizontal Beranda, dan akan meluber lagi begitu pengguna
-/// memperbesar font lewat setelan aksesibilitas.
+/// Area teks memakai [Expanded] + [Stack] supaya kartu tidak pernah overflow:
+/// tinggi cover mengikuti lebar (rasio 3:4), sedangkan tinggi teks adalah sisa
+/// dari tinggi yang diberikan parent. Pendekatan lama (tinggi kartu = hasil kali
+/// dua konstanta) meluber di grid 3 kolom dan di baris horizontal Beranda, dan
+/// akan meluber lagi begitu pengguna memperbesar font lewat setelan
+/// aksesibilitas.
+///
+/// Baris status dipatok ke dasar kartu dengan [Positioned], bukan menyatu di
+/// bawah judul. Kalau ikut mengalir, judul satu baris membuat status naik
+/// sedangkan judul dua baris menurunkannya, jadi deretan kartu terlihat
+/// bergerigi. [Padding] bawah pada judul juga mencegah baris terakhirnya menabrak
+/// baris status.
 class MangaCard extends StatelessWidget {
   const MangaCard({super.key, required this.manga, this.width = 130});
 
@@ -23,9 +29,19 @@ class MangaCard extends StatelessWidget {
   /// Lebar kartu. Tinggi cover mengikuti rasio 3:4.
   final double width;
 
+  /// Ruang yang harus disisakan di bawah judul untuk baris status.
+  static const double _ruangStatus = 17;
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final scheme = Theme.of(context).colorScheme;
+
+    // Status yang tidak diketahui dibiarkan netral. Mewarnainya seperti status
+    // sungguhan membuat "Status tidak diketahui" terlihat seperti data yang
+    // valid, padahal itu sekadar ketiadaan nilai dari server.
+    final status = manga.status;
+    final adaStatus = status.isNotEmpty;
 
     return SizedBox(
       width: width,
@@ -57,28 +73,35 @@ class MangaCard extends StatelessWidget {
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.all(8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
+                  padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+                  child: Stack(
                     children: [
-                      Flexible(
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: _ruangStatus),
                         child: Text(
                           manga.title,
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: textTheme.bodyMedium,
+                          style: textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            height: 1.25,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Flexible(
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
                         child: Text(
-                          manga.status.isEmpty
-                              ? 'Status tidak diketahui'
-                              : manga.status,
+                          adaStatus ? status : 'Tanpa status',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: textTheme.bodySmall,
+                          style: textTheme.bodySmall?.copyWith(
+                            color: adaStatus
+                                ? scheme.primary
+                                : scheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
