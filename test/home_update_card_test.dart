@@ -54,13 +54,13 @@ Manga _manga({String judul = 'I Became The Master Of The Weakest Demon King'}) {
     url: '83bcbeb8',
     countryCode: 'KR',
     chapters: [
-      Chapter(
+      RecentChapter(
         number: 39,
         createdAt: DateTime.now()
             .subtract(const Duration(hours: 2, minutes: 5))
             .toIso8601String(),
       ),
-      Chapter(
+      RecentChapter(
         number: 38,
         createdAt: DateTime.now()
             .subtract(const Duration(days: 3))
@@ -101,13 +101,16 @@ void main() {
       expect(manga.chapters.last.number, 37);
     });
 
-    test('chapterTerbaru membatasi sesuai jumlah diminta', () {
+    test('recentChapterTerbaru membatasi sesuai jumlah diminta', () {
       final manga = Manga.fromJson(_elemenApi());
 
-      expect(manga.chapterTerbaru(jumlah: 2).map((c) => c.number), [39, 38]);
-      expect(manga.chapterTerbaru(jumlah: 1).map((c) => c.number), [39]);
+      expect(manga.recentChapterTerbaru(jumlah: 2).map((c) => c.number), [
+        39,
+        38,
+      ]);
+      expect(manga.recentChapterTerbaru(jumlah: 1).map((c) => c.number), [39]);
       // Melebihi jumlah data tidak boleh meluber.
-      expect(manga.chapterTerbaru(jumlah: 9), hasLength(3));
+      expect(manga.recentChapterTerbaru(jumlah: 9), hasLength(3));
     });
 
     test('negara disimpan dua bentuk: kode dan nama', () {
@@ -124,7 +127,7 @@ void main() {
       final manga = Manga.fromJson(_elemenApi(denganChapters: false));
 
       expect(manga.chapters, isEmpty);
-      final turunan = manga.chapterTerbaru(jumlah: 2);
+      final turunan = manga.recentChapterTerbaru(jumlah: 2);
       expect(turunan, hasLength(1));
       expect(turunan.single.number, 39);
     });

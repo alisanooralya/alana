@@ -42,7 +42,7 @@ class UpdateCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final chapters = manga.chapterTerbaru(jumlah: _chapterPerSel);
+    final chapters = manga.recentChapterTerbaru(jumlah: _chapterPerSel);
 
     return InkWell(
       onTap: () => bukaDetailManga(context, manga),
@@ -138,7 +138,7 @@ String _emojiBendera(String kode) {
 class ChipChapter extends StatelessWidget {
   const ChipChapter({super.key, required this.chapter});
 
-  final Chapter chapter;
+  final RecentChapter chapter;
 
   @override
   Widget build(BuildContext context) {

@@ -1,18 +1,22 @@
 import 'package:alana/utils/json_utils.dart';
 import 'package:alana/utils/manga_labels.dart';
 
-/// Satu chapter yang baru rilis, untuk daftar pembaruan.
-class Chapter {
+/// Rujukan chapter yang baru rilis, untuk daftar pembaruan.
+///
+/// Berbeda dengan [Chapter] di `chapter.dart`, yang berisi judul dan URL
+/// lengkap untuk halaman detail. Yang ini cuma nomor dan waktu rilis, jadi
+/// nama-nya dibedakan agar keduanya tidak bentrok di `models/models.dart`.
+class RecentChapter {
   final int number;
 
   /// ISO-8601 mentah, bukan label: label dihitung saat ditampilkan supaya
   /// "2 jam lalu" tidak kedaluwarsa selama feed masih di-cache.
   final String createdAt;
 
-  const Chapter({required this.number, this.createdAt = ''});
+  const RecentChapter({required this.number, this.createdAt = ''});
 
-  factory Chapter.fromJson(Map<String, dynamic> json) {
-    return Chapter(
+  factory RecentChapter.fromJson(Map<String, dynamic> json) {
+    return RecentChapter(
       number: asInt(json['chapter_number']),
       createdAt: asString(json['created_at']),
     );
@@ -42,7 +46,7 @@ class Manga {
   final String countryCode;
 
   /// Chapter terbaru lebih dulu. Hanya endpoint daftar yang membawanya.
-  final List<Chapter> chapters;
+  final List<RecentChapter> chapters;
 
   const Manga({
     required this.title,
@@ -82,13 +86,13 @@ class Manga {
 
   /// API bertipe longgar dan kadang mengirim null atau objek aneh. Nomor 0
   /// dibuang karena akan tampil sebagai "Chapter 0".
-  static List<Chapter> _parseChapters(dynamic raw) {
+  static List<RecentChapter> _parseChapters(dynamic raw) {
     if (raw is! List) return const [];
 
-    final hasil = <Chapter>[];
+    final hasil = <RecentChapter>[];
     for (final item in raw) {
       if (item is! Map) continue;
-      final chapter = Chapter.fromJson(Map<String, dynamic>.from(item));
+      final chapter = RecentChapter.fromJson(Map<String, dynamic>.from(item));
       if (chapter.number > 0) hasil.add(chapter);
       if (hasil.length == 3) break;
     }
@@ -98,11 +102,13 @@ class Manga {
   /// Chapter terbaru, maksimal [jumlah]. Kalau endpoint tidak mengirim
   /// `chapters`, chapter dirakit dari [latestChapterNumber] dan
   /// [latestChapterTime] supaya sel tidak kosong sama sekali.
-  List<Chapter> chapterTerbaru({int jumlah = 2}) {
+  List<RecentChapter> recentChapterTerbaru({int jumlah = 2}) {
     if (chapters.isNotEmpty) {
       return jumlah >= chapters.length ? chapters : chapters.sublist(0, jumlah);
     }
     if (latestChapterNumber <= 0) return const [];
-    return [Chapter(number: latestChapterNumber, createdAt: latestChapterTime)];
+    return [
+      RecentChapter(number: latestChapterNumber, createdAt: latestChapterTime),
+    ];
   }
 }
