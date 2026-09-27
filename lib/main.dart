@@ -16,7 +16,6 @@ import 'package:alana/core/supabase/supabase_setup.dart';
 import 'package:alana/core/theme/app_theme.dart';
 import 'package:alana/features/auth/presentation/auth_providers.dart';
 import 'package:alana/features/downloads/data/download_manager.dart';
-import 'package:alana/features/downloads/data/download_repository.dart';
 import 'package:alana/features/notifikasi/data/pengingat_repository.dart';
 import 'package:alana/features/notifikasi/presentation/notification_permission_provider.dart';
 import 'package:alana/features/onboarding/data/onboarding_repository.dart';
@@ -60,8 +59,6 @@ class Bootstrap extends ConsumerStatefulWidget {
 class _BootstrapState extends ConsumerState<Bootstrap> {
   var _status = _StatusSiap.memuat;
 
-  ProviderSubscription<String?>? _langgananMigrasi;
-
   @override
   void initState() {
     super.initState();
@@ -75,7 +72,6 @@ class _BootstrapState extends ConsumerState<Bootstrap> {
         .then((_) => AppStorage.init())
         .then((_) => LayananNotifikasi.init())
         .then((_) {
-          _pasangMigrasiUnduhan();
           if (mounted) {
             setState(() => _status = _StatusSiap.siap);
             _jadwalkanPengingat();
@@ -95,51 +91,6 @@ class _BootstrapState extends ConsumerState<Bootstrap> {
             unawaited(ref.read(downloadManagerProvider.future));
           }
         });
-  }
-
-  /// Memindahkan unduhan berstruktur lama ke folder milik user yang aktif.
-  ///
-  /// Dipasang di sini, bukan di [AppStorage.init] atau saat repository
-  /// dibangun, karena keduanya bisa jalan sebelum sesi selesai dimuat. Tanpa
-  /// userId tidak ada folder pemilik yang sah, dan memindahkan unduhan ke
-  /// folder tanpa pemilik justru mengembalikan file ke folder bersama yang
-  /// baru saja dipisah.
-  ///
-  /// Dua pemicu dipakai: sesi yang sudah tersimpan ketika app dibuka, dan
-  /// login yang terjadi setelah app terbuka. Keduanya aman dipanggil
-  /// berulang karena migrasi dijalankan paling banyak sekali per aplikasi.
-  void _pasangMigrasiUnduhan() {
-    void jalankan(String? userId) {
-      if (userId == null || userId.isEmpty) return;
-      // ref.invalidate mengembalikan void di Riverpod 2, jadi tidak dibungkus
-      // unawaited.
-      ref
-          .read(downloadRepositoryProvider)
-          .migrasiStrukturLama()
-          .then<void>((hasil) {
-            if (!hasil.adaYangDikerjakan) return;
-            // Manager dibangun ulang supaya daftar unduhan, ukuran, dan status
-            // unduhan ikut terisi dari folder baru.
-            ref.invalidate(downloadManagerProvider);
-          })
-          .catchError((Object error, StackTrace stack) {
-            ErrorLog.catat(error, stack);
-          });
-    }
-
-    // Sesi yang sudah ada sebelum aplikasi dibuka.
-    jalankan(ref.read(userIdProvider));
-    _langgananMigrasi = ref.listenManual<String?>(
-      userIdProvider,
-      (previous, next) => jalankan(next),
-      fireImmediately: false,
-    );
-  }
-
-  @override
-  void dispose() {
-    _langgananMigrasi?.close();
-    super.dispose();
   }
 
   /// Jadwalkan ulang pengingat tiap aplikasi dibuka (best-effort).
