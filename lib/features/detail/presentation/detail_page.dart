@@ -10,6 +10,7 @@ import 'package:alana/core/widgets/offline_banner.dart';
 import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/core/utils/share_content.dart';
 import 'package:alana/features/downloads/data/download_manager.dart';
+import 'package:alana/features/profile/presentation/profile_providers.dart';
 import 'package:alana/features/downloads/data/download_repository.dart';
 import 'package:alana/features/history/data/history_repository.dart';
 import 'package:alana/features/library/data/bookmark_repository.dart';
@@ -95,6 +96,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
           chapters
               .map(
                 (chapter) => DownloadRequest(
+                  userId: ref.read(userIdProvider) ?? '',
                   mangaId: mangaId,
                   chapterId: chapter.url,
                   mangaTitle: info.title,
@@ -181,6 +183,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                 .read(downloadManagerProvider.notifier)
                 .enqueue(
                   DownloadRequest(
+                    userId: ref.read(userIdProvider) ?? '',
                     mangaId: widget.mangaId,
                     chapterId: chapter.url,
                     mangaTitle: info.title,
@@ -323,7 +326,11 @@ class _IsiDetail extends ConsumerWidget {
                 final chapter = tampil[index];
                 final sudah = dibaca.contains(chapter.url);
                 final download = downloads?.entryFor(
-                  DownloadRepository.keyFor(mangaId, chapter.url),
+                  DownloadRepository.keyFor(
+                    ref.watch(userIdProvider) ?? '',
+                    mangaId,
+                    chapter.url,
+                  ),
                 );
                 final statusUnduhan = download?.status;
                 final selesaiUnduh = statusUnduhan == DownloadStatus.completed;

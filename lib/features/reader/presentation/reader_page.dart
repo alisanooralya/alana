@@ -265,10 +265,14 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
 
   @override
   Widget build(BuildContext context) {
+    // Dibaca sekali di awal supaya kunci unduhan dan penanda lain di bawah
+    // memakai user yang sama. Kunci unduhan memuat userId, jadi chapter milik
+    // akun lain tidak akan terlihat sebagai "sudah diunduh".
+    final uid = ref.watch(userIdProvider) ?? '';
     final downloadAsync = ref.watch(downloadManagerProvider);
     final downloadState = downloadAsync.valueOrNull;
     final downloaded = downloadState?.entryFor(
-      DownloadRepository.keyFor(widget.mangaId, widget.chapterId),
+      DownloadRepository.keyFor(uid, widget.mangaId, widget.chapterId),
     );
     // Jangan tunggu verifikasi unduhan sebelum memuat halaman. verifyAll()
     // memeriksa seluruh folder di startup, jadi menahan pagesAsync selama itu

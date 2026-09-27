@@ -25,6 +25,7 @@ class DownloadWifiTurun implements Exception {
 
 class DownloadRequest {
   const DownloadRequest({
+    required this.userId,
     required this.mangaId,
     required this.chapterId,
     required this.mangaTitle,
@@ -32,13 +33,17 @@ class DownloadRequest {
     this.coverUrl = '',
   });
 
+  /// Masuk ke kunci supaya antrean milik satu akun tidak pernah bisa
+  /// pencet atau melanjutkan unduhan akun lain.
+  final String userId;
+
   final String mangaId;
   final String chapterId;
   final String mangaTitle;
   final String chapterTitle;
   final String coverUrl;
 
-  String get key => DownloadRepository.keyFor(mangaId, chapterId);
+  String get key => DownloadRepository.keyFor(userId, mangaId, chapterId);
 }
 
 class DownloadState {
@@ -104,12 +109,13 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
         unawaited(_pump());
       }
     });
-    final repository = ref.read(downloadRepositoryProvider);
+    final repository = ref.watch(downloadRepositoryProvider);
     final entries = await repository.verifyAll();
     final queue = entries
         .where((entry) => entry.status == DownloadStatus.queued)
         .map(
           (entry) => DownloadRequest(
+            userId: entry.userId,
             mangaId: entry.mangaId,
             chapterId: entry.chapterId,
             mangaTitle: entry.mangaTitle,
@@ -127,6 +133,9 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
 
   Future<void> enqueue(DownloadRequest request) async {
     if (request.mangaId.isEmpty || request.chapterId.isEmpty) return;
+    // Tanpa pemilik, request ditolak: lebih baik tidak mengunduh daripada
+    // menulis ke folder yang dipakai bersama.
+    if (request.userId.isEmpty) return;
     var current = state.valueOrNull;
     if (current == null) {
       // build() masih memverifikasi unduhan yang tersimpan saat startup.
@@ -143,6 +152,7 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     final entry =
         (existing ??
                 DownloadedChapter(
+                  userId: request.userId,
                   mangaId: request.mangaId,
                   chapterId: request.chapterId,
                   mangaTitle: request.mangaTitle,
@@ -191,6 +201,7 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     if (entry == null) return;
     await enqueue(
       DownloadRequest(
+        userId: entry.userId,
         mangaId: entry.mangaId,
         chapterId: entry.chapterId,
         mangaTitle: entry.mangaTitle,
@@ -377,15 +388,23 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
       throw const FormatException('Chapter tidak memiliki halaman.');
     }
 
+    // null berarti tidak ada user pemilik, jadi tidak ada folder yang boleh
+    // disentuh. enqueue() sudah menolak request tanpa userId, jadi ini
+    // pengaman lapis kedua.
     final chapterDirectory = await repository.chapterDirectory(
       request.mangaId,
       request.chapterId,
     );
+    if (chapterDirectory == null) {
+      throw const FormatException('Unduhan tidak punya pemilik akun.');
+    }
     var coverPath = entry.coverLocalPath;
     if (coverPath.isEmpty && request.coverUrl.isNotEmpty) {
-      coverPath =
-          '${(await repository.mangaDirectory(request.mangaId)).path}/cover.jpg';
-      await _unduhFile(request.coverUrl, coverPath);
+      final mangaDirectory = await repository.mangaDirectory(request.mangaId);
+      if (mangaDirectory != null) {
+        coverPath = '${mangaDirectory.path}/cover.jpg';
+        await _unduhFile(request.coverUrl, coverPath);
+      }
     }
 
     // Ukuran total dijumlahkan dari berkas yang memang baru diunduh, bukan
@@ -550,7 +569,7 @@ final downloadStorageBytesProvider = FutureProvider<int>((ref) async {
       return '${data?.activeKey}:${data?.entries.length}';
     }),
   );
-  return ref.read(downloadRepositoryProvider).totalStorageBytes();
+  return ref.watch(downloadRepositoryProvider).totalStorageBytes();
 });
 
 /// Kunci satu chapter: id manga dan id chapter-nya, bukan id chapter saja.
@@ -564,7 +583,7 @@ final offlinePageListProvider =
       List<manga.Page>,
       ({String mangaId, String chapterId})
     >((ref, kunci) async {
-      final entries = await ref.read(downloadRepositoryProvider).all();
+      final entries = await ref.watch(downloadRepositoryProvider).all();
       DownloadedChapter? entry;
       for (final item in entries) {
         if (item.chapterId == kunci.chapterId &&
@@ -577,7 +596,7 @@ final offlinePageListProvider =
         return const [];
       }
       final files = await ref
-          .read(downloadRepositoryProvider)
+          .watch(downloadRepositoryProvider)
           .pageFiles(entry.mangaId, entry.chapterId);
       return [
         for (var index = 0; index < files.length; index++)

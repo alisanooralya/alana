@@ -48,10 +48,20 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- Bucket foto profil
+-- Bucket foto profil.
+--
+-- Sengaja public: profile_reader memakai getPublicUrl, jadi avatar harus bisa
+-- diambil tanpa sesi. Konsekuensinya siapa pun yang tahu URL-nya bisa
+-- mengunduh gambar itu - itu memang yang diharapkan untuk avatar publik.
+-- Jangan diubah ke private tanpa mengganti pemanggilnya di
+-- profile_repository.dart, karena getPublicUrl akan langsung gagal.
+--
+-- do update (bukan do nothing) supaya berkas ini benar-benar menegakkan
+-- public = true. Semula memakai do nothing, sehingga bucket yang pernah
+-- dibuat private tidak pernah dikembalikan jadi public.
 insert into storage.buckets (id, name, public)
   values ('avatars', 'avatars', true)
-  on conflict (id) do nothing;
+  on conflict (id) do update set public = excluded.public;
 
 -- Semua pernyataan di berkas ini dibuat idempotent karena README menyuruh
 -- operator menjalankannya manual di SQL Editor. Sebelumnya create table tanpa
