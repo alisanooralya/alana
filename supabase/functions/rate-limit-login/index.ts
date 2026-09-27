@@ -1,7 +1,24 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-// Batas: 5x gagal dalam 15 menit per identifier (email huruf kecil).
-const MAX_GAGAL = 5;
+// Pembatas percobaan login email+password.
+//
+// Dua penghitung terpisah, karena satu saja tidak cukup:
+//
+//   em:<email>  per email. 5x gagal dalam 15 menit.
+//   ip:<ip>     per alamat IP. 30x gagal dalam 15 menit.
+//
+// Yang per email menahan brute force terhadap satu akun. Yang per IP menahan
+// credential stuffing: tanpa itu, penyerang bisa mencoba 5 password pada
+// tiap email dan tidak pernah diblokir, karena tiap email punya jatah sendiri.
+//
+// Batas per IP sengaja jauh lebih longgar dari per email. Operator seluler
+// memakai CGNAT sehingga ribuan pengguna bisa berada di satu IP publik, dan
+// sebagian login mereka gagal karena salah ketik. Batas rendah akan mengunci
+// mereka bersama. Kalau gejolanya terlalu sering, naikkan MAX_GAGAL_IP —
+// jangan turunkan ke angka yang menyerupai MAX_GAGAL_EMAIL.
+
+const MAX_GAGAL_EMAIL = 5;
+const MAX_GAGAL_IP = 30;
 const JENDELA_MENIT = 15;
 
 const corsHeaders = {
@@ -19,6 +36,21 @@ function json(data: unknown, status = 200, retryAfter?: number) {
     headers['Retry-After'] = String(retryAfter);
   }
   return new Response(JSON.stringify(data), { status, headers });
+}
+
+// Alamat IP client's. Fallback 'unknown' hanya dipakai kalau semua header
+// absen, dan sengaja tidak dikembalikan sebagai string kosong: header
+// x-forwarded-for yang tidak ada akan menjadi satu bucket bersama untuk
+// semua pengguna yang lewat proxy yang sama.
+function ipDari(req: Request): string {
+  const teruskan = (req.headers.get('x-forwarded-for') ?? '')
+    .split(',')[0]
+    .trim();
+  const ip =
+    req.headers.get('cf-connecting-ip')?.trim() ||
+    req.headers.get('x-real-ip')?.trim() ||
+    teruskan;
+  return ip && ip.length > 0 ? ip : 'unknown';
 }
 
 Deno.serve(async (req: Request) => {
@@ -50,41 +82,55 @@ Deno.serve(async (req: Request) => {
     Date.now() - JENDELA_MENIT * 60 * 1000,
   ).toISOString();
 
+  // Penghitung lama memakai email polos sebagai identifier. Baris dengan
+  // format itu tidak lagi dibaca, tapi ikut dihapus saat login berhasil
+  // supaya tidak menumpuk.
+  const idEmail = `em:${email}`;
+  const idIp = `ip:${ipDari(req)}`;
+
   if (body.action === 'record') {
     // Dipanggil SETELAH percobaan login: catat hasil.
-    // Sukses → hapus riwayat identifier (reset hitungan).
+    // Sukses → bersihkan riwayat supaya penghitung kembali ke nol.
     if (body.success == true) {
       const { error } = await supabase
         .from('login_attempts')
         .delete()
-        .eq('identifier', email);
+        .in('identifier', [idEmail, idIp, email]);
       if (error) return json({ error: error.message }, 500);
-      return json({ allowed: true, remaining: MAX_GAGAL });
+      return json({ allowed: true });
     }
-    const { error } = await supabase.from('login_attempts').insert({
-      identifier: email,
-      success: false,
-    });
+    const { error } = await supabase.from('login_attempts').insert([
+      { identifier: idEmail, success: false },
+      { identifier: idIp, success: false },
+    ]);
     if (error) return json({ error: error.message }, 500);
     return json({ allowed: true, recorded: true });
   }
 
-  // Default: action 'check' — dipanggil SEBELUM percobaan login.
-  const { count, error } = await supabase
-    .from('login_attempts')
-    .select('id', { count: 'exact', head: true })
-    .eq('identifier', email)
-    .eq('success', false)
-    .gte('created_at', sejak);
-  if (error) return json({ error: error.message }, 500);
+  // Default: action 'check' — dipanggil SEBELAH percobaan login.
+  //
+  // Kedua penghitung diperiksa; yang membatasi adalah yang paling lama
+  // perlu ditunggu, sebab selama salah satu masih penuh user belum bisa
+  // berhasil meski yang lain sudah longgar.
+  const cek = async (
+    identifier: string,
+    maks: number,
+  ): Promise<{ penuh: boolean; tunggu: number }> => {
+    const { count, error } = await supabase
+      .from('login_attempts')
+      .select('id', { count: 'exact', head: true })
+      .eq('identifier', identifier)
+      .eq('success', false)
+      .gte('created_at', sejak);
+    if (error) return { penuh: false, tunggu: 0 };
+    const gagal = count ?? 0;
+    if (gagal < maks) return { penuh: false, tunggu: 0 };
 
-  const gagal = count ?? 0;
-  if (gagal >= MAX_GAGAL) {
-    // Cari kapan jendela bergulir (kegagalan tertua dalam jendela).
+    // Kapan jendela bergulir: kegagalan tertua dalam jendela.
     const { data } = await supabase
       .from('login_attempts')
       .select('created_at')
-      .eq('identifier', email)
+      .eq('identifier', identifier)
       .eq('success', false)
       .gte('created_at', sejak)
       .order('created_at', { ascending: true })
@@ -96,16 +142,24 @@ Deno.serve(async (req: Request) => {
         JENDELA_MENIT * 60 * 1000;
       tunggu = Math.max(1, Math.ceil((buka - Date.now()) / 1000));
     }
+    return { penuh: true, tunggu };
+  };
+
+  const [perEmail, perIp] = await Promise.all([
+    cek(idEmail, MAX_GAGAL_EMAIL),
+    cek(idIp, MAX_GAGAL_IP),
+  ]);
+
+  if (perEmail.penuh || perIp.penuh) {
     return json(
       {
         allowed: false,
-        remaining: 0,
-        retry_after_seconds: tunggu,
+        retry_after_seconds: Math.max(perEmail.tunggu, perIp.tunggu),
         pesan: 'Terlalu banyak percobaan gagal. Coba lagi nanti.',
       },
       429,
-      tunggu,
+      Math.max(perEmail.tunggu, perIp.tunggu),
     );
   }
-  return json({ allowed: true, remaining: MAX_GAGAL - gagal });
+  return json({ allowed: true });
 });

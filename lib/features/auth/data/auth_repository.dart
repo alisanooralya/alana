@@ -3,6 +3,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:alana/core/config/app_config.dart';
+import 'package:alana/core/diagnostics/error_log.dart';
 import 'package:alana/core/supabase/supabase_setup.dart';
 import 'package:alana/core/utils/deep_link.dart';
 
@@ -54,14 +55,104 @@ class AuthRepository {
   }
 
   /// Masuk dengan email + password.
+  ///
+  /// Dibatasi lewat Edge Function `rate-limit-login`: dicek sebelum
+  /// percobaan dan dicatat setelahnya. Jalur username punya pembatasnya
+  /// sendiri di sisi server (`login-with-username`), jadi tidak diulang di
+  /// sini.
   Future<AuthResponse> masuk({
     required String email,
     required String password,
-  }) {
-    return _client.auth.signInWithPassword(
-      email: email.trim(),
-      password: password,
-    );
+  }) async {
+    final alamat = email.trim();
+    await _cekBatasLogin(alamat);
+    try {
+      final hasil = await _client.auth.signInWithPassword(
+        email: alamat,
+        password: password,
+      );
+      await _catatPercobaanLogin(alamat, berhasil: true);
+      return hasil;
+    } catch (error) {
+      /// Batas percobaan login tidak dihitung sebagai kegagalan kredensial.
+      /// Gangguan jaringan atau 429 dari Supabase sendiri bukan "password
+      /// salah", dan menghitungnya akan mengunci pengguna yang koneksinya
+      /// berantakan.
+      if (_penolakanKredensial(error)) {
+        await _catatPercobaanLogin(alamat, berhasil: false);
+      }
+      rethrow;
+    }
+  }
+
+  /// Melempar [PercobaanLoginDibatasi] kalau percobaan sudah melewati
+  /// batas, atau membiarkan lewat kalau belum.
+  ///
+  /// Gagal atau tidak terjangkau berarti dibiarkan lewat. Alasannya: Edge
+  /// Function yang mati tidak boleh membuat seluruh pengguna tidak bisa
+  /// login. Kegagalan tetap dicatat lewat [ErrorLog] supaya tidak hilang
+  /// tanpa jejak — tanpa itu, function yang tidak ter-deploy akan terlihat
+  /// seperti sistem yang sedang berjalan normal.
+  Future<void> _cekBatasLogin(String email) async {
+    try {
+      await _client.functions.invoke(
+        'rate-limit-login',
+        body: {'action': 'check', 'email': email},
+      );
+    } on FunctionsHttpException catch (error) {
+      if (error.status != 429) {
+        ErrorLog.catat(error, StackTrace.current);
+        return;
+      }
+      throw PercobaanLoginDibatasi(_detikTungguDari(error.details));
+    } catch (error, stack) {
+      ErrorLog.catat(error, stack);
+    }
+  }
+
+  /// Mencatat hasil percobaan ke `rate-limit-login`.
+  ///
+  /// Kegagalan dicatat tanpa melempar: hasil login sudah diketahui pengguna
+  /// dan tidak boleh berubah jadi error lain hanya karena pencatatan
+  /// bermasalah.
+  Future<void> _catatPercobaanLogin(
+    String email, {
+    required bool berhasil,
+  }) async {
+    try {
+      await _client.functions.invoke(
+        'rate-limit-login',
+        body: {'action': 'record', 'email': email, 'success': berhasil},
+      );
+    } catch (error, stack) {
+      ErrorLog.catat(error, stack);
+    }
+  }
+
+  /// Membaca `retry_after_seconds` dari body 429.
+  ///
+  /// Nilai ini tidak pernah ditampilkan mentah: [pesanBatasPercobaan]
+  /// hanya turun ke hitungan menit atau detik. Kalau field-nya hilang atau
+  /// bukan angka, dikembalikan 0 supaya pesannya tetap jujur dan tidak
+  /// mengarang angka yang lebih optimismis dari kenyataan.
+  int _detikTungguDari(Object? details) {
+    if (details is Map) {
+      final nilai = details['retry_after_seconds'];
+      if (nilai is num) return nilai.toInt();
+      if (nilai is String) return int.tryParse(nilai) ?? 0;
+    }
+    return 0;
+  }
+
+  /// `true` kalau [error] berarti kredensial ditolak.
+  ///
+  /// Hanya 400 dan 401 yang dihitung. Sisanya dibiarkan: error jaringan
+  /// (`AuthRetryableFetchException`) dan 429 dari Supabase sendiri tidak
+  /// berkaitan dengan tebakan password.
+  bool _penolakanKredensial(Object error) {
+    if (error is! AuthApiException) return false;
+    final kode = error.statusCode;
+    return kode == '400' || kode == '401';
   }
 
   /// Masuk dengan username via Edge Function `login-with-username`.

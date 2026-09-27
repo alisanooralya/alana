@@ -40,7 +40,47 @@ bool akunBaruDariIso(String? isoCreatedAt) {
   return DateTime.now().difference(dibuat).inMinutes < 5;
 }
 
+/// Percobaan login diblokir pembatas di server.
+///
+/// Dibuat sebagai tipe tersendiri, bukan pesan teks biasa, supaya
+/// [pesanAuthRamah] bisa menampilkan waktu tunggu tanpa harus membaca
+/// angka yang tersembunyi di dalam kalimat error.
+///
+/// [detikTunggu] berasal dari `retry_after_seconds` milik Edge Function
+/// `rate-limit-login`, yaitu detik sampai kegagalan tertua keluar dari
+/// jendela hitungannya. Nilai apa pun yang tidak terpakai di sini tidak
+/// pernah ikut ditampilkan ke pengguna.
+class PercobaanLoginDibatasi implements Exception {
+  const PercobaanLoginDibatasi(this.detikTunggu);
+
+  final int detikTunggu;
+
+  @override
+  String toString() => 'PercobaanLoginDibatasi($detikTunggu)';
+}
+
+/// Pesan untuk [PercobaanLoginDibatasi].
+///
+/// Hanya menyebut waktu tunggu. Nilai batas percobaan, panjang jendela, dan
+/// berapa kali pengguna masih boleh mencoba tidak ikut disebut, karena
+/// memberitahu angka-angka itu hanya membantu pihak yang sedang menebak.
+///
+/// Menit selalu dibulatkan ke atas, sehingga pesan tidak pernah menjanjikan
+/// waktu yang lebih singkat dari yang sebenarnya. Kalau 61 detik ditulis
+/// "1 menit", pengguna mencoba lagi 1 detik terlalu awal dan kena 429 lagi
+/// tanpa tahu kenapa.
+String pesanBatasPercobaan(int detik) {
+  final n = detik < 1 ? 1 : detik;
+  if (n < 60) {
+    return 'Terlalu banyak percobaan. Coba lagi dalam $n detik.';
+  }
+  return 'Terlalu banyak percobaan. Coba lagi dalam ${(n / 60).ceil()} menit.';
+}
+
 String pesanAuthRamah(Object error) {
+  if (error is PercobaanLoginDibatasi) {
+    return pesanBatasPercobaan(error.detikTunggu);
+  }
   if (error is AuthException) {
     return _dariPesan(error.message);
   }

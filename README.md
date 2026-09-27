@@ -108,6 +108,6 @@ di SQL Editor).
 
 | Fungsi | Akses | Tugas |
 |---|---|---|
-| `rate-limit-login` | publik (`--no-verify-jwt`) | Rate limit percobaan login |
+| `rate-limit-login` | publik (`--no-verify-jwt`) | Rate limit login email+password: 5x gagal/15 mnt per email, 30x per IP |
 | `delete-account` | JWT (verify default) | Hapus akun + avatar milik pemanggil |
 | `login-with-username` | publik (`--no-verify-jwt`, `config.toml`) | Login username → token (anti-enumerasi, rate limit IP+username) |
