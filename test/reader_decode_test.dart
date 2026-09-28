@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -44,6 +47,12 @@ import 'package:alana/features/reader/presentation/widgets/reader_image.dart';
 const _sampul = (w: 800, h: 614);
 const _infiniteMage = (w: 800, h: 12777);
 const _goblinInc = (w: 800, h: 10228);
+
+/// PNG 1x1 yang valid, supaya jalur offline punya file nyata untuk di-decode.
+final _png1x1 = base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8'
+  'z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+);
 
 void main() {
   group('batasDecode', () {
@@ -216,6 +225,99 @@ void main() {
       // Batas lama adalah tinggiLayar * dpr * 2. Kalau masih memakainya,
       // tinggi 6000 logical akan menghasilkan batas yang jauh lebih besar.
       expect(resize.height, batasPikselReader ~/ 1080);
+    });
+  });
+
+  group('gerbang saat menggeser', () {
+    /// Dua strip webtoon 37 MB dipanggil decode bersamaan saat di-fling akan
+    /// membuat imageCache penuh dan evict gambar yang sudah dibaca. Gerbang
+    /// `sedangGeser` menahan decode sampai pengguna berhenti.
+    Future<void> pumpReader(
+      WidgetTester tester, {
+      required bool sedangGeser,
+    }) async {
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ReaderImage(
+              imageUrl: 'https://contoh.invalid/01.jpg',
+              headers: const {'Referer': 'https://app.shinigami.asia/'},
+              sedangGeser: sedangGeser,
+            ),
+          ),
+        ),
+      );
+    }
+
+    testWidgets('tidak ada provider gambar selama menggeser', (tester) async {
+      await pumpReader(tester, sedangGeser: true);
+
+      // Kalau `CachedNetworkImage` ikut dibangun, `Image` akan ada dan decode
+      // langsung dimulai.
+      expect(find.byType(Image), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    });
+
+    testWidgets('provider gambar muncul setelah menggeser berhenti', (
+      tester,
+    ) async {
+      await pumpReader(tester, sedangGeser: false);
+
+      expect(find.byType(Image), findsOneWidget);
+    });
+
+    testWidgets('gambar yang sudah tampil tidak kembali jadi spinner', (
+      tester,
+    ) async {
+      final file = File('${Directory.systemTemp.path}/alana_reader_1x1.png');
+      file.writeAsBytesSync(_png1x1);
+      addTearDown(() {
+        if (file.existsSync()) file.deleteSync();
+      });
+
+      tester.view.physicalSize = const Size(1080, 2400);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(tester.view.reset);
+
+      // `FileImage` memakai I/O sungguhan, jadi lewat runAsync.
+      // pumpAndSettle tidak bisa dipakai karena spinner di placeholder
+      // berputar terus.
+      Future<void> pump(bool sedangGeser) async {
+        await tester.runAsync(() async {
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: ReaderImage(
+                  imageUrl: '',
+                  localPath: file.path,
+                  headers: const {},
+                  sedangGeser: sedangGeser,
+                ),
+              ),
+            ),
+          );
+          await Future<void>.delayed(const Duration(milliseconds: 80));
+        });
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+
+      await pump(false);
+      expect(find.byType(Image), findsOneWidget);
+
+      // Sekarang pengguna mulai menggeser. Kalau gerbang tidak membedakan
+      // "belum tampil" dari "sudah tampil", gambar yang sedang dibaca akan
+      // berkedip jadi spinner.
+      await pump(true);
+
+      expect(find.byType(Image), findsOneWidget);
+      final provider = tester.widget<Image>(find.byType(Image)).image;
+      expect(provider, isA<ResizeImage>());
+      expect((provider as ResizeImage).policy, ResizeImagePolicy.fit);
     });
   });
 }

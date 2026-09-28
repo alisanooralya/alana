@@ -33,12 +33,22 @@ class ReaderImage extends StatefulWidget {
     required this.headers,
     this.localPath,
     this.onLoaded,
+    this.sedangGeser = false,
   });
 
   final String imageUrl;
   final Map<String, String> headers;
   final String? localPath;
   final VoidCallback? onLoaded;
+
+  /// True selama pengguna sedang menggeser daftar.
+  ///
+  /// Saat true dan gambar ini belum pernah tampil, widget hanya drew
+  /// placeholder tanpa memulai decode. Tanpa gerbang ini, `ListView.builder`
+  /// membangun item jauh lebih cepat daripada decode selesai saat di-fling, dan
+  /// tiap strip webtoon 37 MB langsung masuk antrean. Akibatnya `imageCache`
+  /// penuh, evict, lalu gambar yang sudah dibaca hilang.
+  final bool sedangGeser;
 
   @override
   State<ReaderImage> createState() => _ReaderImageState();
@@ -47,7 +57,7 @@ class ReaderImage extends StatefulWidget {
 class _ReaderImageState extends State<ReaderImage> {
   final TransformationController _transform = TransformationController();
   int _attempt = 0;
-  bool _notified = false;
+  bool _sudahTampil = false;
   bool _zoomAktif = false;
 
   @override
@@ -73,13 +83,13 @@ class _ReaderImageState extends State<ReaderImage> {
     _transform.value = Matrix4.identity();
   }
 
-  void _notifyLoaded() {
-    if (_notified) return;
-    _notified = true;
-    final callback = widget.onLoaded;
-    if (callback == null) return;
+  void _tandaiTampil() {
+    if (_sudahTampil) return;
+    _sudahTampil = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) callback();
+      if (!mounted) return;
+      setState(() {});
+      widget.onLoaded?.call();
     });
   }
 
@@ -94,6 +104,21 @@ class _ReaderImageState extends State<ReaderImage> {
   Widget build(BuildContext context) {
     final placeholderHeight = MediaQuery.of(context).size.width * 0.6;
     final batas = _batasDecode(context);
+
+    // Gambar yang sudah pernah tampil tidak pernah dikembalikan jadi
+    // placeholder, jadi tidak ada kedip saat pengguna menggeser.
+    if (widget.sedangGeser && !_sudahTampil) {
+      return SizedBox(
+        height: placeholderHeight,
+        child: const Center(
+          child: SizedBox(
+            width: 28,
+            height: 28,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    }
 
     final viewer = InteractiveViewer(
       transformationController: _transform,
@@ -119,6 +144,13 @@ class _ReaderImageState extends State<ReaderImage> {
               ),
               width: double.infinity,
               fit: BoxFit.fitWidth,
+              // Tanpa frameBuilder ini jalur offline tidak pernah menandai
+              // gambar sebagai tampil, jadi gerbang `sedangGeser` akan
+              // menaruhnya balik jadi spinner setiap kali digeser.
+              frameBuilder: (context, child, frame, wasSyncLoaded) {
+                if (frame != null) _tandaiTampil();
+                return child;
+              },
               errorBuilder: (context, error, stackTrace) => SizedBox(
                 height: placeholderHeight,
                 child: const Center(
@@ -134,7 +166,7 @@ class _ReaderImageState extends State<ReaderImage> {
               fit: BoxFit.fitWidth,
               fadeInDuration: const Duration(milliseconds: 200),
               imageBuilder: (context, imageProvider) {
-                _notifyLoaded();
+                _tandaiTampil();
                 return Image(
                   image: ResizeImage(
                     imageProvider,

@@ -49,8 +49,10 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     with WidgetsBindingObserver {
   bool _chromeTerlihat = true;
   bool _sudahRestore = false;
+  bool _sedangGeser = false;
   final _scrollController = ScrollController();
   Timer? _saveTimer;
+  Timer? _gateTimer;
   String? _uid;
   int _jumlahHalamanTerakhir = 0;
 
@@ -78,6 +80,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _saveTimer?.cancel();
+    _gateTimer?.cancel();
     _scrollController.removeListener(_onScroll);
     _simpanPosisi();
     unawaited(SyncService.dorongSekarang(_uid, mangaId: widget.mangaId));
@@ -100,10 +103,26 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     _saveTimer = Timer(const Duration(seconds: 1), _simpanPosisi);
   }
 
-  bool _onUserScroll(UserScrollNotification notifikasi) {
-    if (notifikasi.direction != ScrollDirection.idle) {
+  bool _onScrollNotification(ScrollNotification notifikasi) {
+    if (notifikasi is UserScrollNotification &&
+        notifikasi.direction != ScrollDirection.idle) {
       _targetOffset = null;
       _restoreTercapai = true;
+    }
+
+    if (notifikasi is ScrollStartNotification) {
+      _gateTimer?.cancel();
+      if (!_sedangGeser && mounted) {
+        setState(() => _sedangGeser = true);
+      }
+    } else if (notifikasi is ScrollEndNotification) {
+      // Ditunda sedikit: `ScrollEndNotification` untuk drag lambat menyusul
+      // hampir seketika, dan tanpa jeda tiap geser kecil akan mematikan lalu
+      // menyalakan decode berulang kali.
+      _gateTimer?.cancel();
+      _gateTimer = Timer(const Duration(milliseconds: 250), () {
+        if (mounted && _sedangGeser) setState(() => _sedangGeser = false);
+      });
     }
     return false;
   }
@@ -344,8 +363,8 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
               );
             }
             _jumlahHalamanTerakhir = pages.length;
-            return NotificationListener<UserScrollNotification>(
-              onNotification: _onUserScroll,
+            return NotificationListener<ScrollNotification>(
+              onNotification: _onScrollNotification,
               child: ListView.builder(
                 controller: _scrollController,
                 padding: EdgeInsets.zero,
@@ -364,6 +383,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
                     imageUrl: pages[index].imageUrl,
                     localPath: offline ? pages[index].imageUrl : null,
                     headers: readerImageHeaders,
+                    sedangGeser: _sedangGeser,
                     onLoaded: () =>
                         _preloadBerikutnya(index, pages, offline: offline),
                   );

@@ -28,6 +28,15 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   ErrorLog.pasang();
 
+  // Bawaan Flutter 100 MB hanya menampung dua strip webtoon (satu strip
+  // 800x12777 = 37 MB), jadi setiap kali pengguna menggeser ke belakang
+  // gambarnya sudah terevict dan harus decode ulang. 192 MB memuat sekitar
+  // lima strip, cukup untuk satu sesi baca tanpa kedip.
+  //
+  // Ini plafon lunak: Android yang membatasi lewat heap prosesnya, jadi
+  // perangkat RAM kecil akan dibunuh sistem lebih dulu daripada menghasilkan gambar rusak.
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 192 << 20;
+
   try {
     await Firebase.initializeApp();
   } catch (error, stack) {
