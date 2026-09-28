@@ -2,13 +2,20 @@ import 'package:alana/utils/json_utils.dart';
 import 'package:alana/utils/manga_labels.dart';
 
 class RecentChapter {
+  final String id;
+
   final int number;
   final String createdAt;
 
-  const RecentChapter({required this.number, this.createdAt = ''});
+  const RecentChapter({
+    this.id = '',
+    required this.number,
+    this.createdAt = '',
+  });
 
   factory RecentChapter.fromJson(Map<String, dynamic> json) {
     return RecentChapter(
+      id: asString(json['chapter_id']),
       number: asInt(json['chapter_number']),
       createdAt: asString(json['created_at']),
     );
@@ -23,6 +30,8 @@ class Manga {
 
   final String latestChapterTime;
   final int latestChapterNumber;
+
+  final String latestChapterId;
   final String country;
   final int viewCount;
   final num rating;
@@ -38,6 +47,7 @@ class Manga {
     this.status = '',
     this.latestChapterTime = '',
     this.latestChapterNumber = 0,
+    this.latestChapterId = '',
     this.country = '',
     this.countryCode = '',
     this.viewCount = 0,
@@ -58,6 +68,7 @@ class Manga {
       status: mangaStatusLabel(json['status']),
       latestChapterTime: asString(json['latest_chapter_time']),
       latestChapterNumber: asInt(json['latest_chapter_number']),
+      latestChapterId: asString(json['latest_chapter_id']),
       country: countryLabel(kodeNegara),
       countryCode: kodeNegara,
       viewCount: asInt(json['view_count']),
@@ -86,7 +97,11 @@ class Manga {
     }
     if (latestChapterNumber <= 0) return const [];
     return [
-      RecentChapter(number: latestChapterNumber, createdAt: latestChapterTime),
+      RecentChapter(
+        id: latestChapterId,
+        number: latestChapterNumber,
+        createdAt: latestChapterTime,
+      ),
     ];
   }
 }

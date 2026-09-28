@@ -12,8 +12,8 @@ const double rasioCoverUpdate = 0.69;
 
 const double _tinggiJudul = 38;
 
-const double tinggiChip = 23;
-const double jarakAntarChip = 6;
+const double tinggiChip = 27;
+const double jarakAntarChip = 7;
 
 const int _chapterPerSel = 2;
 
@@ -39,14 +39,14 @@ class UpdateCard extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final chapters = manga.recentChapterTerbaru(jumlah: _chapterPerSel);
 
-    return InkWell(
-      onTap: () => bukaDetailManga(context, manga),
-      borderRadius: BorderRadius.circular(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Stack(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkWell(
+          onTap: () => bukaDetailManga(context, manga),
+          borderRadius: BorderRadius.circular(12),
+          child: Stack(
             children: [
               AspectRatio(
                 aspectRatio: rasioCoverUpdate,
@@ -61,26 +61,29 @@ class UpdateCard extends StatelessWidget {
                 Positioned(right: 6, bottom: 6, child: _BenderaNegara(manga)),
             ],
           ),
-          Expanded(
-            child: Center(
-              child: Text(
-                manga.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: textTheme.bodyMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  height: 1.25,
-                ),
+        ),
+        Expanded(
+          child: Center(
+            child: Text(
+              manga.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                height: 1.25,
               ),
             ),
           ),
-          for (var i = 0; i < chapters.length; i++) ...[
-            if (i > 0) const SizedBox(height: jarakAntarChip),
-            ChipChapter(chapter: chapters[i]),
-          ],
+        ),
+        for (var i = 0; i < chapters.length; i++) ...[
+          if (i > 0) const SizedBox(height: jarakAntarChip),
+          ChipChapter(
+            chapter: chapters[i],
+            onTap: () => bacaChapter(context, manga, chapters[i]),
+          ),
         ],
-      ),
+      ],
     );
   }
 }
@@ -95,17 +98,17 @@ class _BenderaNegara extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
 
     return Container(
-      width: 26,
-      height: 20,
+      width: 34,
+      height: 26,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: scheme.surface,
-        borderRadius: BorderRadius.circular(5),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: scheme.outlineVariant),
       ),
       child: Text(
         _emojiBendera(manga.countryCode),
-        style: const TextStyle(fontSize: 13),
+        style: const TextStyle(fontSize: 17),
       ),
     );
   }
@@ -124,48 +127,78 @@ String _emojiBendera(String kode) {
 }
 
 class ChipChapter extends StatelessWidget {
-  const ChipChapter({super.key, required this.chapter});
+  const ChipChapter({super.key, required this.chapter, required this.onTap});
 
   final RecentChapter chapter;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final waktu = formatRelativeTimePendek(chapter.createdAt);
 
-    return Container(
-      height: tinggiChip,
-      padding: const EdgeInsets.symmetric(horizontal: 9),
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Flexible(
-            child: Text(
-              'Chapter ${chapter.number}',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+    return Material(
+      color: scheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(8),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox(
+          height: tinggiChip,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    'Chapter ${chapter.number}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                if (waktu.isNotEmpty) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    waktu,
+                    maxLines: 1,
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w500,
+                      color: scheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-          if (waktu.isNotEmpty) ...[
-            const SizedBox(width: 6),
-            Text(
-              waktu,
-              maxLines: 1,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
+}
+
+void bacaChapter(BuildContext context, Manga manga, RecentChapter chapter) {
+  if (manga.url.isEmpty || chapter.id.isEmpty) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text('Chapter ini belum bisa dibuka.')),
+      );
+    return;
+  }
+  context.pushNamed(
+    'reader',
+    pathParameters: {'mangaId': manga.url, 'chapterId': chapter.id},
+    extra: {
+      'chapterName': 'Chapter ${chapter.number}',
+      'mangaTitle': manga.title,
+      'mangaThumbnail': manga.thumbnail,
+    },
+  );
 }
 
 void bukaDetailManga(BuildContext context, Manga manga) {

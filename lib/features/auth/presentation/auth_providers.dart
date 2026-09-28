@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:alana/core/supabase/supabase_setup.dart';
-import 'package:alana/core/utils/deep_link.dart';
 
 import '../data/auth_repository.dart';
 
