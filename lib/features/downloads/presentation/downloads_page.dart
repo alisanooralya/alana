@@ -183,10 +183,10 @@ class _ChapterActions extends ConsumerWidget {
     if (active || queued) {
       actions.add(
         IconButton(
-          tooltip: 'Batalkan',
+          tooltip: 'Jeda',
           onPressed: () =>
-              ref.read(downloadManagerProvider.notifier).cancel(chapter.key),
-          icon: const Icon(Icons.stop_circle_outlined),
+              ref.read(downloadManagerProvider.notifier).pause(chapter.key),
+          icon: const Icon(Icons.pause_circle_outlined),
         ),
       );
     }

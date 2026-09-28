@@ -13,6 +13,7 @@ class LatestUpdatesController extends AsyncNotifier<PaginatedMangaState> {
     return PaginatedMangaState(
       items: response.mangas,
       page: 1,
+      totalPage: response.totalPage,
       hasNext: response.hasNextPage,
     );
   }
@@ -21,27 +22,27 @@ class LatestUpdatesController extends AsyncNotifier<PaginatedMangaState> {
     ref.invalidateSelf();
   }
 
-  Future<void> muatBerikutnya() async {
+  Future<void> pindahHalaman(int halaman) async {
     final saatIni = state.valueOrNull;
-    if (saatIni == null || !saatIni.hasNext || saatIni.isLoadingMore) {
-      return;
-    }
+    if (saatIni == null || halaman < 1) return;
+    if (halaman == saatIni.page) return;
+    if (halaman > saatIni.totalPage) return;
+    if (saatIni.isLoadingMore) return;
 
     state = AsyncData(
       saatIni.copyWith(isLoadingMore: true, pesanErrorMore: () => null),
     );
 
-    final halamanBerikutnya = saatIni.page + 1;
     try {
-      final repository = ref.read(homeRepositoryProvider);
-      final response = await repository.getLatestUpdates(
-        page: halamanBerikutnya,
-      );
+      final response = await ref
+          .read(homeRepositoryProvider)
+          .getLatestUpdates(page: halaman);
       if (state.valueOrNull?.page != saatIni.page) return;
       state = AsyncData(
         saatIni.copyWith(
-          items: [...saatIni.items, ...response.mangas],
-          page: halamanBerikutnya,
+          items: response.mangas,
+          page: halaman,
+          totalPage: response.totalPage,
           hasNext: response.hasNextPage,
           isLoadingMore: false,
         ),
@@ -52,7 +53,7 @@ class LatestUpdatesController extends AsyncNotifier<PaginatedMangaState> {
         saatIni.copyWith(
           isLoadingMore: false,
           pesanErrorMore: () =>
-              'Gagal memuat halaman berikutnya. ${pesanErrorRamah(error)}',
+              'Gagal memuat halaman $halaman. ${pesanErrorRamah(error)}',
         ),
       );
     }

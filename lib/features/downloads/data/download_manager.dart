@@ -194,7 +194,7 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     );
   }
 
-  Future<void> cancel(String key) async {
+  Future<void> pause(String key) async {
     final current = state.valueOrNull;
     if (current == null) return;
     if (current.activeKey == key) {
@@ -209,7 +209,7 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     }
     final dijeda = entry.copyWith(
       status: DownloadStatus.paused,
-      errorMessage: 'Download dibatalkan.',
+      errorMessage: 'Download dijeda.',
     );
     await ref.read(downloadRepositoryProvider).save(dijeda);
     _tulis(
@@ -218,6 +218,12 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
         queue: queue,
       ),
     );
+  }
+
+  Future<void> cancel(String key) async {
+    await pause(key);
+    if (state.valueOrNull?.entries[key] == null) return;
+    await deleteChapter(key);
   }
 
   Future<void> deleteChapter(String key) async {

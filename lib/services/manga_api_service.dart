@@ -47,7 +47,7 @@ class MangaApiService {
         queryParameters: {
           'type': 'project',
           'page': page,
-          'page_size': 20,
+          'page_size': 24,
           'is_update': true,
           'sort': 'latest',
           'sort_order': 'desc',
@@ -169,25 +169,19 @@ class MangaApiService {
     });
   }
 
-  static const int _chapterPageSize = 1000;
-  static const int _chapterMaxPages = 50;
+  static const int _chapterPageSize = 50;
 
-  Future<List<Chapter>> getChapterList(String mangaId) async {
+  Future<ChapterPage> getChapterList(String mangaId, {int page = 1}) {
     return _guard('get chapter list', () async {
-      final semua = <Chapter>[];
-      for (var page = 1; page <= _chapterMaxPages; page++) {
-        final json = await _client.getJson(
-          '/v1/chapter/$mangaId/list',
-          queryParameters: {'page': page, 'page_size': _chapterPageSize},
-        );
-        final batch = parseChapterList(json, mangaId: mangaId);
-        if (batch.isEmpty) break;
-        semua.addAll(batch);
-
-        final totalPage = _totalPage(json);
-        if (totalPage == null || page >= totalPage) break;
-      }
-      return semua;
+      final json = await _client.getJson(
+        '/v1/chapter/$mangaId/list',
+        queryParameters: {'page': page, 'page_size': _chapterPageSize},
+      );
+      final totalPage = _totalPage(json);
+      return ChapterPage(
+        chapters: parseChapterList(json, mangaId: mangaId),
+        totalPage: totalPage != null && totalPage > 0 ? totalPage : 1,
+      );
     });
   }
 

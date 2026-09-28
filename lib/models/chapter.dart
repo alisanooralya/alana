@@ -11,3 +11,10 @@ class Chapter {
     required this.chapterUrl,
   });
 }
+
+class ChapterPage {
+  final List<Chapter> chapters;
+  final int totalPage;
+
+  const ChapterPage({required this.chapters, this.totalPage = 1});
+}

@@ -6,6 +6,7 @@ import 'package:alana/core/widgets/cover_image.dart';
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_spinner.dart';
+import 'package:alana/core/widgets/nomor_halaman.dart';
 import 'package:alana/core/widgets/offline_banner.dart';
 import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/core/utils/share_content.dart';
@@ -32,6 +33,7 @@ class DetailPage extends ConsumerStatefulWidget {
 class _DetailPageState extends ConsumerState<DetailPage> {
   bool _sinopsisPenuh = false;
   bool _terbaruDulu = true;
+  int _halamanChapter = 1;
 
   void _toggleBookmark(MangaDetails detail) {
     final ditandai = ref
@@ -108,7 +110,12 @@ class _DetailPageState extends ConsumerState<DetailPage> {
       );
   }
 
-  void _bukaChapter(BuildContext context, MangaDetails info, Chapter chapter) {
+  void _bukaChapter(
+    BuildContext context,
+    MangaDetails info,
+    Chapter chapter,
+    int halaman,
+  ) {
     context.pushNamed(
       'reader',
       pathParameters: {'mangaId': widget.mangaId, 'chapterId': chapter.url},
@@ -116,6 +123,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
         'chapterName': chapter.name,
         'mangaTitle': info.title,
         'mangaThumbnail': info.thumbnail,
+        'halamanChapter': halaman,
       },
     );
   }
@@ -134,7 +142,11 @@ class _DetailPageState extends ConsumerState<DetailPage> {
 
     final detail = ref.watch(mangaDetailsProvider(widget.mangaId));
     final downloads = ref.watch(downloadManagerProvider).valueOrNull;
-    final chaptersAsync = ref.watch(chapterListProvider(widget.mangaId));
+    final chapterRequest = ChapterPageRequest(
+      mangaId: widget.mangaId,
+      page: _halamanChapter,
+    );
+    final chaptersAsync = ref.watch(chapterListProvider(chapterRequest));
 
     return Scaffold(
       appBar: AppBar(title: const Text('Detail')),
@@ -146,15 +158,15 @@ class _DetailPageState extends ConsumerState<DetailPage> {
         ),
         data: (info) => RefreshIndicator(
           onRefresh: () async {
-            ref
-              ..invalidate(mangaDetailsProvider(widget.mangaId))
-              ..invalidate(chapterListProvider(widget.mangaId));
+            ref.invalidate(mangaDetailsProvider(widget.mangaId));
+            ref.invalidate(chapterListProvider(chapterRequest));
             await ref.read(mangaDetailsProvider(widget.mangaId).future);
-            await ref.read(chapterListProvider(widget.mangaId).future);
+            await ref.read(chapterListProvider(chapterRequest).future);
           },
           child: _IsiDetail(
             mangaId: widget.mangaId,
             info: info,
+            halaman: _halamanChapter,
             sinopsisPenuh: _sinopsisPenuh,
             terbaruDulu: _terbaruDulu,
             onToggleSinopsis: () {
@@ -164,14 +176,18 @@ class _DetailPageState extends ConsumerState<DetailPage> {
               setState(() => _terbaruDulu = !_terbaruDulu);
             },
             onToggleBookmark: () => _toggleBookmark(info),
-            onBukaChapter: (chapter) => _bukaChapter(context, info, chapter),
+            onBukaChapter: (chapter) =>
+                _bukaChapter(context, info, chapter, _halamanChapter),
             downloads: downloads,
+            onPilihHalaman: (halaman) {
+              setState(() => _halamanChapter = halaman);
+            },
             onDownloadAll: () => _konfirmasiDownloadSemua(
               context,
               ref,
               widget.mangaId,
               info,
-              chaptersAsync.valueOrNull ?? const [],
+              chaptersAsync.valueOrNull?.chapters ?? const [],
             ),
             onDownloadChapter: (chapter) => ref
                 .read(downloadManagerProvider.notifier)
@@ -185,6 +201,12 @@ class _DetailPageState extends ConsumerState<DetailPage> {
                     coverUrl: info.thumbnail,
                   ),
                 ),
+            onJeda: (key) =>
+                ref.read(downloadManagerProvider.notifier).pause(key),
+            onLanjut: (key) =>
+                ref.read(downloadManagerProvider.notifier).retry(key),
+            onBatal: (key) =>
+                ref.read(downloadManagerProvider.notifier).cancel(key),
           ),
         ),
       ),
@@ -196,6 +218,7 @@ class _IsiDetail extends ConsumerWidget {
   const _IsiDetail({
     required this.mangaId,
     required this.info,
+    required this.halaman,
     required this.sinopsisPenuh,
     required this.terbaruDulu,
     required this.onToggleSinopsis,
@@ -203,12 +226,17 @@ class _IsiDetail extends ConsumerWidget {
     required this.onToggleBookmark,
     required this.onBukaChapter,
     required this.downloads,
+    required this.onPilihHalaman,
     required this.onDownloadAll,
     required this.onDownloadChapter,
+    required this.onJeda,
+    required this.onLanjut,
+    required this.onBatal,
   });
 
   final String mangaId;
   final MangaDetails info;
+  final int halaman;
   final bool sinopsisPenuh;
   final bool terbaruDulu;
   final VoidCallback onToggleSinopsis;
@@ -216,15 +244,21 @@ class _IsiDetail extends ConsumerWidget {
   final VoidCallback onToggleBookmark;
   final void Function(Chapter chapter) onBukaChapter;
   final DownloadState? downloads;
+  final ValueChanged<int> onPilihHalaman;
   final VoidCallback onDownloadAll;
   final void Function(Chapter chapter) onDownloadChapter;
+  final void Function(String key) onJeda;
+  final void Function(String key) onLanjut;
+  final void Function(String key) onBatal;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ditandai = ref.watch(bookmarkRepositoryProvider).containsKey(mangaId);
     final progres = ref.watch(historyRepositoryProvider)[mangaId];
     final dibaca = progres?.readChapterIds ?? const <String>{};
-    final chaptersAsync = ref.watch(chapterListProvider(mangaId));
+    final chaptersAsync = ref.watch(
+      chapterListProvider(ChapterPageRequest(mangaId: mangaId, page: halaman)),
+    );
 
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -235,12 +269,12 @@ class _IsiDetail extends ConsumerWidget {
             info: info,
             ditandai: ditandai,
             labelTombolBaca: _labelTombolBaca(
-              chaptersAsync.valueOrNull,
+              chaptersAsync.valueOrNull?.chapters,
               dibaca,
               progres?.lastChapterId,
             ),
             targetBaca: _targetBaca(
-              chaptersAsync.valueOrNull,
+              chaptersAsync.valueOrNull?.chapters,
               dibaca,
               progres?.lastChapterId,
             ),
@@ -249,7 +283,7 @@ class _IsiDetail extends ConsumerWidget {
                 shareManga(shareContext, info.title, mangaId),
             onBaca: () {
               final target = _targetBaca(
-                chaptersAsync.valueOrNull,
+                chaptersAsync.valueOrNull?.chapters,
                 dibaca,
                 progres?.lastChapterId,
               );
@@ -268,7 +302,7 @@ class _IsiDetail extends ConsumerWidget {
         SliverToBoxAdapter(child: _InfoTambahan(info: info)),
         SliverToBoxAdapter(
           child: _HeaderChapter(
-            jumlah: chaptersAsync.valueOrNull?.length,
+            jumlah: chaptersAsync.valueOrNull?.chapters.length,
             terbaruDulu: terbaruDulu,
             onToggleUrut: onToggleUrut,
             onDownloadAll: onDownloadAll,
@@ -292,15 +326,19 @@ class _IsiDetail extends ConsumerWidget {
                     ),
                   ),
                   TextButton(
-                    onPressed: () =>
-                        ref.invalidate(chapterListProvider(mangaId)),
+                    onPressed: () => ref.invalidate(
+                      chapterListProvider(
+                        ChapterPageRequest(mangaId: mangaId, page: halaman),
+                      ),
+                    ),
                     child: const Text('Coba lagi'),
                   ),
                 ],
               ),
             ),
           ),
-          data: (chapters) {
+          data: (result) {
+            final chapters = result.chapters;
             if (chapters.isEmpty) {
               return const SliverToBoxAdapter(
                 child: EmptyView(
@@ -311,99 +349,162 @@ class _IsiDetail extends ConsumerWidget {
               );
             }
             final tampil = _urutkan(chapters, terbaruDulu);
-            return SliverList.separated(
-              itemCount: tampil.length,
-              separatorBuilder: (context, index) =>
-                  const Divider(height: 1, indent: 16, endIndent: 16),
-              itemBuilder: (context, index) {
-                final chapter = tampil[index];
-                final sudah = dibaca.contains(chapter.url);
-                final download = downloads?.entryFor(
-                  DownloadRepository.keyFor(
-                    ref.watch(userIdProvider) ?? '',
-                    mangaId,
-                    chapter.url,
-                  ),
-                );
-                final statusUnduhan = download?.status;
-                final selesaiUnduh = statusUnduhan == DownloadStatus.completed;
-                final statusLabel = switch (statusUnduhan) {
-                  DownloadStatus.queued => 'Dalam antrean',
-                  DownloadStatus.downloading =>
-                    'Mengunduh ${((download?.progress ?? 0) * 100).round()}%',
+            return SliverMainAxisGroup(
+              slivers: [
+                SliverList.separated(
+                  itemCount: tampil.length,
+                  separatorBuilder: (context, index) =>
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                  itemBuilder: (context, index) {
+                    final chapter = tampil[index];
+                    final sudah = dibaca.contains(chapter.url);
+                    final download = downloads?.entryFor(
+                      DownloadRepository.keyFor(
+                        ref.watch(userIdProvider) ?? '',
+                        mangaId,
+                        chapter.url,
+                      ),
+                    );
+                    final statusUnduhan = download?.status;
+                    final selesaiUnduh =
+                        statusUnduhan == DownloadStatus.completed;
+                    final sedangBerjalan =
+                        statusUnduhan == DownloadStatus.downloading ||
+                        statusUnduhan == DownloadStatus.queued;
+                    final statusLabel = switch (statusUnduhan) {
+                      DownloadStatus.queued => 'Dalam antrean',
+                      DownloadStatus.downloading =>
+                        'Mengunduh ${((download?.progress ?? 0) * 100).round()}%',
 
-                  DownloadStatus.completed => 'Tersimpan',
-                  DownloadStatus.failed => 'Gagal',
-                  DownloadStatus.paused => 'Dijeda',
-                  null => null,
-                };
-                return ListTile(
-                  leading: Icon(
-                    sudah ? Icons.check_circle : Icons.check_circle_outline,
-                    color: sudah
-                        ? Colors.green
-                        : Theme.of(context).colorScheme.outline,
-                  ),
-                  title: Text(
-                    chapter.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: sudah
-                        ? TextStyle(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant,
-                          )
-                        : null,
-                  ),
-                  subtitle: Text(
-                    [
-                      _formatTanggalChapter(chapter.dateUpload),
-                      ?statusLabel,
-                    ].join(' • '),
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (selesaiUnduh) const Icon(Icons.offline_pin, size: 18),
-                      if (statusUnduhan == DownloadStatus.downloading)
-                        SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            value: download?.progress ?? 0,
-                            strokeWidth: 2,
-                          ),
-                        )
-                      else
-                        IconButton(
-                          tooltip: selesaiUnduh
-                              ? 'Chapter sudah tersimpan'
-                              : 'Unduh chapter',
-                          onPressed: selesaiUnduh
-                              ? null
-                              : () => onDownloadChapter(chapter),
-                          icon: Icon(
-                            selesaiUnduh
-                                ? Icons.download_done
-                                : Icons.download_outlined,
-                          ),
-                        ),
-                      if (sudah)
-                        const Text('Dibaca')
-                      else if (!selesaiUnduh)
-                        const Icon(Icons.chevron_right),
-                    ],
-                  ),
+                      DownloadStatus.completed => 'Tersimpan',
+                      DownloadStatus.failed => 'Gagal',
+                      DownloadStatus.paused => 'Dijeda',
+                      null => null,
+                    };
+                    return ListTile(
+                      leading: Icon(
+                        sudah ? Icons.check_circle : Icons.check_circle_outline,
+                        color: sudah
+                            ? Colors.green
+                            : Theme.of(context).colorScheme.outline,
+                      ),
+                      title: Text(
+                        chapter.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: sudah
+                            ? TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              )
+                            : null,
+                      ),
+                      subtitle: Text(
+                        [
+                          _formatTanggalChapter(chapter.dateUpload),
+                          ?statusLabel,
+                        ].join(' • '),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (selesaiUnduh)
+                            const Icon(Icons.offline_pin, size: 18),
+                          if (statusUnduhan == DownloadStatus.downloading)
+                            SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                value: download?.progress ?? 0,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          else if (!selesaiUnduh)
+                            IconButton(
+                              tooltip: selesaiUnduh
+                                  ? 'Chapter sudah tersimpan'
+                                  : 'Unduh chapter',
+                              onPressed: selesaiUnduh
+                                  ? null
+                                  : () => onDownloadChapter(chapter),
+                              icon: Icon(
+                                selesaiUnduh
+                                    ? Icons.download_done
+                                    : Icons.download_outlined,
+                              ),
+                            ),
+                          if (sedangBerjalan)
+                            _TombolAksi(
+                              tooltip: 'Jeda unduhan',
+                              ikon: Icons.pause,
+                              onTap: () => onJeda(download!.key),
+                            )
+                          else if (statusUnduhan == DownloadStatus.paused ||
+                              statusUnduhan == DownloadStatus.failed)
+                            _TombolAksi(
+                              tooltip: 'Lanjutkan unduhan',
+                              ikon: Icons.play_arrow,
+                              onTap: () => onLanjut(download!.key),
+                            ),
+                          if (download != null && !selesaiUnduh)
+                            _TombolAksi(
+                              tooltip: 'Batalkan unduhan',
+                              ikon: Icons.stop,
+                              onTap: () => onBatal(download.key),
+                            )
+                          else if (sudah)
+                            const Text('Dibaca')
+                          else if (!selesaiUnduh)
+                            const Icon(Icons.chevron_right),
+                        ],
+                      ),
 
-                  onTap: () => onBukaChapter(chapter),
-                );
-              },
+                      onTap: () => onBukaChapter(chapter),
+                    );
+                  },
+                ),
+                if (result.totalPage > 1)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
+                      child: NomorHalaman(
+                        halaman: halaman,
+                        totalHalaman: result.totalPage,
+                        onPilih: onPilihHalaman,
+                      ),
+                    ),
+                  ),
+              ],
             );
           },
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 24)),
       ],
+    );
+  }
+}
+
+class _TombolAksi extends StatelessWidget {
+  const _TombolAksi({
+    required this.tooltip,
+    required this.ikon,
+    required this.onTap,
+  });
+
+  final String tooltip;
+  final IconData ikon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: tooltip,
+      onPressed: onTap,
+      icon: Icon(ikon),
+      visualDensity: VisualDensity.compact,
+      constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
+      padding: EdgeInsets.zero,
     );
   }
 }

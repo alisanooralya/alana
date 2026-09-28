@@ -36,6 +36,7 @@ class ReaderPage extends ConsumerStatefulWidget {
     this.chapterName = '',
     this.mangaTitle = '',
     this.mangaThumbnail = '',
+    this.halamanChapter = 1,
   });
 
   final String mangaId;
@@ -43,6 +44,8 @@ class ReaderPage extends ConsumerStatefulWidget {
   final String chapterName;
   final String mangaTitle;
   final String mangaThumbnail;
+
+  final int halamanChapter;
 
   @override
   ConsumerState<ReaderPage> createState() => _ReaderPageState();
@@ -188,6 +191,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
         'chapterName': target.name,
         'mangaTitle': widget.mangaTitle,
         'mangaThumbnail': widget.mangaThumbnail,
+        'halamanChapter': widget.halamanChapter,
       },
     );
   }
@@ -237,8 +241,15 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
         ? ref.watch(offlinePageListProvider(_kunciOffline))
         : ref.watch(pageListProvider(widget.chapterId));
     final chaptersAsync = offline
-        ? const AsyncData<List<Chapter>>(<Chapter>[])
-        : ref.watch(chapterListProvider(widget.mangaId));
+        ? const AsyncValue<ChapterPage>.data(ChapterPage(chapters: []))
+        : ref.watch(
+            chapterListProvider(
+              ChapterPageRequest(
+                mangaId: widget.mangaId,
+                page: widget.halamanChapter,
+              ),
+            ),
+          );
     _uid = ref.watch(userIdProvider);
 
     void tandaiDibaca(AsyncValue<List<manga.Page>> next) {
@@ -269,7 +280,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
       }
     }
 
-    final chapters = chaptersAsync.valueOrNull;
+    final chapters = chaptersAsync.valueOrNull?.chapters;
     final terlamaDulu = chapters == null ? null : _urutTerlamaDulu(chapters);
     final posisi = terlamaDulu?.indexWhere(
       (chapter) => chapter.url == widget.chapterId,

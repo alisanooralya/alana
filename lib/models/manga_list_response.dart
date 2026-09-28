@@ -5,7 +5,15 @@ class MangaListResponse {
   final List<Manga> mangas;
   final bool hasNextPage;
 
-  const MangaListResponse({required this.mangas, required this.hasNextPage});
+  /// Total halaman dari `meta.total_page`. Dibutuhkannya page bar; kalau
+  /// server tidak mengirimnya, hanya [hasNextPage] yang bisa dipakai.
+  final int totalPage;
+
+  const MangaListResponse({
+    required this.mangas,
+    required this.hasNextPage,
+    this.totalPage = 1,
+  });
 
   factory MangaListResponse.fromJson(Map<String, dynamic> json) {
     final rawData = json['data'];
@@ -24,6 +32,10 @@ class MangaListResponse {
     final hasNextPage =
         currentPage != null && totalPage != null && currentPage < totalPage;
 
-    return MangaListResponse(mangas: mangas, hasNextPage: hasNextPage);
+    return MangaListResponse(
+      mangas: mangas,
+      hasNextPage: hasNextPage,
+      totalPage: totalPage != null && totalPage > 0 ? totalPage : 1,
+    );
   }
 }

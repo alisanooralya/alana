@@ -5,13 +5,13 @@ import 'package:go_router/go_router.dart';
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_spinner.dart';
+import 'package:alana/core/widgets/nomor_halaman.dart';
 import 'package:alana/core/widgets/offline_banner.dart';
 import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/features/notifikasi/presentation/notifikasi_providers.dart';
 
 import 'home_providers.dart';
 import 'latest_updates_controller.dart';
-import 'paginated_manga_state.dart';
 import 'widgets/home_section.dart';
 import 'widgets/manga_card.dart';
 import 'widgets/popular_carousel.dart';
@@ -30,25 +30,9 @@ class _HomePageState extends ConsumerState<HomePage> {
   final _scrollController = ScrollController();
 
   @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(_onScroll);
-  }
-
-  @override
   void dispose() {
-    _scrollController
-      ..removeListener(_onScroll)
-      ..dispose();
+    _scrollController.dispose();
     super.dispose();
-  }
-
-  void _onScroll() {
-    if (!_scrollController.hasClients) return;
-    final position = _scrollController.position;
-    if (position.pixels >= position.maxScrollExtent - 300) {
-      ref.read(latestUpdatesControllerProvider.notifier).muatBerikutnya();
-    }
   }
 
   Future<void> _muatUlangSemua() async {
@@ -213,7 +197,19 @@ class _HomePageState extends ConsumerState<HomePage> {
                             ),
                           ),
                           SliverToBoxAdapter(
-                            child: _BawahDaftar(halaman: halaman),
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(12, 18, 12, 8),
+                              child: NomorHalaman(
+                                halaman: halaman.page,
+                                totalHalaman: halaman.totalPage,
+                                sedangMemuat: halaman.isLoadingMore,
+                                onPilih: ref
+                                    .read(
+                                      latestUpdatesControllerProvider.notifier,
+                                    )
+                                    .pindahHalaman,
+                              ),
+                            ),
                           ),
                         ],
                       );
@@ -299,53 +295,6 @@ class _SectionKosong extends StatelessWidget {
           child: Text('Belum ada data.'),
         ),
       ],
-    );
-  }
-}
-
-class _BawahDaftar extends ConsumerWidget {
-  const _BawahDaftar({required this.halaman});
-
-  final PaginatedMangaState halaman;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final bool sedangMemuat = halaman.isLoadingMore;
-    final bool adaBerikutnya = halaman.hasNext;
-    final bool kosong = halaman.items.isEmpty;
-
-    if (sedangMemuat) {
-      return const Padding(
-        padding: EdgeInsets.all(24),
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (kosong) return const SizedBox.shrink();
-
-    if (!adaBerikutnya) {
-      return Padding(
-        padding: const EdgeInsets.all(16),
-        child: Center(
-          child: Text(
-            'Semua sudah dimuat.',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-        ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Center(
-        child: OutlinedButton.icon(
-          onPressed: () => ref
-              .read(latestUpdatesControllerProvider.notifier)
-              .muatBerikutnya(),
-          icon: const Icon(Icons.expand_more),
-          label: const Text('Muat lebih banyak'),
-        ),
-      ),
     );
   }
 }

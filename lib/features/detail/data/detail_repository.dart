@@ -14,8 +14,8 @@ class DetailRepository {
     return service.getMangaDetails(mangaId);
   }
 
-  Future<List<Chapter>> getChapters(String mangaId) {
-    return service.getChapterList(mangaId);
+  Future<ChapterPage> getChapters(String mangaId, {int page = 1}) {
+    return service.getChapterList(mangaId, page: page);
   }
 }
 
