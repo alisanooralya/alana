@@ -43,6 +43,7 @@ class ReaderImage extends StatefulWidget {
     this.localPath,
     this.onLoaded,
     this.sedangGeser = false,
+    this.onTerlihat,
   });
 
   final String imageUrl;
@@ -59,6 +60,14 @@ class ReaderImage extends StatefulWidget {
   /// penuh, evict, lalu gambar yang sudah dibaca hilang.
   final bool sedangGeser;
 
+  /// Dipanggil sekali saat item ini menjadi yang teratas di layar.
+  ///
+  /// Ini yang memberi tahu halamanZTiap reader halaman berapa yang sedang dibaca,
+  /// untuk evict halaman lain di luar jendela. Widget memeriksa sendiri
+  /// posisinya lewat post-frame callback, jadi halaman reader tidak perlu
+  /// menghitung offset tiap item.
+  final VoidCallback? onTerlihat;
+
   @override
   State<ReaderImage> createState() => _ReaderImageState();
 }
@@ -68,6 +77,7 @@ class _ReaderImageState extends State<ReaderImage> {
   int _attempt = 0;
   bool _sudahTampil = false;
   bool _zoomAktif = false;
+  bool _sudahMelapor = false;
 
   @override
   void initState() {
@@ -80,6 +90,26 @@ class _ReaderImageState extends State<ReaderImage> {
     _transform.removeListener(_onTransform);
     _transform.dispose();
     super.dispose();
+  }
+
+  void _periksaPosisi() {
+    if (_sudahMelapor || widget.onTerlihat == null) return;
+
+    final context = this.context;
+    if (!context.mounted) return;
+    final box = context.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize || !box.attached) return;
+
+    final posisi = box.localToGlobal(Offset.zero).dy;
+    final tinggiLayar = MediaQuery.sizeOf(context).height;
+
+    // Item dianggap "teratas" kalau puncaknya sudah melewati atau menyentuh
+    // tepi atas layar, tapi masih jauh dari bawah. Hanya satu item yang bisa
+    // memenuhi ini pada satu waktu, jadi tidak perlu rebutan antar widget.
+    if (posisi > 24 || posisi < -tinggiLayar * 0.75) return;
+
+    _sudahMelapor = true;
+    widget.onTerlihat!.call();
   }
 
   void _onTransform() {
@@ -229,6 +259,10 @@ class _ReaderImageState extends State<ReaderImage> {
               ),
             ),
     );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _periksaPosisi();
+    });
 
     if (!_zoomAktif) return viewer;
     return GestureDetector(onDoubleTap: _resetZoom, child: viewer);

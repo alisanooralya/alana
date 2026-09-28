@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -50,6 +51,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
   bool _chromeTerlihat = true;
   bool _sudahRestore = false;
   bool _sedangGeser = false;
+  bool _offlineAktif = false;
   final _scrollController = ScrollController();
   Timer? _saveTimer;
   Timer? _gateTimer;
@@ -163,6 +165,52 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     _scrollController.jumpTo(sampai);
     _restoreTercapai = sampai >= target - 1;
   }
+
+  /// Provider untuk satu halaman, harus identik dengan yang diminta
+  /// [ReaderImage] supaya `imageCache.evict` mengenai entry yang benar.
+  ///
+  /// `ResizeImage` meng-override `==` dan `hashCode` dengan lebar, tinggi,
+  /// policy, dan allowUpscaling, jadi instance yang dibangun ulang di sini
+  /// menunjuk cache entry yang sama.
+  ImageProvider _providerHalaman(manga.Page page) {
+    final batas = batasDecode(
+      lebarLogis: MediaQuery.sizeOf(context).width,
+      dpr: MediaQuery.maybeDevicePixelRatioOf(context) ?? 1,
+    );
+    return ResizeImage(
+      _offlineAktif
+          ? FileImage(File(page.imageUrl))
+          : CachedNetworkImageProvider(
+              page.imageUrl,
+              headers: readerImageHeaders,
+            ),
+      width: batas.width,
+      height: batas.height,
+      policy: ResizeImagePolicy.fit,
+    );
+  }
+
+  /// Menjaga hanya halaman sekitar posisi baca tetap ter-decode.
+  ///
+  /// `imageCache` sudah LRU, tapi LRU hanya melihat "terakhir dipakai": saat
+  /// fling, banyak halaman masuk cache dan yang sedang dibaca bisa ter-evict.
+  /// Jendela eksplisit evict apa yang sudah dilewati, sehingga kembali ke posisi
+  /// baca tidak perlu decode ulang.
+  ///
+  /// Memakai `imageCache.evict` dan bukan `ui.Image.dispose` supaya mesin
+  /// yang sudah tidak menampilkannya yang membebaskan gambarnya sendiri.
+  /// Disposal manual berisiko "image used after being disposed".
+  void _jagaJendela(int aktif, List<manga.Page> pages) {
+    if (aktif < 0 || aktif >= pages.length) return;
+    final cache = PaintingBinding.instance.imageCache;
+    for (var i = 0; i < pages.length; i++) {
+      if ((i - aktif).abs() <= _radiusJendela) continue;
+      cache.evict(_providerHalaman(pages[i]));
+    }
+  }
+
+  /// Berapa halaman di kiri dan kanan yang tetap di-cache.
+  static const int _radiusJendela = 1;
 
   void _preloadBerikutnya(
     int index,
@@ -363,6 +411,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
               );
             }
             _jumlahHalamanTerakhir = pages.length;
+            _offlineAktif = offline;
             return NotificationListener<ScrollNotification>(
               onNotification: _onScrollNotification,
               child: ListView.builder(
@@ -384,6 +433,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
                     localPath: offline ? pages[index].imageUrl : null,
                     headers: readerImageHeaders,
                     sedangGeser: _sedangGeser,
+                    onTerlihat: () => _jagaJendela(index, pages),
                     onLoaded: () =>
                         _preloadBerikutnya(index, pages, offline: offline),
                   );
