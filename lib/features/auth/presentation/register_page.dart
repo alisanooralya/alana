@@ -12,10 +12,6 @@ import 'package:alana/features/auth/presentation/auth_providers.dart';
 
 import 'widgets/auth_widgets.dart';
 
-/// Halaman daftar: username + email + password atau Google.
-///
-/// Bila konfirmasi email aktif (tidak ada sesi setelah daftar),
-/// user diarahkan ke layar verifikasi email.
 class RegisterPage extends ConsumerStatefulWidget {
   const RegisterPage({super.key});
 
@@ -78,11 +74,6 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   }
 
   Future<void> _daftar() async {
-    // onSubmitted dari keyboard memanggil method yang sama dengan tombol, dan
-    // tidak ikut dilebihkan oleh kondisi tombol yang disabled. Tanpa penjaga ini
-    // dua permintaan berjalan bersamaan: pada daftar, panggilan kedua
-    // mendapat 422 "user already registered" dan menampilkan pesan "email
-    // sudah terdaftar" untuk akun yang baru saja berhasil dibuat.
     if (_memuat) return;
     FocusScope.of(context).unfocus();
     setState(() => _pesanError = null);
@@ -102,13 +93,11 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
           );
       if (!mounted) return;
       if (hasil.session == null) {
-        // Konfirmasi email aktif → minta verifikasi dulu.
         context.pushNamed(
           'verifikasi-email',
           queryParameters: {'email': _email.text.trim()},
         );
       }
-      // Bila ada sesi, redirect otomatis ke Beranda.
     } catch (error) {
       if (mounted) setState(() => _pesanError = pesanAuthRamah(error));
     } finally {

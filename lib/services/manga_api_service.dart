@@ -14,17 +14,9 @@ extension MangaStatusFilterValue on MangaStatusFilter {
   };
 }
 
-/// Opsi urutan hasil.
-///
-/// Opsi "A-Z" sengaja tidak ada: endpoint `/v1/manga/list` tidak mendukung
-/// pengurutan alfabetis sama sekali (nilai `title`, `name`, dan `alphabet`
-/// semuanya ditolak dengan HTTP 400), jadi menawarkannya hanya menghasilkan
-/// halaman error yang tidak bisa dipulihkan.
 enum MangaSort { latest, popular, rating }
 
 extension MangaSortValue on MangaSort {
-  /// Nilai yang diterima API. Nama enum tidak bisa dipakai apa adanya:
-  /// `popular` ditolak dengan 400, yang benar `popularity`.
   String get apiValue => switch (this) {
     MangaSort.latest => 'latest',
     MangaSort.popular => 'popularity',
@@ -32,14 +24,12 @@ extension MangaSortValue on MangaSort {
   };
 }
 
-/// High-level access to the Shinigami (shngm) manga API.
 class MangaApiService {
   MangaApiService({MangaApiClient? client})
     : _client = client ?? MangaApiClient();
 
   final MangaApiClient _client;
 
-  /// Fetches the daily popular manga list.
   Future<MangaListResponse> getPopularManga({int page = 1}) {
     return _guard('get popular manga', () async {
       final json = await _client.getJson(
@@ -50,7 +40,6 @@ class MangaApiService {
     });
   }
 
-  /// Fetches the latest updated manga list.
   Future<MangaListResponse> getLatestUpdates({int page = 1}) {
     return _guard('get latest updates', () async {
       final json = await _client.getJson(
@@ -68,7 +57,6 @@ class MangaApiService {
     });
   }
 
-  /// Fetches recommended manga.
   Future<MangaListResponse> getRecommendedManga({int page = 1}) {
     return _guard('get recommended manga', () async {
       final json = await _client.getJson(
@@ -116,10 +104,6 @@ class MangaApiService {
     });
   }
 
-  /// Searches manga by [query], optionally filtered by genre, format or status.
-  ///
-  /// [genreInclude], [format] and [status] each accept either a single value
-  /// or a list of values.
   Future<MangaListResponse> searchManga(
     String query, {
     int page = 1,
@@ -156,7 +140,6 @@ class MangaApiService {
     });
   }
 
-  /// Fetches the list of available genres.
   Future<List<Genre>> getGenreList() {
     return _guard('get genre list', () async {
       final body = await _client.getData('/v1/genre/list');
@@ -173,7 +156,6 @@ class MangaApiService {
     });
   }
 
-  /// Fetches details of the manga with the given [mangaId].
   Future<MangaDetails> getMangaDetails(String mangaId) {
     return _guard('get manga details', () async {
       final json = await _client.getJson('/v1/manga/detail/$mangaId');
@@ -187,21 +169,9 @@ class MangaApiService {
     });
   }
 
-  /// Jumlah chapter per halaman saat menarik daftar chapter.
   static const int _chapterPageSize = 1000;
-
-  /// Pengaman jumlah halaman yang ditarik per manga.
-  ///
-  /// `meta.total_page` datang dari server; batas ini mencegah loop tak
-  /// berakhir bila server melaporkan angka yang tidak masuk akal.
   static const int _chapterMaxPages = 50;
 
-  /// Fetches all chapters of the manga with the given [mangaId].
-  ///
-  /// Daftar chapter dipaginasi: satu request dengan `page_size` besar tidak
-  /// cukup untuk seri panjang. Tanpa pemanggilan lanjutan, chapter awal
-  /// Martial Peak (3862 chapter, `total_page: 2`) tidak pernah sampai ke
-  /// aplikasi dan tidak bisa dibuka.
   Future<List<Chapter>> getChapterList(String mangaId) async {
     return _guard('get chapter list', () async {
       final semua = <Chapter>[];
@@ -221,7 +191,6 @@ class MangaApiService {
     });
   }
 
-  /// Jumlah halaman total dari amplop respons, null bila tidak ada.
   static int? _totalPage(Map<String, dynamic> json) {
     final meta = json['meta'];
     if (meta is! Map) return null;
@@ -231,7 +200,6 @@ class MangaApiService {
     return int.tryParse(value?.toString() ?? '');
   }
 
-  /// Fetches the pages (images) of the chapter with the given [chapterId].
   Future<List<Page>> getPageList(String chapterId) {
     return _guard('get page list', () async {
       final data = await _client.getData('/v1/chapter/detail/$chapterId');
@@ -239,7 +207,6 @@ class MangaApiService {
     });
   }
 
-  /// Downloads the raw bytes of an image.
   Future<T> _guard<T>(String action, Future<T> Function() request) async {
     try {
       return await request();
@@ -249,9 +216,6 @@ class MangaApiService {
   }
 }
 
-/// Normalizes a search filter into a comma separated value.
-///
-/// Accepts a single value, a comma separated string or an iterable of values.
 String _normalizeMultiValue(dynamic value) {
   if (value == null) return '';
 

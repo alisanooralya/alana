@@ -2,16 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-/// Listenable yang memberi tahu GoRouter setiap sumber memancarkan perubahan.
-///
-/// Dipakai sebagai `refreshListenable` agar `redirect` dievaluasi ulang saat
-/// status sesi, kesiapan splash, status onboarding, atau permintaan setup
-/// username berubah.
-///
-/// Penting: notifyListeners inilah mekanisme evaluates ulang redirect, bukan
-/// membuat ulang router. GoRouter yang dibuat ulang akan membaca ulang
-/// `initialLocation`, sehingga menukar navigator beserta seluruh stack
-/// navigasi dan `extra` halaman yang sedang dibuka.
 class GoRouterRefresh extends ChangeNotifier {
   GoRouterRefresh([Iterable<Stream<dynamic>> streams = const []]) {
     for (final stream in streams) {
@@ -21,7 +11,6 @@ class GoRouterRefresh extends ChangeNotifier {
 
   final List<StreamSubscription<dynamic>> _langganan = [];
 
-  /// Minta `redirect` dievaluasi ulang dari pemanggil non-stream.
   void pemicu() => notifyListeners();
 
   @override

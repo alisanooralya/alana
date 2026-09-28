@@ -17,37 +17,18 @@ import 'sync_remote.dart';
 
 DateTime _epoch() => DateTime.fromMillisecondsSinceEpoch(0);
 
-/// Sinyal penyegar jumlah pending setelah jalur statis menulis box langsung.
-///
-/// `dorongSekarang` sengaja tanpa `ref` supaya bisa dipanggil dari dispose
-/// Reader. Konsekuensinya perubahan flag pending di box tidak diketahui
-/// Riverpod, sehingga indikator "Menunggu sinkron (N)" menampilkan angka lama
-/// padahal datanya sudah tersimpan di server.
-///
-/// changeNotifierDi_refresh harus di-trigger dari dalam kelas turunannya
-/// ChangeNotifier; notifyListeners() sendiri dilindungi di Flutter.
 class _SyncTick extends ChangeNotifier {
   void pemicu() => notifyListeners();
 }
 
 final _syncTick = _SyncTick();
 
-/// Mendaftarkan penyegaran jumlah pending ke dalam [Ref].
-///
-/// Listener disimpan agar bisa dilepas lagi saat provider di-dispose,
-/// supaya provider yang dibangun ulang tidak menumpuk listener dan memicu
-/// invalidate berkali-kali.
 void bangunkanPendingSync(Ref ref) {
   void pemicu() => ref.invalidate(pendingSyncProvider);
   ref.onDispose(() => _syncTick.removeListener(pemicu));
   _syncTick.addListener(pemicu);
 }
 
-/// Orkestrasi sinkronisasi Supabase (sumber kebenaran lintas perangkat).
-///
-/// Lokal (Hive per-user) tetap sumber tampilan: cepat + offline.
-/// Semua remote dipanggil tanpa memblokir UI; gagal = tetap pending
-/// dan dicoba lagi saat koneksi kembali / dibuka / refresh.
 class SyncService {
   SyncService(this.ref);
 
@@ -57,16 +38,11 @@ class SyncService {
 
   String? get uidAktif => _uidAktif;
 
-  /// Dipanggil setiap sesi berubah (login/logout/ganti akun).
   Future<void> handleSesi(String? uid) async {
     if (uid == null || uid.isEmpty) {
       final lama = _uidAktif;
       _uidAktif = null;
       if (lama != null && lama.isNotEmpty) {
-        // Dorong yang pending, tapi JANGAN hapus box-nya: box sudah
-        // di-namespace per uid sehingga tidak bisa tercampur antar akun,
-        // sedangkan menghapusnya membuat bookmark/progres yang dibuat
-        // offline hilang permanen saat user logout lalu login lagi.
         await dorongSekarang(lama);
       }
       return;
@@ -80,8 +56,6 @@ class SyncService {
     await sinkronPenuh(uid);
   }
 
-  /// Tarik remote + merge LWW + dorong batch yang pending.
-  /// Dipakai setelah login, saat aplikasi dibuka, dan pull-to-refresh.
   Future<void> sinkronPenuh(String uid) async {
     if (_sibuk || !SupabaseSetup.siap || uid.isEmpty) return;
     _sibuk = true;
@@ -90,10 +64,6 @@ class SyncService {
         SyncRemote.tarikBookmarks(uid),
         SyncRemote.tarikHistory(uid),
       ]);
-      // Sesi bisa berubah selama menunggu: user keluar lalu masuk akun lain.
-      // `_uidAktif` dicek ulang karena repo diambil lewat ref.read SETELAH
-      // await - tanpa pengecekan ini, data akun lama ditulis ke box dan state
-      // akun baru sehingga Pustaka akun B menampilkan isi privat akun A.
       if (_uidAktif != uid) return;
       await _gabungBookmark(uid, daftar[0]);
       if (_uidAktif != uid) return;
@@ -105,21 +75,16 @@ class SyncService {
     }
   }
 
-  /// Tarik ulang + merge untuk user aktif (pull-to-refresh tab).
   Future<void> pullSegar() {
     final uid = _uidAktif;
     if (uid == null || uid.isEmpty) return Future.value();
     return sinkronPenuh(uid);
   }
 
-  /// Dorong semua yang pending (dipanggil saat koneksi kembali,
-  /// pindah chapter, keluar reader, dan aplikasi background).
   Future<void> flushTertunda() {
     return dorongSekarang(_uidAktif);
   }
 
-  /// Versi statis (tanpa ref) untuk dipanggil dari dispose Reader.
-  /// Memperbarui flag di box; repo dimuat ulang saat halaman dibuka.
   static Future<void> dorongSekarang(String? uid, {String? mangaId}) async {
     if (uid == null || uid.isEmpty || !SupabaseSetup.siap) return;
     try {
@@ -127,7 +92,6 @@ class SyncService {
       await _dorongTombs(uid, 'rh');
       await _dorongBox(uid, 'bm', mangaId);
       await _dorongTombs(uid, 'bm');
-      // Flag pending di box sudah berubah; beri tahu indikator.
       _syncTick.pemicu();
     } catch (_) {
       // Tetap pending; dicoba lagi pada kesempatan berikut.
@@ -211,7 +175,6 @@ class SyncService {
       if (id.isEmpty) continue;
       final dihapus = DateTime.tryParse(r['deleted_at']?.toString() ?? '');
       if (dihapus != null) {
-        // Soft delete di server: perlakukan sebagai tombstone, bukan data hidup.
         tombsRemote[id] = dihapus;
         continue;
       }
@@ -302,8 +265,6 @@ class SyncService {
       keBaris: (data) =>
           HistoryRepository.barisUntuk(uid, MangaReadingProgress.fromMap(data)),
     );
-    // Skema remote tidak punya daftar chapter dibaca:
-    // gabungkan milik lokal agar tanda baca antar-perangkat tidak hilang.
     final gabungan = <String, MangaReadingProgress>{};
     for (final e in hasil.lokal.entries) {
       var p = MangaReadingProgress.fromMap(e.value);

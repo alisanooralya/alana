@@ -7,8 +7,6 @@ import 'package:alana/services/manga_api_service.dart';
 
 import 'jelajah_query.dart';
 
-/// Repository Beranda. Membungkus [MangaApiService] yang sudah ada
-/// agar widget tidak memanggil service secara langsung.
 class HomeRepository {
   const HomeRepository({required this.service});
 

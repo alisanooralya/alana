@@ -2,11 +2,6 @@ import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-/// Helper transisi halaman terpusat.
-///
-/// Durasi 300–450ms, curve easeOutCubic (kecuali dinyatakan lain).
-/// Semua menghormati pengaturan aksesibilitas: bila animasi sistem
-/// dimatikan, durasi menjadi nol (fade instan).
 class Transisi {
   const Transisi._();
 
@@ -15,7 +10,6 @@ class Transisi {
   static const _lubangDur = Duration(milliseconds: 350);
   static const _tabDur = Duration(milliseconds: 150);
 
-  /// Nol bila [MediaQuery.disableAnimationsOf] aktif.
   static Duration skala(BuildContext context, Duration d) {
     if (MediaQuery.disableAnimationsOf(context)) return Duration.zero;
     return d;
@@ -43,7 +37,6 @@ class Transisi {
     );
   }
 
-  /// SharedAxis (horizontal/vertikal) ala Material.
   static CustomTransitionPage<void> sumbu({
     required LocalKey key,
     required Widget child,
@@ -66,7 +59,6 @@ class Transisi {
     );
   }
 
-  /// FadeThrough untuk perpindahan selevel (auth ↔ auth, login → home).
   static CustomTransitionPage<void> lubang({
     required LocalKey key,
     required Widget child,
@@ -87,7 +79,6 @@ class Transisi {
     );
   }
 
-  /// Fade sangat singkat untuk bingkai shell (masuk pertama).
   static CustomTransitionPage<void> tab({
     required LocalKey key,
     required Widget child,

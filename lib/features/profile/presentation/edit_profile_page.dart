@@ -18,10 +18,6 @@ import '../data/profile_repository.dart';
 import 'profile_providers.dart';
 import 'widgets/profile_avatar.dart';
 
-/// Halaman Edit Profil: foto, nama tampilan, username.
-///
-/// [baru] true bila dibuka perdana untuk user Google baru
-/// (menampilkan pesan ajakan memilih username sendiri).
 class EditProfilePage extends ConsumerStatefulWidget {
   const EditProfilePage({super.key, this.baru = false});
 
@@ -87,12 +83,6 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     try {
       await _gantiFotoInner();
     } catch (error) {
-      // Pemilih gambar dan cropper melempar PlatformException kalau izin
-      // ditolak, tidak ada kamera, atau tidak ada aplikasi yang bisa menangani
-      // gambar. ErrorLog.pasang() memasang platformDispatcher.onError yang
-      // mengembalikan true, jadi framework menganggapnya sudah ditangani:
-      // tanpa try/catch di sini user menekan tombol dan tidak terjadi apa-apa,
-      // tanpa pesan dan tanpa spinner.
       if (!mounted) return;
       setState(() => _pesanError = pesanErrorRamah(error));
       ErrorLog.catat(error, StackTrace.current);
@@ -190,8 +180,6 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(const SnackBar(content: Text('Profil disimpan.')));
-      // Halaman ini bisa dibuka lewat push (ada halaman di bawahnya) atau
-      // lewat redirect untuk pengguna baru (tidak ada halaman di bawahnya).
       if (context.canPop()) {
         context.pop();
       } else {
@@ -345,12 +333,6 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                 ),
                 if (widget.baru) ...[
                   const SizedBox(height: 8),
-                  // Jalur keluar dari redirect paksa. Tanpa ini halaman ini
-                  // jadi perangkap: redirect mengembalikan user ke sini untuk
-                  // setiap navigasi, termasuk saat menekan back, sehingga
-                  // Profil - tempat tombol Keluar berada - tidak pernah bisa
-                  // dibuka. Username bawaan dari trigger tetap dipakai kalau
-                  // user menunda, jadi menunda tidak merusak akun.
                   TextButton(
                     onPressed: () {
                       ref.read(pendingUsernameSetupProvider.notifier).state =

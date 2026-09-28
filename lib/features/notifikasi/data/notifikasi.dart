@@ -1,4 +1,3 @@
-/// Satu baris tabel `notifications`.
 class Notifikasi {
   const Notifikasi({
     required this.id,

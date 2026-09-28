@@ -1,6 +1,5 @@
 import 'package:alana/utils/json_utils.dart';
 
-/// A manga genre.
 class Genre {
   final String slug;
   final String name;

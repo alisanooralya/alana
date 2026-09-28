@@ -5,10 +5,6 @@ import 'package:alana/features/history/data/history_repository.dart';
 import 'package:alana/features/library/data/bookmark_repository.dart';
 import 'package:alana/features/profile/presentation/profile_providers.dart';
 
-/// Jumlah item menunggu sinkron (pending + tombstone).
-///
-/// Dipakai indikator kecil di tab Pustaka/Riwayat. Dihitung ulang
-/// setiap state repo berubah (mutasi hapus/tulis selalu rebuild).
 final pendingSyncProvider = Provider<int>((ref) {
   final bookmark = ref.watch(bookmarkRepositoryProvider);
   final riwayat = ref.watch(historyRepositoryProvider);

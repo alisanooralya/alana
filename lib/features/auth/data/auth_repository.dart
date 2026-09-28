@@ -9,20 +9,11 @@ import 'package:alana/core/utils/deep_link.dart';
 
 import 'auth_validators.dart';
 
-/// Repository autentikasi via Supabase.
-///
-/// - Email+password: [daftar], [masuk], [kirimResetPassword], [keluar].
-/// - Google native: [masukDenganGoogle] (idToken → signInWithIdToken).
-/// Sesi disimpan otomatis oleh supabase_flutter.
 class AuthRepository {
   AuthRepository();
 
   SupabaseClient get _client => SupabaseSetup.instance;
 
-  /// Stream perubahan sesi. Dipakai router untuk redirect otomatis.
-  ///
-  /// Dibagikan sebagai broadcast agar bisa didengar router dan
-  /// provider sesi sekaligus.
   Stream<AuthState> get perubahanSesi {
     _siaran ??= _client.auth.onAuthStateChange.asBroadcastStream();
     return _siaran!;
@@ -31,17 +22,9 @@ class AuthRepository {
   Stream<AuthState>? _siaran;
   bool _googleSiap = false;
 
-  /// Sesi aktif saat ini (null bila belum login).
   Session? get sesiAktif => _client.auth.currentSession;
-
-  /// User aktif saat ini (null bila belum login).
   User? get userAktif => _client.auth.currentUser;
 
-  /// Mendaftar dengan username + email + password.
-  ///
-  /// Username dikirim sebagai metadata agar trigger profil bisa
-  /// membacanya. Bila konfirmasi email aktif, tidak ada sesi yang
-  /// dikembalikan (pemanggil menampilkan layar verifikasi).
   Future<AuthResponse> daftar({
     required String username,
     required String email,
@@ -54,12 +37,6 @@ class AuthRepository {
     );
   }
 
-  /// Masuk dengan email + password.
-  ///
-  /// Dibatasi lewat Edge Function `rate-limit-login`: dicek sebelum
-  /// percobaan dan dicatat setelahnya. Jalur username punya pembatasnya
-  /// sendiri di sisi server (`login-with-username`), jadi tidak diulang di
-  /// sini.
   Future<AuthResponse> masuk({
     required String email,
     required String password,
@@ -74,10 +51,6 @@ class AuthRepository {
       await _catatPercobaanLogin(alamat, berhasil: true);
       return hasil;
     } catch (error) {
-      /// Batas percobaan login tidak dihitung sebagai kegagalan kredensial.
-      /// Gangguan jaringan atau 429 dari Supabase sendiri bukan "password
-      /// salah", dan menghitungnya akan mengunci pengguna yang koneksinya
-      /// berantakan.
       if (_penolakanKredensial(error)) {
         await _catatPercobaanLogin(alamat, berhasil: false);
       }
@@ -85,14 +58,6 @@ class AuthRepository {
     }
   }
 
-  /// Melempar [PercobaanLoginDibatasi] kalau percobaan sudah melewati
-  /// batas, atau membiarkan lewat kalau belum.
-  ///
-  /// Gagal atau tidak terjangkau berarti dibiarkan lewat. Alasannya: Edge
-  /// Function yang mati tidak boleh membuat seluruh pengguna tidak bisa
-  /// login. Kegagalan tetap dicatat lewat [ErrorLog] supaya tidak hilang
-  /// tanpa jejak — tanpa itu, function yang tidak ter-deploy akan terlihat
-  /// seperti sistem yang sedang berjalan normal.
   Future<void> _cekBatasLogin(String email) async {
     try {
       await _client.functions.invoke(
@@ -110,11 +75,6 @@ class AuthRepository {
     }
   }
 
-  /// Mencatat hasil percobaan ke `rate-limit-login`.
-  ///
-  /// Kegagalan dicatat tanpa melempar: hasil login sudah diketahui pengguna
-  /// dan tidak boleh berubah jadi error lain hanya karena pencatatan
-  /// bermasalah.
   Future<void> _catatPercobaanLogin(
     String email, {
     required bool berhasil,
@@ -129,12 +89,6 @@ class AuthRepository {
     }
   }
 
-  /// Membaca `retry_after_seconds` dari body 429.
-  ///
-  /// Nilai ini tidak pernah ditampilkan mentah: [pesanBatasPercobaan]
-  /// hanya turun ke hitungan menit atau detik. Kalau field-nya hilang atau
-  /// bukan angka, dikembalikan 0 supaya pesannya tetap jujur dan tidak
-  /// mengarang angka yang lebih optimismis dari kenyataan.
   int _detikTungguDari(Object? details) {
     if (details is Map) {
       final nilai = details['retry_after_seconds'];
@@ -144,22 +98,12 @@ class AuthRepository {
     return 0;
   }
 
-  /// `true` kalau [error] berarti kredensial ditolak.
-  ///
-  /// Hanya 400 dan 401 yang dihitung. Sisanya dibiarkan: error jaringan
-  /// (`AuthRetryableFetchException`) dan 429 dari Supabase sendiri tidak
-  /// berkaitan dengan tebakan password.
   bool _penolakanKredensial(Object error) {
     if (error is! AuthApiException) return false;
     final kode = error.statusCode;
     return kode == '400' || kode == '401';
   }
 
-  /// Masuk dengan username via Edge Function `login-with-username`.
-  ///
-  /// Function mengembalikan token; sesi disimpan lewat `setSession`
-  /// sehingga stream `onAuthStateChange` terpicu seperti login biasa.
-  /// Akun Google-only gagal dengan pesan umum yang sama.
   Future<AuthResponse> masukDenganUsername({
     required String username,
     required String password,
@@ -174,11 +118,6 @@ class AuthRepository {
       if (hasil.status != 200 || segar == null || segar.isEmpty) {
         throw AuthException(_pesanFunctionLogin(data));
       }
-      // Tanpa batas waktu, pertukaran kode sesi bisa menggantung lama. Di
-      // dalam gotrue, SocketException ditelan lalu dicoba ulang dengan
-      // backoff dan penggantung hanya selesai setelah batas percobaan habis,
-      // jadi tombol "Masuk" tetap berputar tidak bisa dibatalkan selama
-      // beberapa menit dan pesan akhirnya salah (bukan masalah jaringan).
       return await _client.auth
           .setSession(segar)
           .timeout(
@@ -197,9 +136,6 @@ class AuthRepository {
     }
   }
 
-  /// Masuk dengan akun Google (native, tanpa browser).
-  ///
-  /// Butuh `GOOGLE_WEB_CLIENT_ID` (lihat README).
   Future<AuthResponse> masukDenganGoogle() async {
     if (AppConfig.googleWebClientId.isEmpty) {
       throw const AuthException(
@@ -208,10 +144,6 @@ class AuthRepository {
     }
 
     final googleSignIn = GoogleSignIn.instance;
-    // initialize() hanya boleh dipanggil sekali per proses; pemanggilan
-    // berulang menjalankan inisialisasi platform lagi dan menambah listener
-    // baru pada stream autentikasi platform setiap kali. Karena itu dijaga
-    // penanda, bukan dijalankan pada setiap percobaan.
     if (!_googleSiap) {
       await googleSignIn.initialize(
         serverClientId: AppConfig.googleWebClientId,
@@ -219,15 +151,6 @@ class AuthRepository {
       _googleSiap = true;
     }
 
-    // Tombol "Lanjutkan dengan Google" adalah permintaan eksplisit, jadi
-    // authenticate() penuh dipakai: di Android layar pemilih akun muncul dan
-    // user bisa memilih akun lain. attemptLightweightAuthentication()
-    // sebelumnya mengembalikan akun yang sudah masuk di perangkat dengan
-    // tanpa UI, sehingga user yang sebenarnya ingin masuk dengan akun lain
-    // ikut masuk sebagai akun yang terpasang. authenticate() melempar
-    // GoogleSignInException saat dibatalkan, dan itu sudah dipetakan di
-    // pesanAuthRamah.
-    // scopeHint: gabungkan auth dan otorisasi agar tidak gagal reauth diam-diam.
     final googleUser = await googleSignIn.authenticate(
       scopeHint: const ['email', 'profile'],
     );
@@ -254,7 +177,6 @@ class AuthRepository {
     );
   }
 
-  /// Keluar (menghapus sesi tersimpan + sesi Google bila ada).
   Future<void> keluar() async {
     if (_googleSiap) {
       try {
@@ -267,9 +189,6 @@ class AuthRepository {
     await _client.auth.signOut();
   }
 
-  /// `true` bila user punya identity email (bisa ganti password).
-  ///
-  /// User yang hanya login Google tidak punya identity ini.
   bool get punyaIdentitasEmail {
     final user = userAktif;
     if (user == null) return false;
@@ -282,7 +201,6 @@ class AuthRepository {
     return false;
   }
 
-  /// Verifikasi password saat ini dengan masuk ulang.
   Future<void> verifikasiPassword(String email, String password) async {
     await _client.auth.signInWithPassword(
       email: email.trim(),
@@ -290,15 +208,10 @@ class AuthRepository {
     );
   }
 
-  /// Mengganti password milik user aktif.
   Future<void> gantiPassword(String passwordBaru) async {
     await _client.auth.updateUser(UserAttributes(password: passwordBaru));
   }
 
-  /// Menghapus akun milik pemanggil via Edge Function.
-  ///
-  /// Function memvalidasi JWT, menghapus avatar + user auth
-  /// (data ikut cascade). Melempar dengan pesan jelas bila gagal.
   Future<void> hapusAkun() async {
     final hasil = await _client.functions.invoke('delete-account');
     if (hasil.status != 200) {
@@ -311,11 +224,6 @@ class AuthRepository {
     }
   }
 
-  /// Mengirim email reset password.
-  ///
-  /// `redirectTo` wajib: tanpa itu Supabase mengirim tautan ke Site URL
-  /// (halaman web), sehingga sesi recovery tidak pernah sampai ke aplikasi
-  /// dan akun yang lupa password tidak bisa dipulihkan dari dalam app.
   Future<void> kirimResetPassword(String email) {
     return _client.auth.resetPasswordForEmail(
       email.trim(),
@@ -323,16 +231,6 @@ class AuthRepository {
     );
   }
 
-  /// Mengecek apakah username sudah dipakai.
-  ///
-  /// Memanggil fungsi `username_taken` (hanya mengembalikan boolean).
-  /// Select langsung ke `profiles` tidak akan pernah berhasil di layar
-  /// pendaftaran karena pemanggil masih belum punya sesi, sedangkan policy
-  /// select hanya berlaku bagi yang sudah login.
-  ///
-  /// Mengembalikan true bila sudah dipakai, false bila tersedia, null bila
-  /// tidak bisa dicek — pemanggil tetap lanjut dan mengandalkan error unik
-  /// dari database saat daftar.
   Future<bool?> usernameDipakai(String username) async {
     try {
       final hasil = await _client.rpc(
@@ -346,7 +244,6 @@ class AuthRepository {
   }
 }
 
-/// Ambil pesan error dari respons Edge Function.
 String _pesanFunction(dynamic data) {
   if (data is Map && data['error'] != null) {
     return data['error'].toString();
@@ -355,7 +252,6 @@ String _pesanFunction(dynamic data) {
   return 'Gagal menghapus akun. Coba lagi.';
 }
 
-/// Pesan login-username: hanya pesan generik yang lolos, sisanya umum.
 String _pesanFunctionLogin(dynamic data) {
   if (data is Map &&
       data['error']?.toString().contains('Username atau password salah') ==

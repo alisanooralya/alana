@@ -10,12 +10,8 @@ import 'package:alana/features/auth/presentation/auth_providers.dart';
 
 import 'app_router.dart';
 
-/// [AppLinks] harus dibuat sebelum `runApp`: tautan yang masuk saat cold start
-/// hilang kalau langganan baru dibuat setelah framework berjalan.
 final deepLinkAppLinks = AppLinks();
 
-/// Menyalakan pembacaan deep link, lalu menavigate ke setiap tujuan yang
-/// masuk. Dipanggil sekali dari `main`.
 Future<void> mulaiDeepLink(WidgetRef ref) async {
   unawaited(_dengarkan(deepLinkAppLinks.uriLinkStream, ref));
 
@@ -59,11 +55,8 @@ Future<void> _tukarKode(String kode, WidgetRef ref) async {
   _buka(ref, resetPasswordLokasi);
 }
 
-/// Menunda navigasi satu frame supaya router sudah siap menerima target.
 void _buka(WidgetRef ref, String lokasi) {
   WidgetsBinding.instance.addPostFrameCallback((_) {
-    // WidgetRef tidak punya `mounted`; ref provider ini hidup selama aplikasi
-    // berjalan, jadi yang perlu dijaga hanya router-nya sudah siap.
     try {
       ref.read(goRouterProvider).go(lokasi);
     } catch (error) {

@@ -5,11 +5,9 @@ import 'package:alana/core/widgets/cover_image.dart';
 import 'package:alana/models/manga.dart';
 import 'package:alana/utils/relative_time.dart';
 
-/// Jarak tepi dan antar kolom sengaja sama, lalu dipecah dua kolom.
 const double paddingHorizontalUpdate = 10;
 const double jarakAntarSelUpdate = 10;
 
-/// Lebar cover dibagi tinggi cover. Dipakai [LoadingGrid] juga.
 const double rasioCoverUpdate = 0.69;
 
 const double _tinggiJudul = 38;
@@ -23,17 +21,14 @@ double hitungLebarSel(double lebarLayar) {
   return (lebarLayar - paddingHorizontalUpdate * 2 - jarakAntarSelUpdate) / 2;
 }
 
-/// Dipakai `mainAxisExtent`, bukan `childAspectRatio`, supaya semua sel sama
-/// tinggi dan chip pasti muat.
 double hitungTinggiSel(double lebarLayar) {
   return hitungLebarSel(lebarLayar) / rasioCoverUpdate +
-      8 + // jarak cover ke judul
+      8 +
       _tinggiJudul +
       _chapterPerSel * tinggiChip +
       (_chapterPerSel - 1) * jarakAntarChip;
 }
 
-/// Satu sel daftar "Pembaruan Terbaru": cover, judul, chip chapter bertumpuk.
 class UpdateCard extends StatelessWidget {
   const UpdateCard({super.key, required this.manga});
 
@@ -66,8 +61,6 @@ class UpdateCard extends StatelessWidget {
                 Positioned(right: 6, bottom: 6, child: _BenderaNegara(manga)),
             ],
           ),
-          // Di tengah ruang sisa: judul satu baris kalau menempel ke cover
-          // akan terlihat melayang jauh di atas chip-nya.
           Expanded(
             child: Center(
               child: Text(
@@ -92,8 +85,6 @@ class UpdateCard extends StatelessWidget {
   }
 }
 
-/// Emoji regional indicator, bukan gambar yang diunduh. Di perangkat tanpa
-/// glyph bendera, yang tampil jadi huruf kode negara yang tetap terbaca.
 class _BenderaNegara extends StatelessWidget {
   const _BenderaNegara(this.manga);
 
@@ -120,21 +111,18 @@ class _BenderaNegara extends StatelessWidget {
   }
 }
 
-/// Kode di luar dua huruf dikembalikan apa adanya agar tidak menjadi
-/// regional indicator yang salah arti.
 String _emojiBendera(String kode) {
   final bersih = kode.trim().toUpperCase();
   if (bersih.length != 2) return bersih;
   if (!RegExp(r'^[A-Z]{2}$').hasMatch(bersih)) return bersih;
 
-  const awal = 0x1F1E6; // regional indicator A
+  const awal = 0x1F1E6;
   return String.fromCharCodes([
     awal + bersih.codeUnitAt(0) - 0x41,
     awal + bersih.codeUnitAt(1) - 0x41,
   ]);
 }
 
-/// "Chapter 39" di kiri, waktu rilis di kanan, dalam satu pil.
 class ChipChapter extends StatelessWidget {
   const ChipChapter({super.key, required this.chapter});
 

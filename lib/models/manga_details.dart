@@ -1,7 +1,6 @@
 import 'package:alana/utils/json_utils.dart';
 import 'package:alana/utils/manga_labels.dart';
 
-/// Full details of a single manga.
 class MangaDetails {
   final String title;
   final String description;
@@ -69,7 +68,6 @@ class MangaDetails {
   }
 }
 
-/// Extracts the `name` values of a taxonomy group (Author, Genre, ...).
 List<String> _namesOf(dynamic items) {
   if (items is! List) return const [];
 

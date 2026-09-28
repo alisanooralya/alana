@@ -15,10 +15,6 @@ import 'paginated_manga_state.dart';
 import 'search_controller.dart';
 import 'widgets/manga_card.dart';
 
-/// Halaman pencarian judul.
-///
-/// Fase 2: pencarian teks dengan debounce 500ms + infinite scroll.
-/// Filter genre/format/status menyusul setelah Fase 3.
 class SearchPage extends ConsumerStatefulWidget {
   const SearchPage({super.key});
 
@@ -36,8 +32,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
   @override
   void initState() {
     super.initState();
-    // Query sengaja dikosongkan tiap kali halaman dibuka supaya kata kunci
-    // dari kunjungan sebelumnya tidak ikut terbawa.
     ref.read(searchQueryProvider.notifier).state = '';
     _textController.addListener(_onTextChanged);
     _scrollController.addListener(_onScroll);
@@ -145,10 +139,6 @@ class _SearchPageState extends ConsumerState<SearchPage> {
           Expanded(
             child: RefreshIndicator(
               onRefresh: () async {
-                // invalidate() hanya membatalkan cache; tanpa await, spinner
-                // RefreshIndicator selesai dalam satu frame sebelum data
-                // selesai dimuat, jadi user tidak melihat apa pun terjadi
-                // dan bisa memicu refresh kedua.
                 ref.invalidate(searchResultsControllerProvider);
                 await ref.read(searchResultsControllerProvider.future);
               },
@@ -272,8 +262,6 @@ class _HasilPencarian extends ConsumerWidget {
   }
 }
 
-/// Daftar riwayat pencarian. Muncul saat search bar difokuskan dan
-/// query kosong; ketuk entri untuk langsung mencari kata kunci itu.
 class _RiwayatPencarian extends ConsumerWidget {
   const _RiwayatPencarian({required this.onPilih});
 

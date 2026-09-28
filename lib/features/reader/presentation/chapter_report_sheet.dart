@@ -94,9 +94,6 @@ class _ChapterReportSheetState extends ConsumerState<ChapterReportSheet> {
           _memuat = false;
           _error = pesanErrorRamah(error);
         });
-        // Rincian PostgREST pernah ditampilkan apa adanya di sheet, sehingga
-        // user biasa melihat nama kolom, kode constraint, dan message database
-        // mentah. Sekarang detail lengkapnya hanya masuk ke log lokal.
         ErrorLog.catat(error, StackTrace.current);
       }
     }

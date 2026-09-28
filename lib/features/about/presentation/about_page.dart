@@ -85,11 +85,6 @@ class _IsiAbout extends StatelessWidget {
           deskripsi: 'API metadata dan chapter manhwa',
           url: 'https://api.shngm.io',
         ),
-        // Tautan yang masih placeholder disembunyikan, bukan ditampilkan
-        // dengan alamat example.com dan deskripsi "Ganti dengan ...". User
-        // biasa mengetuk baris yang terlihat resmi lalu mendarat di halaman
-        // kosong atau domain milik pihak lain. Set _backend('') untuk
-        // menyembunyikan, isi dengan URL asli untuk menampilkannya.
         if (_tautanPengembang.isNotEmpty)
           _Tautan(
             icon: Icons.mail_outline,

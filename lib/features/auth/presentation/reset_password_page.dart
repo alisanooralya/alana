@@ -9,11 +9,6 @@ import '../data/auth_validators.dart';
 import 'auth_providers.dart';
 import 'widgets/auth_widgets.dart';
 
-/// Halaman set password baru, dibuka dari tautan recovery di email.
-///
-/// Halaman ini hanya punya arti kalau [passwordRecoveryProvider] true, yaitu
-/// sesi sudah ditukar dari kode PKCE di tautan. Tanpa itu, user yang salah
-/// menekan tautan akan melihat penjelasan dan tombol kembali.
 class ResetPasswordPage extends ConsumerStatefulWidget {
   const ResetPasswordPage({super.key});
 
@@ -49,8 +44,6 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
     try {
       await ref.read(authRepositoryProvider).gantiPassword(_baru.text);
       if (!mounted) return;
-      // Sesi recovery sudah habis gunanya: lepaskan kunci router lalu putuskan
-      // sesi supaya user masuk lagi dengan password barunya.
       ref.read(passwordRecoveryProvider.notifier).state = false;
       await ref.read(authRepositoryProvider).keluar();
       if (!mounted) return;

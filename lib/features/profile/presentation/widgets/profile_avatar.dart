@@ -1,10 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-/// Avatar profil: foto ber-cache, fallback inisial nama.
-///
-/// `cacheKey` mengikuti URL — karena URL avatar berversi
-/// (`?v=timestamp`), foto baru otomatis tampil segar.
 class ProfileAvatar extends StatelessWidget {
   const ProfileAvatar({
     super.key,

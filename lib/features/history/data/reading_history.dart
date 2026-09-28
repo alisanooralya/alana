@@ -1,8 +1,3 @@
-/// Progres baca satu judul, disimpan di Hive sebagai `Map`.
-///
-/// Menyimpan judul, chapter terakhir, posisi scroll chapter tersebut,
-/// dan daftar chapter yang sudah dibaca. Fase berikutnya bisa
-/// menambahkan posisi halaman terakhir tanpa mengubah bentuk dasar.
 class MangaReadingProgress {
   const MangaReadingProgress({
     required this.mangaId,
@@ -20,24 +15,14 @@ class MangaReadingProgress {
   final String mangaId;
   final String mangaTitle;
   final String mangaThumbnail;
-
-  /// Chapter terakhir yang dibuka.
   final String lastChapterId;
   final String lastChapterName;
 
-  /// Semua ID chapter yang pernah ditandai dibaca.
   final Set<String> readChapterIds;
 
-  /// Posisi scroll (piksel) terakhir di chapter terakhir.
   final double scrollOffset;
-
-  /// Jumlah gambar saat posisi disimpan (validasi saat restore).
   final int pageCount;
-
-  /// Terakhir diperbarui. Menentukan urutan di tab Riwayat.
   final DateTime updatedAt;
-
-  /// `true` bila belum terkirim ke Supabase.
   final bool pending;
 
   MangaReadingProgress copyWith({

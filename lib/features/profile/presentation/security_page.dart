@@ -7,10 +7,6 @@ import 'package:alana/features/auth/data/auth_validators.dart';
 import 'package:alana/features/auth/presentation/auth_providers.dart';
 import 'package:alana/features/auth/presentation/widgets/auth_widgets.dart';
 
-/// Halaman Keamanan: ganti password untuk user identity email.
-///
-/// User yang hanya login Google melihat keterangan bahwa akunnya
-/// masuk lewat Google (tanpa form).
 class SecurityPage extends ConsumerWidget {
   const SecurityPage({super.key});
 
@@ -80,8 +76,6 @@ class _FormGantiPasswordState extends ConsumerState<_FormGantiPassword> {
         ..showSnackBar(
           const SnackBar(content: Text('Password berhasil diganti.')),
         );
-      // Sama seperti Edit Profil: jaga-jaga kalau halaman ini dibuka tanpa
-      // ada halaman di bawahnya.
       if (context.canPop()) {
         context.pop();
       } else {

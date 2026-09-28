@@ -60,8 +60,6 @@ class ReportRepository {
           .from('chapter_reports')
           .insert({
             'user_id': userId,
-            // `manga_id` dan `manga_title` NOT NULL di SQL; tanpa keduanya
-            // setiap laporan gagal dengan 23502.
             'manga_id': mangaId,
             'manga_title': mangaTitle.isEmpty ? '(tanpa judul)' : mangaTitle,
             'chapter_id': chapterId,

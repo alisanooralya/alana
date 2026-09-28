@@ -17,11 +17,8 @@ import 'widgets/manga_card.dart';
 import 'widgets/popular_carousel.dart';
 import 'widgets/update_card.dart';
 
-/// API kirim 10; dipotong supaya tidak memakan satu layar penuh.
 const int _jumlahRekomendasi = 6;
 
-/// Halaman Beranda: carousel Populer, list Rekomendasi, dan grid Pembaruan
-/// Terbaru dengan infinite scroll. Pencarian ada di rute `/cari`.
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
@@ -155,8 +152,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                         if (response.mangas.isEmpty) {
                           return const _SectionKosong(judul: 'Rekomendasi');
                         }
-                        // Dipotong: sepuluh kartu horizontal memakan satu
-                        // layar penuh sebelum pengguna sampai ke pembaruan.
                         return HomeSection(
                           judul: 'Rekomendasi',
                           children: [
@@ -195,8 +190,6 @@ class _HomePageState extends ConsumerState<HomePage> {
                         );
                       }
 
-                      // Tinggi sel dari lebar layar, bukan childAspectRatio,
-                      // supaya semua sel sama tinggi dan chip pasti muat.
                       final tinggi = hitungTinggiSel(
                         MediaQuery.sizeOf(context).width,
                       );

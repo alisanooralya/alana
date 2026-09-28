@@ -36,13 +36,7 @@ class DownloadedChapter {
     this.errorMessage = '',
   });
 
-  /// Pemilik unduhan ini.
-  ///
-  /// Tanpa ini, dua akun yang berganti di perangkat yang sama saling melihat
-  /// unduhan satu sama lain: foldernya sama dan kunci Hive-nya hanya
-  /// `mangaId::chapterId`.
   final String userId;
-
   final String mangaId;
   final String chapterId;
   final String mangaTitle;
@@ -109,9 +103,6 @@ class DownloadedChapter {
 
   factory DownloadedChapter.fromMap(Map<String, dynamic> map) {
     return DownloadedChapter(
-      // Entri tanpa pemilik tidak pernah muncul untuk akun mana pun. Selain
-      // melindungi data yang tidak bertuan, ini menutup jalur kebocoran kalau
-      // suatu saat ada entri yang sempat ditulis tanpa userId.
       userId: map['userId']?.toString() ?? '',
       mangaId: map['mangaId']?.toString() ?? '',
       chapterId: map['chapterId']?.toString() ?? '',
@@ -130,30 +121,11 @@ class DownloadedChapter {
   }
 }
 
-/// Unduhan chapter, dipisah per akun.
-///
-/// Isolasi dijaga di dua tempat sekaligus, karena satu saja bisa bocor:
-///
-/// 1. Folder di disk: `downloads/<user_id>/<manga_id>/<chapter_id>/`.
-///    Ini yang membatasi file yang bisa dibaca, termasuk saat app dibuka tanpa
-///    sesi sama sekali.
-/// 2. Kunci dan isi Hive: `userId::mangaId::chapterId`, plus field `userId`
-///    pada entri. [all] menyaring berdasarkan userId, jadi akun kedua tidak
-///    pernah melihat metadata milik akun pertama.
-///
-/// Box-nya tetap satu, tidak satu-per-akun seperti `sm_<uid>` di
-/// search_history_repository. Yang dicari di sini adalah daftar yang diiterasi
-/// setiap membuka halaman Unduhan dan kunci tunggal per chapter, jadi satu box
-/// dengan awalan userId lebih sederhana dan menghindari membuka banyak box.
-/// Foldernya yang sudah per-akun, jadi file tetap tidak bisa tercampur.
 class DownloadRepository {
   const DownloadRepository({required this.userId});
 
   static const boxName = 'downloads';
 
-  /// User pemilik. Kosong berarti belum login, dan dalam keadaan itu
-  /// repository mengembalikan daftar kosong serta menolak membuat folder,
-  /// supaya unduhan tidak pernah ditulis ke folder bersama.
   final String userId;
 
   bool get _punyaPemilik => userId.isNotEmpty;
@@ -161,14 +133,6 @@ class DownloadRepository {
   static String keyFor(String userId, String mangaId, String chapterId) =>
       '$userId::$mangaId::$chapterId';
 
-  /// Nama folder aman untuk sebuah id.
-  ///
-  /// Sebelumnya semua karakter di luar [A-Za-z0-9._-] diganti garis bawah,
-  /// jadi dua id berbeda bisa jadi folder sama - misalnya `a/b` dan `a?b` sama-sama
-  /// menjadi `a_b`. Unduhan kedua lalu menimpa file `001.jpg` milik yang
-  /// pertama dan verify() tetap menghitungnya lengkap, sehingga user membaca
-  /// chapter yang salah saat offline. Sekarang sufiks hash ditambahkan dari
-  /// id asli supaya pemetaannya selalu satu-ke-satu.
   static String safeSegment(String value) {
     final bersih = value.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
     final dasar = bersih.isEmpty ? 'unknown' : bersih;
@@ -182,11 +146,6 @@ class DownloadRepository {
 
   Box? get _box => AppStorage.downloadsBox;
 
-  /// Folder unduhan milik user ini saja.
-  ///
-  /// Punya satu level userId supaya dua akun di perangkat yang sama tidak
-  /// berbagi file. LEVEL INI WAJIB ADA: level-nya userId, lalu manga, lalu
-  /// chapter.
   Future<Directory?> userDownloadsRoot() async {
     if (!_punyaPemilik) return null;
     final root = await getApplicationDocumentsDirectory();
@@ -212,14 +171,6 @@ class DownloadRepository {
     return directory;
   }
 
-  /// Lokasi folder chapter TANPA membuatnya.
-  ///
-  /// Dipakai jalur baca dan hapus. Sebelumnya chapterDirectory() selalu
-  /// membuat folder, sehingga `deleteChapter` membuat folder yang akan
-  /// segera ia hapus, `pageFiles() membuat folder kosong untuk chapter
-  /// yang hilang, dan verifyAll() membuat folder kosong
-  /// untuk setiap entri yang rusak. Akibatnya chapter yang file-nya hilang
-  /// terlihat seperti "belum memiliki gambar" alih-alih unduhan rusak.
   Future<Directory?> _chapterPath(String mangaId, String chapterId) async {
     final root = await userDownloadsRoot();
     if (root == null) return null;
@@ -236,17 +187,10 @@ class DownloadRepository {
         .where((entity) => entity is File && entity.path.endsWith('.jpg'))
         .cast<File>()
         .toList();
-    // Urut berdasarkan nomor halaman, bukan string path. Nama file di-pad ke
-    // tiga digit, jadi perbandingan string menempatkan 1000.jpg sebelum
-    // 999.jpg dan chapter dengan lebih dari 999 halaman dibaca terbalik.
     files.sort((a, b) => _nomorHalaman(a).compareTo(_nomorHalaman(b)));
     return files;
   }
 
-  /// Unduhan milik user ini saja.
-  ///
-  /// Entri tanpa userId (peninggalan sebelum ada isolasi akun) tidak ikut
-  /// dikembalikan, sehingga tidak pernah tampil untuk akun yang salah.
   Future<List<DownloadedChapter>> all() async {
     final box = _box;
     if (box == null || !_punyaPemilik) return const [];
@@ -273,8 +217,6 @@ class DownloadRepository {
 
   Future<void> save(DownloadedChapter chapter) async {
     if (!_punyaPemilik) return;
-    // Jangan pernah menulis entri milik user lain lewat jalur ini; ini
-    // penjaga terakhir kalau ada pemanggil yang salah mengirim chapter.
     if (chapter.userId.isNotEmpty && chapter.userId != userId) return;
     await _box?.put(
       keyFor(userId, chapter.mangaId, chapter.chapterId),
@@ -294,8 +236,6 @@ class DownloadRepository {
     }
     final files = await pageFiles(chapter.mangaId, chapter.chapterId);
     final bytes = await _sizeOfFiles(files);
-    // Nomor halaman harus lengkap dan berurutan tanpa celah: file yang hilang
-    // di tengah tidak bisa digantikan hanya dengan menghitung jumlah file.
     final lengkap =
         chapter.totalPages > 0 &&
         files.length == chapter.totalPages &&
@@ -327,10 +267,6 @@ class DownloadRepository {
     return verified;
   }
 
-  /// Ukuran folder unduhan milik user ini saja.
-  ///
-  /// Dihitung dari folder user, bukan folder `downloads` secara keseluruhan,
-  /// supaya akun kedua tidak melihat رقم milik akun pertama.
   Future<int> totalStorageBytes() async {
     final root = await userDownloadsRoot();
     if (root == null || !await root.exists()) return 0;
@@ -364,12 +300,9 @@ class DownloadRepository {
 }
 
 final downloadRepositoryProvider = Provider<DownloadRepository>((ref) {
-  // watch, bukan read: repository harus dibangun ulang begitu akun berganti,
-  // supaya daftar unduhan, folder, dan ukuran yang tampil ikut berganti.
   return DownloadRepository(userId: ref.watch(userIdProvider) ?? '');
 });
 
-/// Nomor halaman dari nama file `001.jpg`.
 int _nomorHalaman(File file) {
   final nama = file.uri.pathSegments.isEmpty ? '' : file.uri.pathSegments.last;
   final titik = nama.lastIndexOf('.');
@@ -377,7 +310,6 @@ int _nomorHalaman(File file) {
   return int.tryParse(dasar) ?? 0;
 }
 
-/// `true` bila file halaman bernomor 1..total lengkap semua.
 bool _nomorBerurutan(List<File> files, int total) {
   if (files.length != total) return false;
   for (var i = 0; i < files.length; i++) {

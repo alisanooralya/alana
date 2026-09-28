@@ -3,10 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:alana/core/providers/konektivitas_provider.dart';
 
-/// Banner tipis yang muncul saat perangkat luring.
-///
-/// Tidak menggantikan tampilan error: daftar yang gagal dimuat
-/// tetap menampilkan [ErrorView] dengan tombol coba lagi.
 class OfflineBanner extends ConsumerWidget {
   const OfflineBanner({super.key});
 

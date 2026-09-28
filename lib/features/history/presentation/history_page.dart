@@ -10,9 +10,6 @@ import 'package:alana/features/sync/data/sync_service.dart';
 import 'package:alana/features/sync/presentation/widgets/pending_bar.dart';
 import 'package:alana/utils/relative_time.dart';
 
-/// Halaman Riwayat baca. Reaktif: otomatis memperbarui
-/// setiap reader menyimpan progres. Ketuk entri untuk
-/// lanjut membaca dari chapter terakhir.
 class HistoryPage extends ConsumerWidget {
   const HistoryPage({super.key});
 

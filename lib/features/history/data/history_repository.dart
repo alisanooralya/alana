@@ -10,15 +10,6 @@ import 'package:alana/features/sync/data/sync_remote.dart';
 
 import 'reading_history.dart';
 
-/// Repository riwayat baca: Hive per-user + antrean push Supabase.
-///
-/// - Tulis lokal dulu (debounce di reader), TIDAK ada kiriman jaringan
-///   per event scroll. Push terjadi saat pindah chapter, keluar
-///   Reader, aplikasi background, koneksi kembali, atau refresh.
-/// - Hapus dicatat sebagai tombstone agar terpropagasi ke remote.
-/// - Catatan: daftar chapter dibaca (`readChapterIds`) hanya lokal
-///   (skema remote tidak punya kolomnya); yang tersinkron adalah
-///   chapter + posisi terakhir.
 class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
   String? _uid;
   Map<String, DateTime> _tombs = {};
@@ -39,8 +30,6 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
       _tombs = {};
       return const {};
     }
-    // Box sudah terbuka: kosongkan penanda supaya kalau box ini nanti
-    // tertutup, build() masih boleh mencoba membukanya lagi.
     _dibukaUntuk = null;
     return _muat(box);
   }
@@ -111,7 +100,6 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
     return state[mangaId]?.readChapterIds.contains(chapterId) ?? false;
   }
 
-  /// Tombstone hapus yang belum terdorong.
   Map<String, DateTime> get tombs => Map.unmodifiable(_tombs);
 
   void _tulis(MangaReadingProgress progress) {
@@ -134,8 +122,6 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
     );
   }
 
-  /// Mencatat chapter sebagai sudah dibaca sekaligus
-  /// menjadikannya posisi terakhir (lokal saja).
   void tandaiDibaca({
     required String mangaId,
     String mangaTitle = '',
@@ -160,8 +146,6 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
     _tulis(_denganIdentitas(baru, mangaTitle, mangaThumbnail));
   }
 
-  /// Menyimpan posisi scroll chapter yang sedang dibaca (lokal saja).
-  /// Dipanggil berkala oleh reader (debounce).
   void simpanPosisi({
     required String mangaId,
     String mangaTitle = '',
@@ -184,7 +168,6 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
     _tulis(_denganIdentitas(baru, mangaTitle, mangaThumbnail));
   }
 
-  /// Menghapus satu entri riwayat. Aman bila ID tidak ada.
   void hapus(String mangaId) {
     if (!state.containsKey(mangaId)) return;
     final next = Map<String, MangaReadingProgress>.of(state)..remove(mangaId);
@@ -193,7 +176,6 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
     unawaited(_dorongHapus(mangaId));
   }
 
-  /// Mendorong hapus-tomb satu id (dipakai repo; batch oleh service).
   Future<void> _dorongHapus(String mangaId) async {
     final uid = _uid;
     if (uid == null || uid.isEmpty || !SupabaseSetup.siap) return;
@@ -206,7 +188,6 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
     }
   }
 
-  /// Menerapkan hasil merge: ganti seluruh state+box sekaligus.
   void terapkanGabungan(
     Map<String, MangaReadingProgress> gabungan,
     Map<String, DateTime> tombs,
@@ -215,11 +196,6 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
     final box = _uid == null ? null : AppStorage.boxUserSync('rh', _uid!);
     var hasil = gabungan;
     if (box != null) {
-      // Gabungan dihitung dari snapshot sebelum network. Menyimpan posisi baca
-      // saat reader ditutup bisa jatuh di celah itu, dan _persist() menghapus
-      // setiap kunci yang tidak ada di gabungan - posisi terbaru user hilang
-      // tepat setelah user menekan back. Entri pending yang belum ada di snapshot
-      // karena itu dipertahankan.
       for (final key in box.keys) {
         if (key == AppStorage.tombsKey) continue;
         if (hasil.containsKey(key)) continue;
@@ -235,10 +211,6 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
     _persist(hasil);
   }
 
-  /// Menandai beberapa id sudah tersinkron.
-  ///
-  /// Hanya yang `updatedAt`-nya tidak lebih baru dari saat terkirim
-  /// yang dibersihkan (aman dari balapan tulis saat sinkron jalan).
   void tandaiTersinkron(Map<String, DateTime> terkirim) {
     var berubah = false;
     final next = Map<String, MangaReadingProgress>.of(state);
@@ -253,7 +225,6 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
     if (berubah) _persist(next);
   }
 
-  /// Membuang tombstone yang sudah terdorong.
   void buangTombs(Iterable<String> ids) {
     var berubah = false;
     for (final id in ids) {
@@ -262,7 +233,6 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
     if (berubah) _persist(Map<String, MangaReadingProgress>.of(state));
   }
 
-  /// Baris remote untuk satu progres lokal.
   static Map<String, dynamic> barisUntuk(String uid, MangaReadingProgress e) {
     return {
       'user_id': uid,
@@ -272,11 +242,7 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
       'chapter_id': e.lastChapterId,
       'chapter_title': e.lastChapterName,
       'scroll_position': e.scrollOffset,
-      // toUtc() wajib: kolomnya timestamptz, sedangkan toIso8601String()
-      // pada DateTime lokal tidak menghasilkan offset sehingga Postgres
-      // membacanya sebagai UTC dan menggeser waktu sesuai zona perangkat.
       'updated_at': e.updatedAt.toUtc().toIso8601String(),
-      // Bersihkan tombstone server saat entri dihidupkan ulang.
       'deleted_at': null,
     };
   }

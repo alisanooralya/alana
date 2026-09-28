@@ -272,10 +272,6 @@ class _GenreSelector extends ConsumerWidget {
             selected: selected.contains(genre.slug),
             onSelected: (dipilih) {
               final query = ref.read(jelajahFilterProvider);
-              // Toggle, bukan replace..copyWith genreSlugs: [genre.slug]
-              // menimpa seluruh pilihan, jadi user yang sudah memilih tiga
-              // genre lalu mengetuk satu chip untuk mempersempit tiba-tiba
-              // kehilangan dua filter lain tanpa ada keterangan apa pun.
               final genreBaru = <String>{...query.genreSlugs};
               if (dipilih) {
                 genreBaru.add(genre.slug);

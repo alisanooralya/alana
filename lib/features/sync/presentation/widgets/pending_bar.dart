@@ -3,9 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../sync_providers.dart';
 
-/// Indikator kecil bila ada data menunggu sinkron.
-///
-/// Tidak memblokir UI; hilang sendiri setelah terdorong.
 class PendingBar extends ConsumerWidget {
   const PendingBar({super.key});
 

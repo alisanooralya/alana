@@ -1,4 +1,3 @@
-/// Public model types used across the app.
 library;
 
 export 'chapter.dart';

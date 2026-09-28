@@ -3,10 +3,6 @@ import 'package:flutter/services.dart';
 
 import 'package:alana/core/diagnostics/error_log.dart';
 
-/// Halaman Diagnostik: status penyimpanan + log error perangkat.
-///
-/// Log bisa disalin dan ditempel ke pengembang tanpa PC, kabel,
-/// atau WiFi — cukup dari HP ini.
 class DiagnosticsPage extends StatefulWidget {
   const DiagnosticsPage({super.key});
 

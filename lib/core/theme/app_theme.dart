@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Tema aplikasi dengan Material 3.
-///
-/// Mendukung mode terang dan gelap. Secara bawaan mengikuti
-/// pengaturan sistem lewat [ThemeMode.system] di [main.dart].
 class AppTheme {
   const AppTheme._();
 

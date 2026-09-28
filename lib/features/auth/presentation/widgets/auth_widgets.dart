@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 
-/// Kerangka halaman auth: logo, judul, dan isi form.
-///
-/// Bila [animasiMasuk] true, elemen kepala masuk berurutan
-/// (total < 700ms). Dilewati bila animasi sistem dimatikan.
 class AuthScaffold extends StatelessWidget {
   const AuthScaffold({
     super.key,
@@ -99,7 +95,6 @@ class AuthScaffold extends StatelessWidget {
   }
 }
 
-/// Kolom password dengan tombol lihat/sembunyikan.
 class PasswordField extends StatefulWidget {
   const PasswordField({
     super.key,
@@ -117,7 +112,6 @@ class PasswordField extends StatefulWidget {
   final TextInputAction textInputAction;
   final void Function(String)? onSubmitted;
 
-  /// Petunjuk untuk password manager dan isi otomatis.
   final Iterable<String>? autofillHints;
 
   @override
@@ -158,7 +152,6 @@ class _PasswordFieldState extends State<PasswordField> {
   }
 }
 
-/// Tombol "Lanjutkan dengan Google".
 class GoogleButton extends StatelessWidget {
   const GoogleButton({
     super.key,
@@ -185,7 +178,6 @@ class GoogleButton extends StatelessWidget {
   }
 }
 
-/// Pesan error form (merah, dengan ikon).
 class AuthErrorText extends StatelessWidget {
   const AuthErrorText({super.key, required this.pesan});
 
@@ -216,7 +208,6 @@ class AuthErrorText extends StatelessWidget {
   }
 }
 
-/// Pesan info/sukses (aksen primer).
 class AuthInfoText extends StatelessWidget {
   const AuthInfoText({super.key, required this.pesan});
 

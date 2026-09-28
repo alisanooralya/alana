@@ -5,11 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'splash_providers.dart';
 
-/// Halaman splash dalam aplikasi.
-///
-/// Logo fade + scale in (~600ms), tampil minimal ~800ms, dan menunggu
-/// status sesi. Navigasi keluar ditangani redirect go_router.
-/// Latar mengikuti surface agar mulus dari native splash.
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
@@ -43,7 +38,6 @@ class _SplashPageState extends ConsumerState<SplashPage>
     _fade = Tween<double>(begin: 0, end: 1).animate(lengkung);
     _skala = Tween<double>(begin: 0.85, end: 1).animate(lengkung);
     _controller.forward();
-    // Tampil minimal ~800ms (nol bila animasi dimatikan).
     _timer = Timer(
       tanpaAnimasi ? Duration.zero : const Duration(milliseconds: 800),
       () {

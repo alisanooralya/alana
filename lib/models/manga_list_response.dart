@@ -1,7 +1,6 @@
 import 'package:alana/models/manga.dart';
 import 'package:alana/utils/json_utils.dart';
 
-/// A paginated manga list response.
 class MangaListResponse {
   final List<Manga> mangas;
   final bool hasNextPage;

@@ -6,21 +6,8 @@ import 'package:alana/core/widgets/cover_image.dart';
 import 'package:alana/models/manga.dart';
 import 'package:alana/utils/relative_time.dart';
 
-/// Dipakai placeholder memuat juga, supaya tinggi section tidak melompat.
 const double tinggiBannerPopuler = 200;
 
-/// Carousel "spotlight" untuk feed peringkat: satu banner besar per judul,
-/// hampir selebar layar dengan sedikit peek di tepi kanan.
-///
-/// Palet gelap dan teks putih, bukan warna tema: cover di feed ini warnanya
-/// beragam, jadi kontras teks di mode terang bergantung pada gambar.
-///
-/// Auto-advance tiap [interval], jeda saat digeser, dan indikator pil yang
-/// terisi mengikuti sisa waktu ke halaman berikutnya.
-///
-/// Tak berujung: daftar diulang banyak kali dan posisi awal di tengah, jadi
-/// bisa digeser ke dua arah tanpa pernah mentok ujung. Indikator dan lencana
-/// tetap memakai urutan asli, bukan indeks virtual.
 class PopularCarousel extends StatefulWidget {
   const PopularCarousel({
     super.key,
@@ -30,12 +17,7 @@ class PopularCarousel extends StatefulWidget {
   });
 
   final List<Manga> mangas;
-
-  /// Judul section. Data yang sama bisa dipakai untuk feed berbeda, jadi
-  /// judul tidak lagi ditulis mati di dalam widget.
   final String judul;
-
-  /// Jeda antar halaman. Diabaikan kalau isinya hanya satu item.
   final Duration interval;
 
   @override
@@ -44,24 +26,13 @@ class PopularCarousel extends StatefulWidget {
 
 class _PopularCarouselState extends State<PopularCarousel>
     with SingleTickerProviderStateMixin {
-  /// Pengaman saja; pengguna tidak akan pernah sampai ke ujung 100 putaran.
   static const int _pengulangan = 100;
-
-  /// Seberapa dekat ke ujung sebelum posisi dikembalikan ke tengah. Di atas satu
-  /// supaya lompatan tidak terjadi di tengah animasi.
   static const int _zonaAman = 2;
 
   late final PageController _controller;
-
-  /// 0 ke 1 selama [PopularCarousel.interval], menentukan halaman berikutnya dan
-  /// mengisi indikator sekaligus. Bukan `Timer.periodic` yang callbacknya bisa
-  /// menumpuk.
   late final AnimationController _progres;
 
-  /// Indeks asli dalam [PopularCarousel.mangas].
   late int _halaman;
-
-  /// Indeks di dalam [PageView], bisa jauh lebih besar karena diulang.
   late int _virtual;
 
   bool _sedangGeser = false;
@@ -82,11 +53,6 @@ class _PopularCarouselState extends State<PopularCarousel>
       ..addStatusListener(_saatProgresSelesai);
     if (_bisaGeser) _progres.forward();
 
-    // PageController selalu mulai di halaman 0, sedangkan [PopularCarousel]
-    // baru di halaman tengah. Tanpa lompatan itu carousel mulai di ujung
-    // daftar sehingga menggesek ke kiri tidak melakukan apa-apa. Lompatan
-    // harus menunggu frame pertama karena PageView baru punya posisi scroll
-    // setelah ia di-layout.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_controller.hasClients) return;
       _controller.jumpToPage(_virtual);
@@ -102,8 +68,6 @@ class _PopularCarouselState extends State<PopularCarousel>
     }
 
     if (widget.mangas.length != oldWidget.mangas.length) {
-      // Daftar bisa menyusut setelah provider di-invalidate. Judul yang tampil
-      // ikut diklem, kalau tidak lencana peringkat bisa luput dari warna medali.
       if (_halaman >= _jumlahAsli) _halaman = 0;
       _virtual = _jumlahAsli * (_pengulangan ~/ 2);
       if (_controller.hasClients) _controller.jumpToPage(_virtual);
@@ -121,7 +85,6 @@ class _PopularCarouselState extends State<PopularCarousel>
     super.dispose();
   }
 
-  /// Progres menyentuh 1: geser ke halaman berikutnya lalu mulai hitung ulang.
   void _saatProgresSelesai(AnimationStatus status) {
     if (status != AnimationStatus.completed) return;
     if (!mounted || !_bisaGeser) return;
@@ -135,7 +98,6 @@ class _PopularCarouselState extends State<PopularCarousel>
     _progres.forward(from: 0);
   }
 
-  /// Jeda saat digeser. Tanpa ini carousel menarik halaman dari bawah jari.
   bool _tanganiNotifikasi(ScrollNotification notifikasi) {
     if (notifikasi is ScrollStartNotification ||
         notifikasi is ScrollUpdateNotification) {
@@ -145,16 +107,9 @@ class _PopularCarouselState extends State<PopularCarousel>
       _sedangGeser = false;
       if (_bisaGeser && !_progres.isCompleted) _progres.forward();
     }
-    // false: biar PageView tetap menangani drag-nya sendiri.
     return false;
   }
 
-  /// Mengembalikan posisi ke tengah saat mendekati ujung.
-  ///
-  /// [_tengahUntuk] menjaga urutan asli tetap sama, jadi layar tidak
-  /// bergeser. Melompat satu siklus penuh (`index + _totalVirtual`) akan
-  /// mendarat di batas sisi sebaliknya dan memanggil `onPageChanged` tanpa
-  /// henti.
   void _saatHalamanBerubah(int index) {
     final asli = index % _jumlahAsli;
     var posisi = index;
@@ -162,8 +117,6 @@ class _PopularCarouselState extends State<PopularCarousel>
     final diUjung = index < _zonaAman || index > _totalVirtual - _zonaAman - 1;
     if (diUjung && _controller.hasClients) {
       posisi = _tengahUntuk(asli);
-      // Tanpa animasi: kartu yang muncul setelah lompatan sama persis dengan
-      // yang sebelumnya, jadi matanya tidak sempat menangkap Perpindahan.
       _controller.jumpToPage(posisi);
     }
 
@@ -175,7 +128,6 @@ class _PopularCarouselState extends State<PopularCarousel>
     if (_bisaGeser && !_sedangGeser) _progres.forward(from: 0);
   }
 
-  /// Indeks tengah yang urutan aslinya tetap [asli].
   int _tengahUntuk(int asli) {
     final tengah = _jumlahAsli * (_pengulangan ~/ 2);
     return tengah - (tengah % _jumlahAsli) + asli;
@@ -215,9 +167,6 @@ class _PopularCarouselState extends State<PopularCarousel>
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                   child: BannerPopuler(
                     manga: manga,
-                    // Milik kartu ini, bukan halaman aktif: PageView
-                    // membangun tetangga untuk pratinjau, jadi kalau ikut
-                    // [_halaman] tiga lencana yang terlihat akan sama.
                     peringkat: asli + 1,
                     onTap: () => _buka(manga),
                   ),
@@ -237,7 +186,6 @@ class _PopularCarouselState extends State<PopularCarousel>
   }
 }
 
-/// Placeholder shimmer setinggi [tinggiBannerPopuler].
 class PopularCarouselPlaceholder extends StatelessWidget {
   const PopularCarouselPlaceholder({
     super.key,
@@ -302,7 +250,6 @@ class PopularCarouselPlaceholder extends StatelessWidget {
   }
 }
 
-/// Kepala section, dipakai bersama semua section Beranda agar konsisten.
 class KepalaSection extends StatelessWidget {
   const KepalaSection({super.key, required this.judul});
 
@@ -339,7 +286,6 @@ class KepalaSection extends StatelessWidget {
   }
 }
 
-/// Kartu banner satu judul.
 class BannerPopuler extends StatelessWidget {
   const BannerPopuler({
     super.key,
@@ -350,11 +296,9 @@ class BannerPopuler extends StatelessWidget {
 
   final Manga manga;
 
-  /// Nilai non-positif menyembunyikan lencana.
   final int peringkat;
   final VoidCallback onTap;
 
-  /// Lebar cover; tinggi mengikuti rasio 3:4.
   static const double lebarCover = 116;
 
   double get _tinggiCover => lebarCover * 4 / 3;
@@ -377,8 +321,6 @@ class BannerPopuler extends StatelessWidget {
             ),
             child: Stack(
               children: [
-                // Diabaikan semantik supaya screen reader tidak mengulang
-                // angkannya dua kali.
                 if (peringkat > 0)
                   Positioned(
                     right: 6,
@@ -422,7 +364,6 @@ class BannerPopuler extends StatelessWidget {
   }
 }
 
-/// Tepi kanan memudar ke dasar kartu supaya tidak terlihat seperti tempelan.
 class _CoverBanner extends StatelessWidget {
   const _CoverBanner({
     required this.manga,
@@ -468,7 +409,6 @@ class _CoverBanner extends StatelessWidget {
   }
 }
 
-/// Kolom kanan banner: peringkat, judul, chip meta, lalu angka ringkas.
 class TeksBanner extends StatelessWidget {
   const TeksBanner({super.key, required this.manga, required this.peringkat});
 
@@ -509,8 +449,6 @@ class TeksBanner extends StatelessWidget {
   }
 }
 
-/// Lencana peringkat. Tiga besar memakai warna medali supaya bisa dibedakan
-/// sekilas tanpa harus membaca angkanya.
 class LencanaPeringkat extends StatelessWidget {
   const LencanaPeringkat({super.key, required this.peringkat});
 
@@ -563,7 +501,6 @@ class LencanaPeringkat extends StatelessWidget {
   }
 }
 
-/// Chip status + negara, dipisah supaya tiap nilai tetap terbaca.
 class BarisChip extends StatelessWidget {
   const BarisChip({super.key, required this.status, required this.negara});
 
@@ -613,8 +550,6 @@ class ChipMini extends StatelessWidget {
   }
 }
 
-/// Chapter pernah ikut di baris ini dan selalu terpotong karena berebut ruang
-/// dengan rating; sekarang pindah ke [BarisChapter].
 class BarisAngka extends StatelessWidget {
   const BarisAngka({super.key, required this.manga});
 
@@ -650,8 +585,6 @@ class BarisAngka extends StatelessWidget {
   }
 }
 
-/// Tanpa `maxLines` dan tanpa ellipsis karena waktu relatif tidak boleh
-/// terpotong; [FittedBox] mengecilkan huruf kalau tidak muat.
 class BarisChapter extends StatelessWidget {
   const BarisChapter({super.key, required this.manga});
 
@@ -686,8 +619,6 @@ class _Pemisah extends StatelessWidget {
   }
 }
 
-/// Yang aktif berupa pil yang terisi seiring [progres], jadi posisi isinya
-/// memberi tahu kapan halaman berikutnya datang.
 class IndikatorBanner extends StatelessWidget {
   const IndikatorBanner({
     super.key,
@@ -748,14 +679,11 @@ class IndikatorBanner extends StatelessWidget {
   }
 }
 
-/// Rating dengan satu angka di belakang koma, tanpa ".0" yang tidak perlu.
 String formatRating(num rating) {
   if (rating == rating.roundToDouble()) return rating.toInt().toString();
   return rating.toStringAsFixed(1);
 }
 
-/// `12345` -> `12rb`, `2500000` -> `2,5jt`. Ribuan dibulatkan penuh karena
-/// pecahannya tidak menambah informasi; koma karena teks antarmuka Indonesia.
 String formatRingkas(int angka) {
   if (angka < 1000) return '$angka';
   if (angka < 1000000) return '${(angka / 1000).round()}rb';
@@ -765,7 +693,6 @@ String formatRingkas(int angka) {
   return '${juta.toStringAsFixed(0)}jt';
 }
 
-/// Ringkasan chapter untuk banner: `Ch 12` plus waktu relatif bila ada.
 String infoChapter(Manga manga) {
   if (manga.latestChapterNumber <= 0) {
     return manga.status.isEmpty ? 'Belum ada chapter' : manga.status;

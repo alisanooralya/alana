@@ -3,22 +3,12 @@ import 'package:alana/utils/json_utils.dart';
 
 import 'manga_api_client.dart';
 
-/// Parses the many response shapes of the chapter list endpoint into
-/// [Chapter] models.
-/// Membersihkan nomor chapter tanpa merusak angka desimal.
-///
-/// `replaceAll('.0', '')` adalah penghapusan potongan substring di seluruh
-/// string, bukan hanya sufiks: "10.05" menjadi "105" dan "0.05" menjadi
-/// "05". Nilai desimal satu digit aman, tapi sumber yang mengirim nomor dua
-/// desimal - umum untuk chapter sampingan - akan menampilkan nomor salah
-/// tanpa pesan.
 String _nomorChapter(String mentah) {
   final nilai = mentah.trim();
   if (nilai.isEmpty) return '';
   final parsed = num.tryParse(nilai);
   if (parsed == null) return nilai;
   if (parsed is int) return parsed.toString();
-  // Buang hanya nol desimal di akhir, sisanya biarkan.
   return nilai.endsWith('.0') ? nilai.substring(0, nilai.length - 2) : nilai;
 }
 
@@ -66,8 +56,6 @@ List<Chapter> parseChapterList(dynamic data, {required String mangaId}) {
   }).toList();
 }
 
-/// Parses the many response shapes of the chapter detail endpoint into
-/// [Page] models.
 List<Page> parsePageList(dynamic data) {
   if (data is List) {
     return [
@@ -82,14 +70,11 @@ List<Page> parsePageList(dynamic data) {
     );
   }
 
-  // Shape 1: {"data": {"base_url": ..., "chapter": {"path": ..., "data": [...]}}}
   final chapterData = data['data'];
   if (chapterData is Map && chapterData['chapter'] is Map) {
     final chapter = chapterData['chapter'] as Map<String, dynamic>;
     final pages = chapter['data'];
     if (pages is List && pages.isNotEmpty) {
-      // Tanpa fallback, base yang kosong membuat semua imageUrl berupa path
-      // relatif tanpa skema sehingga seluruh chapter gagal tampil.
       final base = asString(
         chapterData['base_url'] ?? chapterData['base_url_low'],
         fallback: MangaApiClient.cdnBaseUrl,
@@ -98,7 +83,6 @@ List<Page> parsePageList(dynamic data) {
     }
   }
 
-  // Shape 2: {"page_list": {"chapter_page": {"path": ..., "pages": [...]}}}
   final pageList = data['page_list'];
   if (pageList is Map && pageList['chapter_page'] is Map) {
     final chapterPage = pageList['chapter_page'] as Map<String, dynamic>;
@@ -112,7 +96,6 @@ List<Page> parsePageList(dynamic data) {
     }
   }
 
-  // Shape 3: {"pages": [...], "base_url": ..., "path": ...}
   final pages = data['pages'];
   if (pages is List && pages.isNotEmpty) {
     final base = asString(
@@ -137,14 +120,6 @@ List<Page> _buildPages(String base, String path, List<dynamic> pages) {
   ];
 }
 
-/// Menggabungkan base + path + nama file tanpa merusak URL.
-///
-/// Sebelumnya penyusunan ini hanya benar karena kebetulan: base_url dari
-/// server tidak berakhiran garis miring dan path diawali garis miring. Salah
-/// satu berubah saja, hasilnya `https://assets.shngm.idchapter/...` dan
-/// setiap halaman gagal dimuat dengan diam-diam - placeholder rusak tanpa
-/// pesan apa pun. Sekarang kedua sisi dinormalisasi, dan entri yang sudah
-/// berupa URL lengkap dipakai apa adanya.
 String _gabungUrl(String base, String path, String file) {
   if (file.isEmpty) return '';
   if (file.startsWith('http://') || file.startsWith('https://')) return file;

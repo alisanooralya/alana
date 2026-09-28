@@ -4,15 +4,8 @@ import 'package:hive/hive.dart';
 import 'package:alana/core/storage/app_storage.dart';
 import 'package:alana/features/profile/presentation/profile_providers.dart';
 
-/// Riwayat pencarian: Hive per-akun di box `sm_<uid>`, lokal saja.
-///
-/// Tidak ikut sync ke Supabase dan tidak ikut terhapus saat signOut: box
-/// sudah terpisah per uid sehingga tidak bisa tercampur antar akun.
-/// Nilai disimpan sebagai `List<String>` sehingga tidak butuh adapter.
 class SearchHistoryRepository extends Notifier<List<String>> {
-  /// Jumlah entri tersimpan, terbaru lebih dulu.
   static const int maks = 10;
-
   static const String _key = '__items__';
 
   String? _uid;
@@ -32,8 +25,6 @@ class SearchHistoryRepository extends Notifier<List<String>> {
       _bukaLaluMuatUlang(uid);
       return const [];
     }
-    // Box sudah terbuka: kosongkan penanda supaya kalau box ini nanti
-    // tertutup, build() masih boleh mencoba membukanya lagi.
     _dibukaUntuk = null;
     return _muat(box);
   }
@@ -68,8 +59,6 @@ class SearchHistoryRepository extends Notifier<List<String>> {
     state = List.unmodifiable(items);
   }
 
-  /// Mencatat satu kata kunci. Duplikat (tanpa beda huruf besar) digeser
-  /// ke posisi paling atas, bukan ditambahkan lagi.
   void simpan(String query) {
     final nilai = query.trim();
     if (nilai.isEmpty) return;

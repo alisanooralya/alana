@@ -5,8 +5,6 @@ import 'package:alana/models/chapter.dart';
 import 'package:alana/models/manga_details.dart';
 import 'package:alana/services/manga_api_service.dart';
 
-/// Repository halaman detail. Membungkus [MangaApiService]
-/// yang sudah ada; widget tidak memanggil service langsung.
 class DetailRepository {
   const DetailRepository({required this.service});
 

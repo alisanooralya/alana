@@ -13,12 +13,10 @@ import 'package:alana/models/page.dart' as manga;
 
 import 'download_repository.dart';
 
-/// Jaringan hilang di tengah unduhan (bukan sebelum dimulai).
 class DownloadKoneksiPutus implements Exception {
   const DownloadKoneksiPutus();
 }
 
-/// Wi-Fi turun di tengah unduhan sementara mode Wi-Fi-only aktif.
 class DownloadWifiTurun implements Exception {
   const DownloadWifiTurun();
 }
@@ -33,10 +31,7 @@ class DownloadRequest {
     this.coverUrl = '',
   });
 
-  /// Masuk ke kunci supaya antrean milik satu akun tidak pernah bisa
-  /// pencet atau melanjutkan unduhan akun lain.
   final String userId;
-
   final String mangaId;
   final String chapterId;
   final String mangaTitle;
@@ -95,8 +90,6 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
   @override
   Future<DownloadState> build() async {
     ref.onDispose(() => _dio.close(force: true));
-    // Dipanggil lagi begitu koneksi atau setelan berubah: antrean yang ditahan
-    // karena luring harus langsung jalan begitu online kembali.
     ref.listen(konektivitasProvider, (previous, next) {
       final value = state.valueOrNull;
       if (value == null) return;
@@ -133,14 +126,9 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
 
   Future<void> enqueue(DownloadRequest request) async {
     if (request.mangaId.isEmpty || request.chapterId.isEmpty) return;
-    // Tanpa pemilik, request ditolak: lebih baik tidak mengunduh daripada
-    // menulis ke folder yang dipakai bersama.
     if (request.userId.isEmpty) return;
     var current = state.valueOrNull;
     if (current == null) {
-      // build() masih memverifikasi unduhan yang tersimpan saat startup.
-      // Sebelumnya request langsung dibuang di sini padahal UI sudah
-      // mengonfirmasi ke user bahwa chapter masuk antrean.
       try {
         current = await future;
       } catch (_) {
@@ -171,10 +159,6 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
               errorMessage: '',
             );
     await ref.read(downloadRepositoryProvider).save(entry);
-    // "Coba lagi" untuk satu chapter yang gagal harus segera dijalankan, bukan
-    // menunggu 30 chapter lain di depan. Permintaan dienqueue dari tombol
-    // unduh dan dari pengingat mantienen urutan antrean; retry yang gagal
-    // disisipkan di depan.
     final queue = [
       request,
       ...current.queue.where((item) => item.key != request.key),
@@ -223,10 +207,6 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
       _tulis(current.copyWith(queue: queue));
       return;
     }
-    // Status di storage juga harus diubah. Kalau hanya dihapus dari antrean
-    // state, entry 'queued' yang masih tersimpan akan diantrekan ulang oleh
-    // build() setelah aplikasi dibuka - semua chapter yang dibatalkan mulai
-    // download dengan sendirinya.
     final dijeda = entry.copyWith(
       status: DownloadStatus.paused,
       errorMessage: 'Download dibatalkan.',
@@ -306,10 +286,6 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
       return;
     }
     if (ref.read(luringProvider)) {
-      // Tahan antrean, jangan tandai gagal. Sebelumnya setiap item ditandai
-      // "Gagal - tidak ada koneksi" lalu _pump() dipanggil lagi pada kondisi
-      // luring yang sama dengan _pumping masih false, sehingga loop tidak
-      // pernah berhenti dan seluruh antrean dibongkar satu per satu.
       _tulis(
         current.copyWith(
           queue: [request, ...current.queue.skip(1)],
@@ -331,10 +307,6 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     try {
       await _unduh(request, entry);
     } catch (error) {
-      // Koneksi hilang di tengah unduhan: jeda dan kembalikan ke depan
-      // antrean. Kalau tidak dikembalikan ke antrean, item ini tidak akan
-      // pernah dilanjutkan saat koneksi datang - flag waitingForWifi hanya
-      // memanggil _pump(), dan _pump() hanya mengerjakan isi antrean.
       if (error is DownloadKoneksiPutus || error is DownloadWifiTurun) {
         final wifi = error is DownloadWifiTurun;
         final kini = state.valueOrNull ?? current;
@@ -388,9 +360,6 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
       throw const FormatException('Chapter tidak memiliki halaman.');
     }
 
-    // null berarti tidak ada user pemilik, jadi tidak ada folder yang boleh
-    // disentuh. enqueue() sudah menolak request tanpa userId, jadi ini
-    // pengaman lapis kedua.
     final chapterDirectory = await repository.chapterDirectory(
       request.mangaId,
       request.chapterId,
@@ -407,13 +376,6 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
       }
     }
 
-    // Ukuran total dijumlahkan dari berkas yang memang baru diunduh, bukan
-    // dari penelusuran ulang seluruh folder tiap halaman. Sebelumnya setiap
-    // iterasi memanggil _ukuranFolder sehingga satu chapter dengan N halaman
-    // melakukan O(N^2) operasi stat berkas, dan nilainya juga melompat ke
-    // jumlah file terakhir saja setiap kali unduhan dilanjutkan - sehingga
-    // ukuran yang tampil di Unduhan menyusut dari 40 MB menjadi 200 B lalu
-    // naik lagi saat download ulang berjalan.
     var ukuranKumulatif = await _ukuranFolder(chapterDirectory);
     var current = entry.copyWith(
       totalPages: pages.length,
@@ -427,9 +389,6 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     _tulis(_denganEntry(state.valueOrNull!, current));
 
     for (var index = 0; index < pages.length; index++) {
-      // "Unduh hanya di Wi-Fi" sebelumnya dicek sekali sebelum chapter dimulai.
-      // Kalau Wi-Fi putus di tengah, seluruh sisa chapter - dan semua chapter
-      // berikutnya - berjalan lewat data seluler tanpa peringatan.
       final wifiOnly = ref.read(settingsRepositoryProvider).wifiOnlyDownloads;
       if (wifiOnly &&
           !_wifiTersedia(ref.read(konektivitasProvider).valueOrNull)) {
@@ -459,9 +418,6 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
         );
         ukuranKumulatif += await _ukuranFile(path);
       }
-      // Bila berkas sudah ada karena unduhan dilanjutkan, ukurannya sudah
-      // termasuk hitungan awal sehingga tidak diukur ulang. Baris di bawah
-      // tetap jalan supaya downloadedPages ikut bertambah.
       current = current.copyWith(
         downloadedPages: index + 1,
         fileSizeBytes: ukuranKumulatif + await _ukuranFile(coverPath),
@@ -518,11 +474,6 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     if (existing == null) return;
     final entry = existing.copyWith(status: status, errorMessage: message);
     await ref.read(downloadRepositoryProvider).save(entry);
-    // liveProgress juga dibersihkan di jalur gagal. Sebelumnya hanya dihapus
-    // saat sukses, jadi setiap kegagalan meninggalkan entri basi yang langsung
-    // muncul lagi begitu user menekan "Coba lagi" - bar progres melompat ke
-    // nilai percobaan lama lalu kembali ke nol - dan map-nya tumbuh satu
-    // entri per kegagalan sepanjang sesi.
     final live = {...current.liveProgress}..remove(request.key);
     _tulis(
       _denganEntry(
@@ -572,12 +523,6 @@ final downloadStorageBytesProvider = FutureProvider<int>((ref) async {
   return ref.watch(downloadRepositoryProvider).totalStorageBytes();
 });
 
-/// Kunci satu chapter: id manga dan id chapter-nya, bukan id chapter saja.
-///
-/// Match chapterId saja bisa menampilkan halaman manga lain kalau dua judul
-/// punya chapter dengan id yang sama - reader itu sendiri memakai
-/// `keyFor(mangaId, chapterId)` sebagai kunci di sisi unduhan, jadi kedua sisi
-/// harus memakai kunci yang sama.
 final offlinePageListProvider =
     FutureProvider.family<
       List<manga.Page>,
@@ -608,11 +553,6 @@ bool _wifiTersedia(List<ConnectivityResult>? status) {
   return status?.contains(ConnectivityResult.wifi) == true;
 }
 
-/// Ukuran berkas, 0 bila hilang atau tidak bisa dibaca.
-///
-/// `File.length()` melempar FileSystemException kalau berkas dihapus di antara
-/// daftar dan pembacaan. coverLocalPath disimpan lintas sesi sementara
-/// berkasnya bisa hilang sendiri, jadi pemanggilnya tidak boleh ikut gagal.
 Future<int> _ukuranFile(String path) async {
   if (path.isEmpty) return 0;
   try {

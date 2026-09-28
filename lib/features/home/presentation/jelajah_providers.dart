@@ -39,8 +39,6 @@ class JelajahController extends AsyncNotifier<PaginatedMangaState> {
     );
   }
 
-  /// Muat ulang dari awal. Mengembalikan Future supaya RefreshIndicator
-  /// menunggu data benar-benar datang, bukan langsung selesai.
   Future<void> muatUlang() async {
     final query = ref.read(jelajahFilterProvider);
     ref.invalidate(

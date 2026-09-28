@@ -11,7 +11,6 @@ import 'package:alana/features/profile/presentation/profile_providers.dart';
 import 'package:alana/features/settings/data/app_settings.dart';
 import 'package:alana/features/settings/data/settings_repository.dart';
 
-/// Halaman Pengaturan: tema tampilan dan layar tetap menyala.
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
 

@@ -1,9 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-/// Aturan username: huruf kecil, angka, underscore, 3–20 karakter.
 final usernameRegExp = RegExp(r'^[a-z0-9_]{3,20}$');
 
-/// Validasi username. Mengembalikan pesan error atau null bila valid.
 String? validasiUsername(String value) {
   final teks = value.trim();
   if (teks.isEmpty) return 'Username wajib diisi.';
@@ -13,7 +11,6 @@ String? validasiUsername(String value) {
   return null;
 }
 
-/// Validasi email sederhana. Mengembalikan pesan error atau null.
 String? validasiEmail(String value) {
   final teks = value.trim();
   if (teks.isEmpty) return 'Email wajib diisi.';
@@ -23,16 +20,12 @@ String? validasiEmail(String value) {
   return null;
 }
 
-/// Validasi password (minimal 8 karakter).
 String? validasiPassword(String value) {
   if (value.isEmpty) return 'Password wajib diisi.';
   if (value.length < 8) return 'Password minimal 8 karakter.';
   return null;
 }
 
-/// `true` bila [isoCreatedAt] menunjukkan akun yang baru dibuat
-/// (kurang dari 5 menit lalu). Dipakai menandai user Google baru
-/// yang perlu memilih username sendiri.
 bool akunBaruDariIso(String? isoCreatedAt) {
   if (isoCreatedAt == null || isoCreatedAt.isEmpty) return false;
   final dibuat = DateTime.tryParse(isoCreatedAt);
@@ -40,16 +33,6 @@ bool akunBaruDariIso(String? isoCreatedAt) {
   return DateTime.now().difference(dibuat).inMinutes < 5;
 }
 
-/// Percobaan login diblokir pembatas di server.
-///
-/// Dibuat sebagai tipe tersendiri, bukan pesan teks biasa, supaya
-/// [pesanAuthRamah] bisa menampilkan waktu tunggu tanpa harus membaca
-/// angka yang tersembunyi di dalam kalimat error.
-///
-/// [detikTunggu] berasal dari `retry_after_seconds` milik Edge Function
-/// `rate-limit-login`, yaitu detik sampai kegagalan tertua keluar dari
-/// jendela hitungannya. Nilai apa pun yang tidak terpakai di sini tidak
-/// pernah ikut ditampilkan ke pengguna.
 class PercobaanLoginDibatasi implements Exception {
   const PercobaanLoginDibatasi(this.detikTunggu);
 
@@ -59,16 +42,6 @@ class PercobaanLoginDibatasi implements Exception {
   String toString() => 'PercobaanLoginDibatasi($detikTunggu)';
 }
 
-/// Pesan untuk [PercobaanLoginDibatasi].
-///
-/// Hanya menyebut waktu tunggu. Nilai batas percobaan, panjang jendela, dan
-/// berapa kali pengguna masih boleh mencoba tidak ikut disebut, karena
-/// memberitahu angka-angka itu hanya membantu pihak yang sedang menebak.
-///
-/// Menit selalu dibulatkan ke atas, sehingga pesan tidak pernah menjanjikan
-/// waktu yang lebih singkat dari yang sebenarnya. Kalau 61 detik ditulis
-/// "1 menit", pengguna mencoba lagi 1 detik terlalu awal dan kena 429 lagi
-/// tanpa tahu kenapa.
 String pesanBatasPercobaan(int detik) {
   final n = detik < 1 ? 1 : detik;
   if (n < 60) {

@@ -28,11 +28,6 @@ import 'chapter_report_sheet.dart';
 import 'reader_providers.dart';
 import 'widgets/reader_image.dart';
 
-/// Halaman baca vertikal ala webtoon.
-///
-/// - Daftar gambar full-width tanpa jarak.
-/// - Ketuk layar menampilkan/menyembunyikan AppBar + tombol pindah chapter.
-/// - Mode immersive: status bar sistem disembunyikan selama membaca.
 class ReaderPage extends ConsumerStatefulWidget {
   const ReaderPage({
     super.key,
@@ -45,8 +40,6 @@ class ReaderPage extends ConsumerStatefulWidget {
 
   final String mangaId;
   final String chapterId;
-
-  /// Nama chapter untuk judul AppBar (dikirim lewat route `extra`).
   final String chapterName;
   final String mangaTitle;
   final String mangaThumbnail;
@@ -64,14 +57,10 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
   String? _uid;
   int _jumlahHalamanTerakhir = 0;
 
-  /// Posisi scroll tersimpan yang belum tentu sudah bisa dicapai karena
-  /// tinggi placeholder belum mendekati tinggi sebenarnya.
   double? _targetOffset;
 
-  /// Posisi sudah tercapai, tidak perlu mencoba lagi.
   bool _restoreTercapai = false;
 
-  /// Kunci unduhan offline untuk chapter yang sedang dibaca.
   ({String mangaId, String chapterId}) get _kunciOffline =>
       (mangaId: widget.mangaId, chapterId: widget.chapterId);
 
@@ -85,7 +74,6 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
       ),
     );
     _scrollController.addListener(_onScroll);
-    // Selaraskan flag pending dengan box (dorong statis menulis box langsung).
     ref.invalidate(historyRepositoryProvider);
   }
 
@@ -94,10 +82,6 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     WidgetsBinding.instance.removeObserver(this);
     _saveTimer?.cancel();
     _scrollController.removeListener(_onScroll);
-    // ref masih aman dipakai di sini: ConsumerStatefulElement menandai ref
-    // tidak valid SESUDAH state.dispose() selesai. Yang tidak boleh memakai
-    // ref adalah callback async yang berjalan setelah dispose selesai, jadi
-    // dorongan berikut memakai jalur statis yang menyentuh box langsung.
     _simpanPosisi();
     unawaited(SyncService.dorongSekarang(_uid, mangaId: widget.mangaId));
     _scrollController.dispose();
@@ -107,8 +91,6 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Aplikasi background: simpan posisi dulu (debounce 1 detik mungkin belum
-    // sempat jatuh), baru kirim progres yang pending.
     if (state == AppLifecycleState.paused) {
       _saveTimer?.cancel();
       _simpanPosisi();
@@ -116,24 +98,16 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     }
   }
 
-  /// Menyimpan posisi scroll (debounce 1 detik selama scroll).
   void _onScroll() {
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(seconds: 1), _simpanPosisi);
   }
 
-  /// Gestur user membatalkan sisa pemulihan posisi supaya lompatan tidak
-  /// melawan orang yang sedang menggulir.
-  ///
-  /// Harus lewat [UserScrollNotification], bukan listener [ScrollController]:
-  /// `jumpTo` milik [_cobaRestore] sendiri juga memicu listener scroll, jadi
-  /// pembatalan harus berada di sini agar tidak mematikan percobaan sendiri.
   bool _onUserScroll(UserScrollNotification notifikasi) {
     if (notifikasi.direction != ScrollDirection.idle) {
       _targetOffset = null;
       _restoreTercapai = true;
     }
-    // false = biarkan notifikasi diteruskan ke list (bukan arena Flutter).
     return false;
   }
 
@@ -157,21 +131,12 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     _sudahRestore = true;
     if (offset <= 0) return;
     _targetOffset = offset;
-    // Dipanggil dari dalam build, jadi lompatan pertama harus menunggu frame
-    // selesai: belum ada klien scroll saat build pertama.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _cobaRestore();
     });
   }
 
-  /// Melompat ke posisi tersimpan selama masih dalam jangkauan.
-  ///
-  /// Saat chapter baru dibuka seluruh gambar masih berupa placeholder dengan
-  /// tinggi tebakan (lebar x 1.5), padahal strip webtoon bisa 3-6 kali
-  /// lebarnya. Satu kali `jumpTo` pada kondisi itu selalu terpotong, sehingga
-  /// user terbuka beberapa halaman dari posisi sebenarnya. Karena itu
-  /// percobaan diulang setiap kali gambar berikutnya selesai dimuat.
   void _cobaRestore() {
     final target = _targetOffset;
     if (target == null || _restoreTercapai) return;
@@ -188,8 +153,6 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     List<manga.Page> pages, {
     bool offline = false,
   }) {
-    // Placeholder sudah digantikan gambar asli, jadi posisi tersimpan
-    // mungkin sekarang sudah bisa dicapai.
     _cobaRestore();
     if (offline) return;
     final decodeWidth = _lebarDecode(context);
@@ -209,7 +172,6 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     }
   }
 
-  /// Lebar decode dalam piksel fisik, sama dengan yang dipakai ReaderImage.
   static int? _lebarDecode(BuildContext context) {
     final logical = MediaQuery.sizeOf(context).width;
     final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 1;
@@ -218,7 +180,6 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
   }
 
   void _pindahChapter(Chapter target) {
-    // Dorong progres chapter ini sebelum pindah (tanpa menunggu).
     unawaited(ref.read(syncServiceProvider).flushTertunda());
     context.pushReplacementNamed(
       'reader',
@@ -265,20 +226,12 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
 
   @override
   Widget build(BuildContext context) {
-    // Dibaca sekali di awal supaya kunci unduhan dan penanda lain di bawah
-    // memakai user yang sama. Kunci unduhan memuat userId, jadi chapter milik
-    // akun lain tidak akan terlihat sebagai "sudah diunduh".
     final uid = ref.watch(userIdProvider) ?? '';
     final downloadAsync = ref.watch(downloadManagerProvider);
     final downloadState = downloadAsync.valueOrNull;
     final downloaded = downloadState?.entryFor(
       DownloadRepository.keyFor(uid, widget.mangaId, widget.chapterId),
     );
-    // Jangan tunggu verifikasi unduhan sebelum memuat halaman. verifyAll()
-    // memeriksa seluruh folder di startup, jadi menahan pagesAsync selama itu
-    // membuat reader menampilkan shimmer beberapa detik dan daftar chapter
-    // kosong walau jaringan sedang baik. Selama status unduhan belum
-    // diketahui, andalkan baca dari jaringan.
     final offline = downloaded?.status == DownloadStatus.completed;
     final AsyncValue<List<manga.Page>> pagesAsync = offline
         ? ref.watch(offlinePageListProvider(_kunciOffline))
@@ -463,7 +416,6 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
                 itemCount: pages.length,
                 itemBuilder: (context, index) {
                   if (index == 0) {
-                    // Kembalikan posisi terakhir hanya bila chapter-nya sama.
                     final tersimpan = ref.read(
                       historyRepositoryProvider,
                     )[widget.mangaId];
@@ -489,14 +441,6 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
   }
 }
 
-/// Urutan baca: chapter terlama lebih dulu (fallback: urutan API).
-///
-/// `dateUpload` bernilai 0 bila tanggal chapter tidak bisa diurai. Tanpa
-/// penyaringan, satu chapter ber tanggal 0 ikut terurut dan dianggap paling
-/// tua - sehingga tombol Berikutnya/Sebelumnya melompat ke chapter yang salah
-/// dan "Lanjut Baca" bisa menunjuk chapter yang salah. Chapter tanpa tanggal
-/// yang valid karena itu tidak ikut menentukan urutan, dan fallback ke urutan
-/// API dipakai kalau tidak ada satu pun tanggal yang bisa dibaca.
 List<Chapter> _urutTerlamaDulu(List<Chapter> daftar) {
   final denganTanggal = daftar.where((c) => c.dateUpload > 0).toList();
   if (denganTanggal.isEmpty) return [...daftar];
@@ -505,22 +449,12 @@ List<Chapter> _urutTerlamaDulu(List<Chapter> daftar) {
       .map((c) => c.url)
       .toSet();
   denganTanggal.sort((a, b) => a.dateUpload.compareTo(b.dateUpload));
-  // Chapter tanpa tanggal diletakkan di akhir, bukan di awal.
   return [
     ...denganTanggal,
     ...daftar.where((c) => idTanpaTanggal.contains(c.url)),
   ];
 }
 
-/// Immersive mode dan wakelock dipakai bersama antar halaman reader.
-///
-/// Pindah chapter memakai `pushReplacementNamed`: `initState` halaman baru
-/// berjalan lebih dulu, baru `dispose` halaman lama beberapa ratus milidetik
-/// kemudian saat transisi selesai. Kalau setiap `dispose` mematikan immersive
-/// dan wakelock, penulis terakhir selalu halaman lama, sehingga begitu saja
-/// setelah satu kali ganti chapter layar mulai redup dan status bar muncul
-/// kembali. Penghitung di bawah membuat rilis hanya terjadi saat benar-benar
-/// tidak ada reader yang menagih.
 class _ImmersiveSession {
   const _ImmersiveSession._();
 

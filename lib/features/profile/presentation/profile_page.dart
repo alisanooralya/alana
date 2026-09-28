@@ -14,7 +14,6 @@ import 'package:alana/features/auth/presentation/auth_providers.dart';
 import 'profile_providers.dart';
 import 'widgets/profile_avatar.dart';
 
-/// Halaman Profil: avatar, nama, username, email, dan menu.
 class ProfilePage extends ConsumerWidget {
   const ProfilePage({super.key});
 
@@ -39,7 +38,6 @@ class ProfilePage extends ConsumerWidget {
     if (yakin != true) return;
     ref.read(pendingUsernameSetupProvider.notifier).state = false;
     await ref.read(authRepositoryProvider).keluar();
-    // Pindah ke /masuk ditangani redirect (sesi hilang).
   }
 
   Future<void> _hapusAkun(BuildContext context, WidgetRef ref) async {
@@ -72,7 +70,6 @@ class ProfilePage extends ConsumerWidget {
     );
     if (lanjut != true || !context.mounted) return;
 
-    // Konfirmasi ulang: password (email) atau kata HAPUS (Google).
     final terkonfirmasi = await showDialog<bool>(
       context: context,
       builder: (context) => _DialogKonfirmasiHapus(
@@ -106,8 +103,6 @@ class ProfilePage extends ConsumerWidget {
       return;
     }
 
-    // Bersihkan cache lokal: gambar + Hive (Hive user menyusul
-    // lewat orkestrasi sync saat sesi hilang).
     try {
       await DefaultCacheManager().emptyCache();
     } catch (_) {
@@ -115,7 +110,6 @@ class ProfilePage extends ConsumerWidget {
     }
     ref.read(pendingUsernameSetupProvider.notifier).state = false;
     await repo.keluar();
-    // Pindah ke /masuk ditangani redirect (sesi hilang).
   }
 
   @override
@@ -250,10 +244,6 @@ class ProfilePage extends ConsumerWidget {
   }
 }
 
-/// Dialog konfirmasi ulang hapus akun.
-///
-/// [lewatEmail] true → minta password (divalidasi via [onValidasi]);
-/// false → minta ketik kata HAPUS.
 class _DialogKonfirmasiHapus extends StatefulWidget {
   const _DialogKonfirmasiHapus({
     required this.lewatEmail,

@@ -7,7 +7,6 @@ import 'package:alana/features/auth/data/auth_validators.dart';
 
 import 'widgets/auth_widgets.dart';
 
-/// Halaman lupa password: kirim email tautan reset.
 class ForgotPasswordPage extends ConsumerStatefulWidget {
   const ForgotPasswordPage({super.key});
 
@@ -29,11 +28,6 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
   }
 
   Future<void> _kirim() async {
-    // onSubmitted dari keyboard memanggil method yang sama dengan tombol, dan
-    // tidak ikut dilebihkan oleh kondisi tombol yang disabled. Tanpa penjaga ini
-    // dua permintaan berjalan bersamaan: pada daftar, panggilan kedua
-    // mendapat 422 "user already registered" dan menampilkan pesan "email
-    // sudah terdaftar" untuk akun yang baru saja berhasil dibuat.
     if (_memuat) return;
     FocusScope.of(context).unfocus();
     setState(() {

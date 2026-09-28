@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
-/// Tampilan memuat berupa skeleton shimmer.
-///
-/// Dipakai saat daftar sedang diambil dari API.
 class LoadingView extends StatelessWidget {
   const LoadingView({super.key, this.itemCount = 6});
 
-  /// Jumlah baris skeleton yang ditampilkan.
   final int itemCount;
 
   @override

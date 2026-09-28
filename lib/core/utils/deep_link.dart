@@ -1,15 +1,10 @@
 const alanaScheme = 'alana';
 
-/// Host deep link untuk tautan reset password dari Supabase.
 const String resetPasswordHost = 'reset-password';
-
-/// Lokasi internal halaman set password baru.
 const String resetPasswordLokasi = '/reset-password';
 
-/// Tautan tujuan yang dikirim ke Supabase sebagai `redirect_to`.
 String resetPasswordLink() => '$alanaScheme://$resetPasswordHost';
 
-/// Mengambil kode PKCE dari tautan reset password, null bila bukan tautan itu.
 String? kodeRecoveryDari(Uri uri) {
   if (uri.scheme != alanaScheme || uri.host != resetPasswordHost) return null;
   final kode = uri.queryParameters['code'];
@@ -59,6 +54,5 @@ class DeepLinkIntent {
     return lokasi;
   }
 
-  /// Membuang target yang belum sempat dipakai.
   static void buang() => _pending = null;
 }

@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Tampilan gagal memuat dengan tombol coba lagi.
-///
-/// Semua teks bawaan memakai Bahasa Indonesia.
 class ErrorView extends StatelessWidget {
   const ErrorView({
     super.key,
@@ -11,13 +8,10 @@ class ErrorView extends StatelessWidget {
     this.labelTombol = 'Coba lagi',
   });
 
-  /// Pesan kesalahan yang ditampilkan ke pengguna.
   final String pesan;
 
-  /// Dipanggil saat tombol coba lagi ditekan.
   final VoidCallback onRetry;
 
-  /// Label tombol aksi.
   final String labelTombol;
 
   @override

@@ -1,16 +1,3 @@
-/// Logika merge last-write-wins (murni, tanpa I/O).
-///
-/// Dipakai untuk bookmark maupun riwayat: pemanggil menormalkan
-/// baris lokal dan remote ke [EntriGabung] lalu membangun baris
-/// remote dari `data` lewat [keBaris].
-///
-/// - Seri (`updated` sama): remote menang agar perangkat konvergen.
-/// - Lokal pending yang kalah: gugur (ditimpa remote).
-/// - Tombstone: entri yang lebih baru dari waktu hapus dianggap hidup lagi
-///   (dibuat ulang di salah satu perangkat). Tombstone lokal yang masih
-///   perlu dorong ikut dikembalikan lewat [HasilGabung.tombsSisa];
-///   tombstone dari server tidak disimpan lokal karena server sudah
-///   memiliki salinannya.
 typedef EntriGabung = ({DateTime updated, Map<String, dynamic> data});
 
 class HasilGabung {
@@ -21,16 +8,9 @@ class HasilGabung {
     required this.tombsSisa,
   });
 
-  /// Status lokal gabungan (id → map entri, flag pending apa adanya).
   final Map<String, Map<String, dynamic>> lokal;
-
-  /// Baris remote lengkap untuk batch upsert.
   final List<Map<String, dynamic>> unggah;
-
-  /// ID untuk dihapus di remote.
   final List<String> hapusRemote;
-
-  /// Tombstone yang bertahan (belum terdorong).
   final Map<String, DateTime> tombsSisa;
 }
 
@@ -57,7 +37,6 @@ HasilGabung gabung({
     final r = remote[id];
     final tLokal = tombs[id];
     final tRemote = tombsRemote[id];
-    // Waktu hapus efektif = yang paling baru dari dua sumber.
     DateTime? t;
     if (tLokal != null && tRemote != null) {
       t = tRemote.isAfter(tLokal) ? tRemote : tLokal;
@@ -67,11 +46,9 @@ HasilGabung gabung({
 
     if (t != null) {
       if (l != null && l.updated.isAfter(t)) {
-        // Dibuat ulang di perangkat ini setelah dihapus di perangkat lain.
         hasilLokal[id] = l.data;
         unggah.add(keBaris(l.data));
       } else if (r != null && r.updated.isAfter(t)) {
-        // Dibuat ulang di perangkat lain setelah dihapus di sini.
         hasilLokal[id] = r.data;
       } else {
         if (r != null) hapusRemote.add(id);

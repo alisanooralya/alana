@@ -39,19 +39,11 @@ String? _targetDeepLink(GoRouterState state) {
   return internalLocationFromDeepLink(state.uri.toString());
 }
 
-/// Halaman detail/reader: satu-satunya lokasi yang layak "dikembalikan"
-/// ke user setelah ia sempat terlempar ke halaman login.
 bool _detailAtauReader(String lokasi) {
   return lokasi.startsWith('/detail/') || lokasi.startsWith('/baca/');
 }
 
 final goRouterProvider = Provider<GoRouter>((ref) {
-  // Sesi, kesiapan splash, status onboarding, dan permintaan setup username
-  // dibaca di dalam redirect, bukan di-watch di sini. Kalau di-watch, setiap
-  // perubahan status membuat GoRouter baru yang membaca ulang
-  // initialLocation '/', sehingga navigator ikut diganti: user yang sedang
-  // membaca chapter 40 terlempar ke Beranda, stack navigasi hilang, dan
-  // extra halaman (judul chapter, sampul) ikut hilang.
   final refresh = GoRouterRefresh([ref.watch(streamSesiProvider)]);
   ref.onDispose(refresh.dispose);
 
@@ -84,9 +76,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       if (sesiAsync.isLoading || !splashSiap) {
         return lokasi == '/splash' ? null : '/splash';
       }
-      // Sesi recovery hanya boleh dipakai untuk mengganti password. Tanpa
-      // kunci ini user yang salah menekan tautan bisa menjelajah aplikasi
-      // dengan sesi yang token refresh-nya masih valid.
       if (recovery && lokasi != resetPasswordLokasi) {
         return resetPasswordLokasi;
       }
@@ -105,17 +94,12 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         return customTarget;
       }
       if (!masuk && !rutePublik.contains(lokasi)) {
-        // Hanya saat user benar-benar terlempar ke login yang lokasi
-        // lamanya disimpan, bukan setiap kali redirect berjalan.
         final kembali =
             customTarget ?? (_detailAtauReader(lokasi) ? lokasi : null);
         if (kembali != null) DeepLinkIntent.simpan(kembali);
         return '/masuk';
       }
       if (masuk && !recovery && pendatangBaru && lokasi != '/profil/ubah') {
-        // '/profil' dikecualikan supaya user bisa membuka halaman Profil dan
-        // memakai tombol Keluar. Mengunci semua lokasi membuat halaman Edit
-        // Profil jadi perangkap: menekan back hanya memantulkan user ke sini.
         return lokasi == '/profil' ? null : '/profil/ubah?baru=1';
       }
       if (masuk && (lokasi == '/masuk' || lokasi == '/daftar')) {
@@ -129,8 +113,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         return DeepLinkIntent.ambil() ?? '/';
       }
       if (masuk && lokasi == '/profil/ubah') {
-        // Buang sisa target; jangan pernah mengarahkan halaman ini ke
-        // deep link lama.
         DeepLinkIntent.buang();
       }
       return null;
@@ -301,20 +283,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const DiagnosticsPage(),
       ),
     ],
-    // Tidak ada lagi route '/:mangaId' dan '/:mangaId/:chapterId'.
-    // Keduanya menangkap semua path satu atau dua segmen yang tidak dikenal,
-    // sehingga errorBuilder di bawah tidak mungkin terpakai: '/halamn-salah'
-    // membuka DetailPage dengan id-ngawur dan berakhir di "Gagal memuat"
-    // alih-alih halaman 404. Deep link tidak membutuhkannya karena
-    // internalLocationFromDeepLink sudah mengubah alana://manga/<id> menjadi
-    // /detail/<id> sebelum router menyentuh uri.
     errorBuilder: (context, state) => Scaffold(
       appBar: AppBar(title: const Text('Halaman tidak ditemukan')),
       body: Center(child: Text('Rute ${state.uri} tidak tersedia.')),
     ),
   );
-  // GoRouter menyimpan routeInformationProvider yang berupa WidgetsBindingObserver
-  // dan routerDelegate; keduanya harus dilepas saat provider di-dispose.
   ref.onDispose(router.dispose);
   return router;
 });

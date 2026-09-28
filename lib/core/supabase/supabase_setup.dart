@@ -5,19 +5,11 @@ import 'package:alana/core/diagnostics/error_log.dart';
 
 import 'secure_auth_storage.dart';
 
-/// Inisialisasi dan akses klien Supabase.
-///
-/// Dipanggil sekali dari [Bootstrap] sebelum router dipakai.
-/// Sesi dan code verifier PKCE disimpan di keystore perangkat lewat
-/// [SecureLocalStorage] dan [SecureGotrueAsyncStorage] sehingga user tetap
-/// login setelah aplikasi ditutup, dan refresh token tidak tersimpan terbuka
-/// di SharedPreferences.
 class SupabaseSetup {
   const SupabaseSetup._();
 
   static bool _siap = false;
 
-  /// Penyebab kegagalan [init] terakhir, bila ada.
   static String? lastError;
 
   static bool get siap => _siap;
@@ -46,15 +38,6 @@ class SupabaseSetup {
     }
   }
 
-  /// Memindahkan sesi dari SharedPreferences ke keystore, sekali saja.
-  ///
-  /// Harus jalan sebelum [Supabase.initialize] supaya sesi dipulihkan dari
-  /// tempat yang benar sejak awal, bukan ditulis ulang ke SharedPreferences
-  /// dulu lalu dipindah.
-  ///
-  /// Kegagalan tidak menentukan hasil [init]. Kalau tidak bisa memindahkan,
-  /// aplikasi tetap jalan: sesi lama masih utuh di SharedPreferences dan
-  /// masih bisa dibaca, hanya belum terenkripsi.
   static Future<void> _pindahkanSesiLama() async {
     try {
       final hasil = await migrasiTokenKeAman(
@@ -74,6 +57,5 @@ class SupabaseSetup {
     }
   }
 
-  /// Klien aktif. Hanya dipakai setelah [siap] bernilai true.
   static SupabaseClient get instance => Supabase.instance.client;
 }

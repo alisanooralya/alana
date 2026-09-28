@@ -9,23 +9,16 @@ import 'package:alana/features/history/data/reading_history.dart';
 import 'package:alana/features/onboarding/data/onboarding_repository.dart';
 import 'package:alana/features/profile/presentation/profile_providers.dart';
 
-/// Pengingat baca lokal: menjadwalkan notifikasi untuk bacaan yang
-/// sudah 2+ hari tidak dilanjutkan. Dijadwalkan ulang tiap aplikasi
-/// dibuka (tanpa background service).
 class PengingatRepository {
   PengingatRepository(this.ref);
 
   final Ref ref;
 
   static const kunciAktif = 'pengingat_baca';
-
-  /// Prefixes kunci penanda "sudah diberi tahu", satu per judul.
   static const _prefixDiberiTahukan = 'pengingat_diberitahu_';
 
-  /// Jeda sebelum judul yang sama boleh diingatkan lagi.
   static const Duration jedaUlang = Duration(days: 7);
 
-  /// Kapan judul ini terakhir diberi tahu, null bila belum pernah.
   DateTime? _terakhirDiberiTahukan(String mangaId) {
     final iso = ref
         .read(sharedPreferencesProvider)
@@ -43,15 +36,6 @@ class PengingatRepository {
         );
   }
 
-  /// Jadwalkan ulang untuk [uid]. Batalkan dulu semua milik kita.
-  /// [maksimal]: batasi jumlah notifikasi.
-  ///
-  /// Sebelumnya Always memilih 3 judul terlama setiap kali aplikasi dibuka,
-  /// tanpa mencatat bahwa pengingatnya sudah dikirim. Akibatnya user dengan
-  /// 10 bacaan terlantar mendapat notifikasi yang sama untuk judul yang sama
-  /// setiap pagi selamanya, sementara 7 judul yang lebih baru tidak pernah
-  /// disinggung karena selalu kalah oleh 3 yang paling lama. Judul yang sudah
-  /// diberi tahu dalam [jedaUlang] dilewati, sehingga giliran bergilir.
   Future<void> jadwalkanUlang(String? uid, {int maksimal = 3}) async {
     await LayananNotifikasi.batalkanPengingat(
       idDari(ref.read(sharedPreferencesProvider)),
@@ -70,12 +54,6 @@ class PengingatRepository {
       if (p.mangaId.isEmpty) continue;
       if (p.updatedAt.isBefore(batas)) basi.add(p);
     }
-    // Urut berdasarkan kapan terakhir diberi tahu, bukan kapan terakhir
-    // dibaca. Urut berdasarkan usia bacaan selalu mengembalikan 3 judul yang
-    // sama: begitu jedaUlang habis, 3 judul tertua langsung memenuhi syarat
-    // lagi dan giliran tidak pernah sampai ke sisanya. Dengan urutan ini,
-    // yang belum pernah diberi tahu didahulukan, lalu yang paling lama
-    //_since_ diberi tahu - sehingga giliran benar-benar bergilir.
     basi.sort((a, b) {
       final ta = _terakhirDiberiTahukan(a.mangaId);
       final tb = _terakhirDiberiTahukan(b.mangaId);
@@ -119,7 +97,6 @@ class PengingatRepository {
     ]);
   }
 
-  /// Jam 9 pagi berikutnya (waktu lokal perangkat).
   tz.TZDateTime _berikutnyaJam9() {
     final kini = tz.TZDateTime.now(tz.local);
     var target = tz.TZDateTime(tz.local, kini.year, kini.month, kini.day, 9);
@@ -129,15 +106,8 @@ class PengingatRepository {
     return target;
   }
 
-  /// Kunci daftar ID notifikasi yang sudah dijadwalkan.
-  ///
-  /// Pembatalan memakai daftar ini, bukan cancelAll(), supaya notifikasi lain
-  /// - termasuk push chapter baru - tidak ikut terhapus.
   static const _kunciIdTerjadwal = 'pengingat_ids';
 
-  /// Menerima [SharedPreferences] dan bukan Ref/WidgetRef karena pemanggilnya
-  /// punya dua tipe ref berbeda yang tidak saling menimpa: PengingatRepository
-  /// memakai Ref, sedangkan PengingatStatus memakai NotifierProviderRef.
   static List<int> idDari(SharedPreferences prefs) {
     return prefs
             .getStringList(_kunciIdTerjadwal)
@@ -147,12 +117,6 @@ class PengingatRepository {
         const [];
   }
 
-  /// Kirim satu notifikasi uji.
-  ///
-  /// Payload diambil dari riwayat baca supaya mengetuk notifikasi ini juga
-  /// menguji alur navigasi. Sebelumnya tidak ada payload sama sekali, sehingga
-  /// ketuk tidak melakukan apa-apa - padahal teksnya menjanjikan sebaliknya,
-  /// dan tidak ada jalan lain menguji navigasi dari notifikasi.
   Future<void> kirimUji() async {
     final uid = ref.read(userIdProvider);
     var payload = '';
@@ -182,7 +146,6 @@ class PengingatRepository {
   }
 }
 
-/// On/off pengingat (per-perangkat, SharedPreferences). Default: nyala.
 class PengingatStatus extends Notifier<bool> {
   @override
   bool build() {

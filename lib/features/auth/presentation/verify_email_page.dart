@@ -3,10 +3,6 @@ import 'package:go_router/go_router.dart';
 
 import 'widgets/auth_widgets.dart';
 
-/// Layar setelah daftar bila konfirmasi email aktif (tanpa sesi).
-///
-/// Meminta user membuka tautan verifikasi di emailnya,
-/// lalu kembali masuk.
 class VerifyEmailPage extends StatelessWidget {
   const VerifyEmailPage({super.key, this.email = ''});
 

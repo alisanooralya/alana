@@ -1,4 +1,3 @@
-/// Satu baris tabel `profiles`.
 class Profile {
   const Profile({
     required this.id,
@@ -12,7 +11,6 @@ class Profile {
   final String displayName;
   final String avatarUrl;
 
-  /// Inisial untuk fallback avatar (1–2 huruf pertama).
   String get inisial {
     final bersih = displayName.isNotEmpty ? displayName : username;
     final kata = bersih
@@ -34,7 +32,6 @@ class Profile {
   }
 }
 
-/// [jumlah] rune pertama [teks], kapital.
 String _huruf(String teks, int jumlah) {
   final runes = teks.runes.take(jumlah).toList();
   if (runes.isEmpty) return '?';

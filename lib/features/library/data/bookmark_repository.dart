@@ -10,13 +10,6 @@ import 'package:alana/features/sync/data/sync_remote.dart';
 
 import 'bookmarked_manga.dart';
 
-/// Repository bookmark (Pustaka): Hive per-user + antrean push Supabase.
-///
-/// - UI tetap reaktif dan bisa offline (tulis lokal dulu/optimistic).
-/// - Setiap mutasi menandai `pending` lalu mencoba dorong langsung;
-///   gagal (offline) → tetap pending, didorong ulang oleh SyncService
-///   saat koneksi kembali / aplikasi dibuka / pull-to-refresh.
-/// - Hapus dicatat sebagai tombstone agar terpropagasi ke remote.
 class BookmarkRepository extends Notifier<Map<String, BookmarkedManga>> {
   String? _uid;
   Map<String, DateTime> _tombs = {};
@@ -37,13 +30,10 @@ class BookmarkRepository extends Notifier<Map<String, BookmarkedManga>> {
       _tombs = {};
       return const {};
     }
-    // Box sudah terbuka: kosongkan penanda supaya kalau box ini nanti
-    // tertutup, build() masih boleh mencoba membukanya lagi.
     _dibukaUntuk = null;
     return _muat(box);
   }
 
-  /// Box belum terbuka (balapan dengan login): buka lalu muat ulang.
   void _bukaLaluMuatUlang(String uid) {
     if (_dibukaUntuk == uid) return;
     _dibukaUntuk = uid;
@@ -98,11 +88,8 @@ class BookmarkRepository extends Notifier<Map<String, BookmarkedManga>> {
 
   bool isBookmarked(String mangaId) => state.containsKey(mangaId);
 
-  /// Tombstone hapus yang belum terdorong.
   Map<String, DateTime> get tombs => Map.unmodifiable(_tombs);
 
-  /// Menandai bila belum ada, menghapus bila sudah ada.
-  /// Mengembalikan status baru (`true` = ditandai).
   bool toggle(BookmarkedManga item) {
     final next = Map<String, BookmarkedManga>.of(state);
     final sudahAda = next.containsKey(item.mangaId);
@@ -121,7 +108,6 @@ class BookmarkRepository extends Notifier<Map<String, BookmarkedManga>> {
     return !sudahAda;
   }
 
-  /// Menghapus bookmark. Aman bila ID tidak ada.
   void hapus(String mangaId) {
     if (!state.containsKey(mangaId)) return;
     final next = Map<String, BookmarkedManga>.of(state)..remove(mangaId);
@@ -130,8 +116,6 @@ class BookmarkRepository extends Notifier<Map<String, BookmarkedManga>> {
     unawaited(_dorong(mangaId));
   }
 
-  /// Mendorong satu id ke remote (upsert atau hapus-tomb).
-  /// Gagal diam-diam: flag pending/tomb bertahan untuk retry.
   Future<void> _dorong(String mangaId) async {
     final uid = _uid;
     if (uid == null || uid.isEmpty || !SupabaseSetup.siap) return;
@@ -155,7 +139,6 @@ class BookmarkRepository extends Notifier<Map<String, BookmarkedManga>> {
     }
   }
 
-  /// Menerapkan hasil merge: ganti seluruh state+box sekaligus.
   void terapkanGabungan(
     Map<String, BookmarkedManga> gabungan,
     Map<String, DateTime> tombs,
@@ -164,11 +147,6 @@ class BookmarkRepository extends Notifier<Map<String, BookmarkedManga>> {
     final box = _uid == null ? null : AppStorage.boxUserSync('bm', _uid!);
     var hasil = gabungan;
     if (box != null) {
-      // Gabungan dihitung dari snapshot yang diambil sebelum network. Toggle
-      // bookmark yang terjadi selama sync berjalan tidak ada di snapshot itu,
-      // dan _persist() akan menghapus setiap kunci yang tidak ada di
-      // gabungan - sehingga toggle tersebut hilang. Entri pending yang belum
-      // ada di snapshot karena itu dipertahankan.
       for (final key in box.keys) {
         if (key == AppStorage.tombsKey) continue;
         if (hasil.containsKey(key)) continue;
@@ -182,10 +160,6 @@ class BookmarkRepository extends Notifier<Map<String, BookmarkedManga>> {
     _persist(hasil);
   }
 
-  /// Menandai beberapa id sudah tersinkron.
-  ///
-  /// Hanya yang `updatedAt`-nya tidak lebih baru dari saat terkirim
-  /// yang dibersihkan (aman dari balapan tulis saat sinkron jalan).
   void tandaiTersinkron(Map<String, DateTime> terkirim) {
     var berubah = false;
     final next = Map<String, BookmarkedManga>.of(state);
@@ -200,7 +174,6 @@ class BookmarkRepository extends Notifier<Map<String, BookmarkedManga>> {
     if (berubah) _persist(next);
   }
 
-  /// Membuang tombstone yang sudah terdorong.
   void buangTombs(Iterable<String> ids) {
     var berubah = false;
     for (final id in ids) {
@@ -209,7 +182,6 @@ class BookmarkRepository extends Notifier<Map<String, BookmarkedManga>> {
     if (berubah) _persist(Map<String, BookmarkedManga>.of(state));
   }
 
-  /// Baris remote untuk satu entri lokal.
   static Map<String, dynamic> barisUntuk(String uid, BookmarkedManga e) =>
       _barisBookmark(uid, e);
 
@@ -219,11 +191,7 @@ class BookmarkRepository extends Notifier<Map<String, BookmarkedManga>> {
       'manga_id': e.mangaId,
       'title': e.title,
       'cover_url': e.thumbnail,
-      // toUtc() wajib: kolomnya timestamptz, sedangkan toIso8601String()
-      // pada DateTime lokal tidak menghasilkan offset sehingga Postgres
-      // membacanya sebagai UTC dan menggeser waktu sesuai zona perangkat.
       'created_at': e.updatedAt.toUtc().toIso8601String(),
-      // Bersihkan tombstone server saat bookmark dihidupkan ulang.
       'deleted_at': null,
     };
   }

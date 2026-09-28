@@ -2,20 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-/// `true` sampai bingkai shell pertama kali tampil.
-///
-/// Dipakai untuk animasi slide-up + fade bottom navigation
-/// hanya saat pertama masuk dari login.
 final shellPertamaProvider = StateProvider<bool>((ref) => true);
 
-/// Kerangka utama dengan bottom navigation 4 tab.
-///
-/// Dipakai sebagai `builder` dari `StatefulShellRoute.indexedStack`
-/// di [app_router.dart].
 class ScaffoldWithNavBar extends ConsumerStatefulWidget {
   const ScaffoldWithNavBar({super.key, required this.navigationShell});
 
-  /// Shell navigasi yang mengelola tiap cabang tab.
   final StatefulNavigationShell navigationShell;
 
   @override
@@ -63,7 +54,6 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar>
   void _onTap(int index) {
     widget.navigationShell.goBranch(
       index,
-      // Kembali ke lokasi awal tab bila tab aktif ditekan ulang.
       initialLocation: index == widget.navigationShell.currentIndex,
     );
   }

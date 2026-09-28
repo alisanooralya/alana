@@ -5,14 +5,8 @@ import 'package:alana/features/home/data/home_repository.dart';
 
 import 'paginated_manga_state.dart';
 
-/// Kata kunci pencarian saat ini. Kosong = belum mencari.
 final searchQueryProvider = StateProvider<String>((ref) => '');
 
-/// Controller hasil pencarian dengan paginasi.
-///
-/// Otomatis memuat ulang setiap [searchQueryProvider] berubah.
-/// Query kosong tidak memanggil API dan langsung mengembalikan
-/// daftar kosong.
 class SearchResultsController extends AsyncNotifier<PaginatedMangaState> {
   @override
   Future<PaginatedMangaState> build() async {
@@ -36,9 +30,6 @@ class SearchResultsController extends AsyncNotifier<PaginatedMangaState> {
       return;
     }
 
-    // Query harus dibaca SEBELUM await dan dicek ulang sesudahnya. Kalau
-    // dibaca sesudah await, permintaan page-2 memakai query yang sudah
-    // diganti dan hasilnya ditumpuk ke daftar query lama.
     final query = ref.read(searchQueryProvider);
     final halamanBerikutnya = saatIni.page + 1;
     state = AsyncData(
@@ -49,8 +40,6 @@ class SearchResultsController extends AsyncNotifier<PaginatedMangaState> {
       final repository = ref.read(homeRepositoryProvider);
       final response = await repository.search(query, page: halamanBerikutnya);
       if (ref.read(searchQueryProvider) != query) return;
-      // Snapshot bisa basi kalau build() sempat berjalan lagi (mis. invalidate)
-      // sementara permintaan ini masih jalan.
       if (state.valueOrNull?.page != saatIni.page) return;
       state = AsyncData(
         saatIni.copyWith(

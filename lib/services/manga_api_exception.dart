@@ -1,14 +1,11 @@
 import 'package:dio/dio.dart';
 
-/// Error thrown by [MangaApiService] when an API call fails.
 class MangaApiException implements Exception {
   final String message;
   final int? statusCode;
 
   const MangaApiException(this.message, {this.statusCode});
 
-  /// Wraps any [error] thrown while performing [action] into a
-  /// [MangaApiException]. Already wrapped errors are returned as-is.
   factory MangaApiException.from(String action, Object error) {
     if (error is MangaApiException) return error;
 

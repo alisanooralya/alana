@@ -1,4 +1,3 @@
-/// A chapter entry of a manga.
 class Chapter {
   final String name;
   final int dateUpload;

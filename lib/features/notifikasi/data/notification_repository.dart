@@ -5,15 +5,11 @@ import 'package:alana/core/supabase/supabase_setup.dart';
 
 import 'notifikasi.dart';
 
-/// Repository notification center (tabel `notifications`).
-///
-/// Tanpa realtime: daftar ditarik saat halaman dibuka + pull-to-refresh.
 class NotificationRepository {
   const NotificationRepository();
 
   SupabaseClient get _client => SupabaseSetup.instance;
 
-  /// 50 terbaru milik [uid], terbaru dulu.
   Future<List<Notifikasi>> daftar(String uid) async {
     final baris = await _client
         .from('notifications')
@@ -30,7 +26,6 @@ class NotificationRepository {
     ];
   }
 
-  /// Jumlah belum dibaca (dibatasi 100 untuk badge).
   Future<int> hitungBelumDibaca(String uid) async {
     final List<dynamic> baris = await _client
         .from('notifications')

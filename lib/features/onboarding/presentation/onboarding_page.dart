@@ -37,7 +37,6 @@ const _halaman = [
   ),
 ];
 
-/// Onboarding 3 halaman. Selesai/lewati → flag lalu ke `/masuk`.
 class OnboardingPage extends ConsumerStatefulWidget {
   const OnboardingPage({super.key});
 
@@ -268,10 +267,6 @@ class _IsiHalaman extends StatelessWidget {
   }
 }
 
-/// Ilustrasi lingkaran gradien dengan parallax ringan saat digeser.
-///
-/// Hanya ilustrasi yang rebuild tiap frame (AnimatedBuilder);
-/// sisa halaman tidak ikut rebuild.
 class _Ilustrasi extends StatelessWidget {
   const _Ilustrasi({
     required this.controller,

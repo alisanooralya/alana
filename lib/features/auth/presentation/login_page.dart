@@ -10,9 +10,6 @@ import 'package:alana/features/auth/presentation/auth_providers.dart';
 
 import 'widgets/auth_widgets.dart';
 
-/// Halaman masuk: email + password atau Google.
-///
-/// Setelah sesi terbentuk, redirect router otomatis ke Beranda.
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
@@ -37,11 +34,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   Future<void> _masuk() async {
-    // onSubmitted dari keyboard memanggil method yang sama dengan tombol, dan
-    // tidak ikut dilebihkan oleh kondisi tombol yang disabled. Tanpa penjaga ini
-    // dua permintaan berjalan bersamaan: pada daftar, panggilan kedua
-    // mendapat 422 "user already registered" dan menampilkan pesan "email
-    // sudah terdaftar" untuk akun yang baru saja berhasil dibuat.
     if (_memuat) return;
     FocusScope.of(context).unfocus();
     setState(() {
@@ -61,7 +53,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           password: _password.text,
         );
       }
-      // Tampilkan centang singkat; pindah halaman ikut redirect sesi.
       if (mounted) setState(() => _sukses = true);
     } catch (error) {
       if (mounted) setState(() => _pesanError = pesanAuthRamah(error));
@@ -78,7 +69,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     try {
       final hasil = await ref.read(authRepositoryProvider).masukDenganGoogle();
       if (!mounted) return;
-      // User Google baru (akun dibuat barusan) wajib pilih username.
       ref.read(pendingUsernameSetupProvider.notifier).state = akunBaruDariIso(
         hasil.user?.createdAt,
       );
@@ -116,8 +106,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   controller: _email,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
-                  // Tanpa petunjuk ini tidak ada integrasi password manager
-                  // maupun isi otomatis dari Android.
                   autofillHints: const [AutofillHints.username],
                   validator: (value) {
                     final teks = (value ?? '').trim();

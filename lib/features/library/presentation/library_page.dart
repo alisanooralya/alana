@@ -8,8 +8,6 @@ import 'package:alana/features/library/data/bookmark_repository.dart';
 import 'package:alana/features/sync/data/sync_service.dart';
 import 'package:alana/features/sync/presentation/widgets/pending_bar.dart';
 
-/// Halaman Pustaka (bookmark). Reaktif: otomatis memperbarui
-/// saat bookmark ditambah/dihapus dari halaman detail.
 class LibraryPage extends ConsumerWidget {
   const LibraryPage({super.key});
 

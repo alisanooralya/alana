@@ -1,15 +1,6 @@
 import 'package:alana/services/manga_api_exception.dart';
 
-/// Mengubah error teknis menjadi pesan Bahasa Indonesia yang jelas.
-///
-/// Aturan: timeout/gagal koneksi → pesan luring; 404 → tidak ditemukan;
-/// 5xx → server bermasalah; kegagalan parsing → respons tidak terbaca;
-/// selebihnya pesan umum tanpa istilah Inggris.
 String pesanErrorRamah(Object error) {
-  // Kegagalan parsing bukan masalah jaringan. Sebelumnya jenis ini ikut
-  // tertangkap di cabang "kode == null" sehingga user diberi tahu jaringan
-  // mereka bermasalah padahal servernya yang mengubah bentuk data - dan
-  // tombol coba lagi tidak akan pernah menolong.
   if (error is FormatException) {
     return 'Data dari server tidak bisa dibaca. Coba lagi nanti.';
   }
@@ -52,7 +43,6 @@ bool _tandaJaringan(String teks) {
       t.contains('no address associated');
 }
 
-/// Tanda bahwa respons server tidak bisa diurai, bukan masalah jaringan.
 bool _tandaParsing(String teks) {
   final t = teks.toLowerCase();
   return t.contains('formatexception') ||

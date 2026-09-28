@@ -4,7 +4,6 @@ import 'package:alana/core/storage/app_storage.dart';
 
 import 'app_settings.dart';
 
-/// Repository pengaturan, reaktif + persisten (Hive box `settings`).
 class SettingsRepository extends Notifier<AppSettings> {
   static const _key = 'pengaturan';
 

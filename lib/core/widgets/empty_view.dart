@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-/// Tampilan data kosong dengan ikon, judul, dan aksi opsional.
 class EmptyView extends StatelessWidget {
   const EmptyView({
     super.key,
@@ -11,19 +10,14 @@ class EmptyView extends StatelessWidget {
     this.onAksi,
   });
 
-  /// Judul utama, mis. 'Pustaka masih kosong'.
   final String judul;
 
-  /// Penjelasan tambahan di bawah judul.
   final String? deskripsi;
 
-  /// Ikon ilustrasi.
   final IconData ikon;
 
-  /// Label tombol aksi. Tombol disembunyikan bila null.
   final String? labelAksi;
 
-  /// Dipanggil saat tombol aksi ditekan.
   final VoidCallback? onAksi;
 
   @override

@@ -4,34 +4,20 @@ import 'package:go_router/go_router.dart';
 import 'package:alana/core/widgets/cover_image.dart';
 import 'package:alana/models/manga.dart';
 
-/// Kartu vertikal untuk satu judul. Dipakai di daftar horizontal Beranda dan
-/// grid Pencarian/Jelajah.
-///
-/// [Expanded] + [Stack] supaya tidak pernah overflow: tinggi cover mengikuti
-/// lebar (3:4), sisa tinggi dipakai teks. Versi lama menjumlahkan tinggi dari
-/// dua konstanta dan meluber di grid 3 kolom maupun saat font diperbesar.
-///
-/// Status dipatok ke dasar dengan [Positioned] supaya tidak ikut naik-turun
-/// mengikuti jumlah baris judul, dan [Padding] bawah judul mencegah baris
-/// terakhirnya menabrak status.
 class MangaCard extends StatelessWidget {
   const MangaCard({super.key, required this.manga, this.width = 130});
 
   final Manga manga;
 
-  /// Lebar kartu. Tinggi cover mengikuti rasio 3:4.
   final double width;
 
-  /// Ruang untuk baris status di bawah judul.
-  static const double _ruangStatus = 17;
+  static const double _ruangStatus = 15;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
 
-    // Status kosong dibiarkan netral: diberi warna status, ketiadaan data
-    // terlihat seperti data yang valid.
     final status = manga.status;
     final adaStatus = status.isNotEmpty;
 

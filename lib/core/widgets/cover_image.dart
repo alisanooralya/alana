@@ -1,16 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-/// Header HTTP untuk cover (beberapa host CDN memeriksa `Referer`).
 const coverImageHeaders = <String, String>{
   'Accept': 'image/*,*/*;q=0.8',
   'Referer': 'https://app.shinigami.asia/',
 };
 
-/// Gambar cover ber-cache untuk thumbnail daftar.
-///
-/// Menghemat internet: gambar yang sudah dibuka tidak diunduh ulang.
-/// Menangani sendiri status memuat (spinner) dan gagal (ikon).
 class CoverImage extends StatelessWidget {
   const CoverImage({
     super.key,

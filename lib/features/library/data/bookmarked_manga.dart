@@ -1,6 +1,3 @@
-/// Satu judul yang ditandai di Pustaka.
-///
-/// Disimpan di Hive sebagai `Map` (lihat [toMap]/[fromMap]).
 class BookmarkedManga {
   const BookmarkedManga({
     required this.mangaId,
@@ -15,13 +12,9 @@ class BookmarkedManga {
   final String title;
   final String thumbnail;
 
-  /// Kapan judul ditandai.
   final DateTime savedAt;
-
-  /// Perubahan terakhir (untuk last-write-wins lintas perangkat).
   final DateTime updatedAt;
 
-  /// `true` bila belum terkirim ke Supabase.
   final bool pending;
 
   BookmarkedManga copyWith({

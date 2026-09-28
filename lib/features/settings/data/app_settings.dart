@@ -1,12 +1,6 @@
-/// Pilihan tema tampilan (disimpan di Hive).
 enum AppThemeMode {
-  /// Mengikuti pengaturan sistem (bawaan).
   sistem,
-
-  /// Selalu terang.
   terang,
-
-  /// Selalu gelap.
   gelap;
 
   String get label {
@@ -28,7 +22,6 @@ enum AppThemeMode {
   }
 }
 
-/// Seluruh pengaturan aplikasi dalam satu state.
 class AppSettings {
   const AppSettings({
     this.themeMode = AppThemeMode.sistem,
@@ -36,10 +29,8 @@ class AppSettings {
     this.wifiOnlyDownloads = false,
   });
 
-  /// Tema tampilan.
   final AppThemeMode themeMode;
 
-  /// Layar tetap menyala selama membaca di reader.
   final bool keepScreenOn;
   final bool wifiOnlyDownloads;
 

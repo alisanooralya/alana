@@ -2,10 +2,6 @@ import 'dart:math';
 
 import 'package:dio/dio.dart';
 
-/// Low-level HTTP client for the Shinigami API.
-///
-/// Handles base URLs, headers and timeouts. Business-level calls live in
-/// `MangaApiService`.
 class MangaApiClient {
   static const String webBaseUrl = 'https://app.shinigami.asia';
   static const String apiBaseUrl = 'https://api.shngm.io';
@@ -24,7 +20,6 @@ class MangaApiClient {
     );
   }
 
-  /// Performs a GET request and returns the decoded response body.
   Future<dynamic> getData(
     String path, {
     Map<String, dynamic>? queryParameters,
@@ -36,7 +31,6 @@ class MangaApiClient {
     return response.data;
   }
 
-  /// Like [getData], but guarantees the body is a JSON object.
   Future<Map<String, dynamic>> getJson(
     String path, {
     Map<String, dynamic>? queryParameters,

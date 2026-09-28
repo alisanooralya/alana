@@ -5,10 +5,6 @@ import 'package:alana/features/home/data/home_repository.dart';
 
 import 'paginated_manga_state.dart';
 
-/// Controller paginasi untuk daftar pembaruan terbaru.
-///
-/// Halaman pertama dimuat otomatis. [muatBerikutnya] menambah halaman
-/// berikutnya tanpa menghapus daftar yang sudah tampil.
 class LatestUpdatesController extends AsyncNotifier<PaginatedMangaState> {
   @override
   Future<PaginatedMangaState> build() async {
@@ -21,13 +17,10 @@ class LatestUpdatesController extends AsyncNotifier<PaginatedMangaState> {
     );
   }
 
-  /// Memuat ulang dari halaman pertama.
   Future<void> muatUlang() async {
     ref.invalidateSelf();
   }
 
-  /// Memuat halaman berikutnya. Aman dipanggil berulang:
-  /// diabaikan bila sedang memuat atau sudah habis.
   Future<void> muatBerikutnya() async {
     final saatIni = state.valueOrNull;
     if (saatIni == null || !saatIni.hasNext || saatIni.isLoadingMore) {
@@ -44,10 +37,6 @@ class LatestUpdatesController extends AsyncNotifier<PaginatedMangaState> {
       final response = await repository.getLatestUpdates(
         page: halamanBerikutnya,
       );
-      // Penanda: kalau build() sempat berjalan lagi (pull-to-refresh,
-      // regenerate karena state di-invalidate), snapshot di atas sudah basi
-      // dan menimpanya berarti hasil refresh yang baru dibuang, sehingga user
-      // melihat daftar lama plus satu halaman tambahan.
       if (state.valueOrNull?.page != saatIni.page) return;
       state = AsyncData(
         saatIni.copyWith(
@@ -69,7 +58,6 @@ class LatestUpdatesController extends AsyncNotifier<PaginatedMangaState> {
     }
   }
 
-  /// Menghapus pesan kesalahan halaman berikutnya setelah ditampilkan.
   void hapusErrorMore() {
     final saatIni = state.valueOrNull;
     if (saatIni?.pesanErrorMore == null) return;

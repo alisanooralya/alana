@@ -1,8 +1,6 @@
 plugins {
     id("com.android.application")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
-    // Memproses google-services.json untuk FCM (tanpa flutterfire_cli).
     id("com.google.gms.google-services")
 }
 
@@ -14,33 +12,18 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        // Wajib untuk flutter_local_notifications (Java 8+ API di dex lama).
         isCoreLibraryDesugaringEnabled = true
     }
 
     defaultConfig {
         applicationId = "com.alana"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        // minSdk menentukan perangkat mana yang boleh memasang APK, bukan
-        // perangkat yang jadi sasaran uji. Nilai 33 di sini membuat APK tidak
-        // bisa dipasang di Android 12 dan ke bawah, sehingga sebagian besar
-        // perangkat yang ada dikeluarkan. Semua plugin yang dipakai hanya
-        // butuh API 21, dan desugaring sudah aktif untuk
-        // flutter_local_notifications. Sasaran uji diatur lewat targetSdk.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
-        // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
-        // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
-        // You can force using the value of versionCode by specifying the `-P force-version-code-ignoring-abi=true`
-        // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
     signingConfigs {
-        // Dipakai CI bila variabel lingkungan keystore diisi (lihat workflow).
-        // Lokal tanpa env: tidak dipakai, tetap debug keys.
         create("release") {
             val keystorePath = System.getenv("KEYSTORE_PATH")
             if (!keystorePath.isNullOrBlank()) {
@@ -54,8 +37,6 @@ android {
 
     buildTypes {
         release {
-            // Keystore release bila env terisi, selain itu debug keys
-            // agar `flutter run --release` lokal tetap jalan.
             signingConfig = if (!System.getenv("KEYSTORE_PATH").isNullOrBlank()) {
                 signingConfigs.getByName("release")
             } else {

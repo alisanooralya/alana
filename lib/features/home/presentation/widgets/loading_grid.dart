@@ -3,13 +3,9 @@ import 'package:shimmer/shimmer.dart';
 
 import 'update_card.dart';
 
-/// Skeleton grid "Pembaruan Terbaru". Di folder yang sama dengan [UpdateCard]
-/// karena ukurannya diambil dari sana; taruh di `core/widgets` berarti `core`
-/// ikut bergantung ke `features`.
 class LoadingGrid extends StatelessWidget {
   const LoadingGrid({super.key, this.itemCount = 4});
 
-  /// Genap supaya baris terisi penuh.
   final int itemCount;
 
   @override

@@ -20,15 +20,9 @@ import 'package:alana/models/manga_details.dart';
 
 import 'detail_providers.dart';
 
-/// Halaman detail satu judul.
-///
-/// Menampilkan cover besar, sinopsis expandable, genre sebagai chip,
-/// status/rating, tombol baca + bookmark, dan daftar chapter yang
-/// bisa diurutkan terbaru/terlama.
 class DetailPage extends ConsumerStatefulWidget {
   const DetailPage({super.key, required this.mangaId});
 
-  /// ID judul (nilai `Manga.url` dari daftar).
   final String mangaId;
 
   @override
@@ -233,7 +227,6 @@ class _IsiDetail extends ConsumerWidget {
     final chaptersAsync = ref.watch(chapterListProvider(mangaId));
 
     return CustomScrollView(
-      // Selalu bisa ditarik-refresh walau konten pendek.
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
         const SliverToBoxAdapter(child: OfflineBanner()),
@@ -699,13 +692,6 @@ class _HeaderChapter extends StatelessWidget {
   }
 }
 
-/// Mengurutkan chapter; terbaru = `dateUpload` terbesar lebih dulu.
-/// Bila tidak ada tanggal yang bisa dibaca, urutan API dianggap sudah benar.
-///
-/// Chapter tanpa tanggal tidak ikut menentukan urutan dan selalu diletakkan
-/// di akhir. Sebelumnya ikut diurutkan dengan nilai 0 sehingga tercampur di
-/// tengah daftar, dan saat daftarnya dibalik (`terbaruDulu == false`) chapter
-/// ber tanggal 0 justru mendahului yang lain.
 List<Chapter> _urutkan(List<Chapter> daftar, bool terbaruDulu) {
   final denganTanggal = daftar.where((c) => c.dateUpload > 0).toList();
   if (denganTanggal.isEmpty) return [...daftar];
@@ -714,8 +700,6 @@ List<Chapter> _urutkan(List<Chapter> daftar, bool terbaruDulu) {
     final urut = terbaruDulu
         ? b.dateUpload.compareTo(a.dateUpload)
         : a.dateUpload.compareTo(b.dateUpload);
-    // Pengurutan Dart tidak stabil; pakai nama chapter sebagai pemutus agar
-    // urutan tidak berubah-ubah antara dua build.
     return urut != 0 ? urut : a.name.compareTo(b.name);
   });
   return [...denganTanggal, ...tanpaTanggal];
@@ -758,7 +742,6 @@ String _ringkasStatistik(int views, int bookmarks) {
   return bagian.join(' • ');
 }
 
-/// Label tombol baca berdasarkan riwayat.
 String _labelTombolBaca(
   List<Chapter>? chapters,
   Set<String> dibaca,
@@ -770,8 +753,6 @@ String _labelTombolBaca(
   return 'Lanjut Baca';
 }
 
-/// Chapter tujuan tombol baca: chapter terlama yang belum dibaca,
-/// atau posisi terakhir bila semua sudah dibaca.
 Chapter? _targetBaca(
   List<Chapter>? chapters,
   Set<String> dibaca,

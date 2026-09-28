@@ -11,10 +11,6 @@ import 'package:alana/utils/relative_time.dart';
 import '../data/notification_repository.dart';
 import 'notifikasi_providers.dart';
 
-/// Halaman daftar notifikasi.
-///
-/// Tap item → tandai dibaca → buka Detail/Reader bila ada
-/// manga_id/chapter_id.
 class NotificationListPage extends ConsumerWidget {
   const NotificationListPage({super.key});
 
@@ -64,9 +60,6 @@ class NotificationListPage extends ConsumerWidget {
       appBar: AppBar(title: const Text('Notifikasi')),
       body: RefreshIndicator(
         onRefresh: () async {
-          // invalidate() hanya membatalkan cache; tanpa await spinner selesai
-          // duluan sebelum data datang, sehingga geseran tidak terasa sama
-          // sekali dan user bisa memicu refresh kedua.
           ref.invalidate(daftarNotifikasiProvider);
           await ref.read(daftarNotifikasiProvider.future);
           ref.invalidate(belumDibacaProvider);
