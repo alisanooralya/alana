@@ -1,9 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-// Menghapus akun milik pemanggil secara permanen:
-// 1. File di bucket `avatars` folder {user_id}/
-// 2. User auth (data profiles/bookmarks/reading_history ikut via cascade)
-// Wajib header Authorization (JWT user). Tidak menerima user_id dari body.
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
@@ -17,8 +13,6 @@ function json(data: unknown, status = 200) {
   });
 }
 
-// Key API baru tinggal di env JSON terpisah; fallback ke var lama
-// agar tetap jalan di project lama (lihat check-new-chapters).
 function kunciDariJson(namaJson: string, namaLama: string): string {
   try {
     const semua = Deno.env.get(namaJson);
@@ -59,7 +53,6 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'Konfigurasi server belum lengkap.' }, 500);
   }
 
-  // Klien atas nama pemanggil untuk validasi token.
   const supabaseUser = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } },
   });
@@ -69,10 +62,8 @@ Deno.serve(async (req: Request) => {
     return json({ error: 'Sesi tidak valid. Masuk ulang.' }, 401);
   }
 
-  // Klien admin (service role) hanya dipakai di sini, tidak dari klien.
   const supabaseAdmin = createClient(supabaseUrl, serviceKey);
 
-  // Hapus file avatar milik user (folder mungkin tidak ada → abaikan).
   try {
     const { data: files, error: listError } = await supabaseAdmin
       .storage

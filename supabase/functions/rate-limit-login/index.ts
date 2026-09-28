@@ -1,22 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-// Pembatas percobaan login email+password.
-//
-// Dua penghitung terpisah, karena satu saja tidak cukup:
-//
-//   em:<email>  per email. 5x gagal dalam 15 menit.
-//   ip:<ip>     per alamat IP. 30x gagal dalam 15 menit.
-//
-// Yang per email menahan brute force terhadap satu akun. Yang per IP menahan
-// credential stuffing: tanpa itu, penyerang bisa mencoba 5 password pada
-// tiap email dan tidak pernah diblokir, karena tiap email punya jatah sendiri.
-//
-// Batas per IP sengaja jauh lebih longgar dari per email. Operator seluler
-// memakai CGNAT sehingga ribuan pengguna bisa berada di satu IP publik, dan
-// sebagian login mereka gagal karena salah ketik. Batas rendah akan mengunci
-// mereka bersama. Kalau gejolanya terlalu sering, naikkan MAX_GAGAL_IP —
-// jangan turunkan ke angka yang menyerupai MAX_GAGAL_EMAIL.
-
 const MAX_GAGAL_EMAIL = 5;
 const MAX_GAGAL_IP = 30;
 const JENDELA_MENIT = 15;
@@ -38,10 +21,6 @@ function json(data: unknown, status = 200, retryAfter?: number) {
   return new Response(JSON.stringify(data), { status, headers });
 }
 
-// Alamat IP client's. Fallback 'unknown' hanya dipakai kalau semua header
-// absen, dan sengaja tidak dikembalikan sebagai string kosong: header
-// x-forwarded-for yang tidak ada akan menjadi satu bucket bersama untuk
-// semua pengguna yang lewat proxy yang sama.
 function ipDari(req: Request): string {
   const teruskan = (req.headers.get('x-forwarded-for') ?? '')
     .split(',')[0]
@@ -82,15 +61,10 @@ Deno.serve(async (req: Request) => {
     Date.now() - JENDELA_MENIT * 60 * 1000,
   ).toISOString();
 
-  // Penghitung lama memakai email polos sebagai identifier. Baris dengan
-  // format itu tidak lagi dibaca, tapi ikut dihapus saat login berhasil
-  // supaya tidak menumpuk.
   const idEmail = `em:${email}`;
   const idIp = `ip:${ipDari(req)}`;
 
   if (body.action === 'record') {
-    // Dipanggil SETELAH percobaan login: catat hasil.
-    // Sukses → bersihkan riwayat supaya penghitung kembali ke nol.
     if (body.success == true) {
       const { error } = await supabase
         .from('login_attempts')
@@ -107,11 +81,6 @@ Deno.serve(async (req: Request) => {
     return json({ allowed: true, recorded: true });
   }
 
-  // Default: action 'check' — dipanggil SEBELAH percobaan login.
-  //
-  // Kedua penghitung diperiksa; yang membatasi adalah yang paling lama
-  // perlu ditunggu, sebab selama salah satu masih penuh user belum bisa
-  // berhasil meski yang lain sudah longgar.
   const cek = async (
     identifier: string,
     maks: number,
@@ -126,7 +95,6 @@ Deno.serve(async (req: Request) => {
     const gagal = count ?? 0;
     if (gagal < maks) return { penuh: false, tunggu: 0 };
 
-    // Kapan jendela bergulir: kegagalan tertua dalam jendela.
     const { data } = await supabase
       .from('login_attempts')
       .select('created_at')

@@ -1,15 +1,5 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-// Login dengan username (tanpa sesi). Dipanggil TANPA login,
-// jadi fungsi ini di-deploy dengan verify_jwt = false.
-//
-// Alur: normalisasi username → rate limit (IP+username, tabel
-// login_attempts) → cari profil → ambil email via admin →
-// signInWithPassword server-side → kembalikan HANYA token.
-//
-// SEMUA kegagalan (format salah, username tidak ada, password salah,
-// akun Google-only) mengembalikan 401 + pesan yang SAMA agar tidak
-// bisa dipakai menebak username/email. Tidak ada log berisi PII.
 const GAGAL_PESAN = 'Username atau password salah';
 const MAX_GAGAL = 5;
 const JENDELA_MENIT = 1;
@@ -28,8 +18,6 @@ function json(data: unknown, status = 200) {
   });
 }
 
-// Key API baru tinggal di env JSON terpisah; fallback ke var lama
-// agar tetap jalan di project lama (lihat check-new-chapters).
 function kunciDariJson(namaJson: string, namaLama: string): string {
   try {
     const semua = Deno.env.get(namaJson);
@@ -96,7 +84,6 @@ Deno.serve(async (req: Request) => {
 
   const admin = createClient(supabaseUrl, serviceKey);
 
-  // Rate limit: hitung gagal dalam jendela (kunci IP+username).
   try {
     const { count } = await admin
       .from('login_attempts')
@@ -122,7 +109,6 @@ Deno.serve(async (req: Request) => {
     }
   };
 
-  // Cari profil → email via admin.
   let email = '';
   try {
     const { data: profil } = await admin
@@ -146,7 +132,6 @@ Deno.serve(async (req: Request) => {
     return gagal();
   }
 
-  // Login server-side sebagai klien anon.
   try {
     const anon = createClient(supabaseUrl, anonKey);
     const { data, error } = await anon.auth.signInWithPassword({
@@ -157,7 +142,6 @@ Deno.serve(async (req: Request) => {
       await catatGagal();
       return gagal();
     }
-    // Sukses: reset hitungan kunci ini, kembalikan HANYA token.
     try {
       await admin.from('login_attempts').delete().eq('identifier', kunci);
     } catch {
