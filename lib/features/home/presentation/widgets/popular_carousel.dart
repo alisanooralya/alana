@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shimmer/shimmer.dart';
 
 import 'package:alana/core/widgets/cover_image.dart';
 import 'package:alana/models/manga.dart';
 import 'package:alana/utils/relative_time.dart';
 
-const double tinggiBannerPopuler = 200;
+const double _tinggiBanner = 200;
 
 class PopularCarousel extends StatefulWidget {
   const PopularCarousel({
@@ -155,7 +154,7 @@ class _PopularCarouselState extends State<PopularCarousel>
         NotificationListener<ScrollNotification>(
           onNotification: _tanganiNotifikasi,
           child: SizedBox(
-            height: tinggiBannerPopuler,
+            height: _tinggiBanner,
             child: PageView.builder(
               controller: _controller,
               itemCount: _totalVirtual,
@@ -180,70 +179,6 @@ class _PopularCarouselState extends State<PopularCarousel>
           jumlah: _jumlahAsli,
           aktif: _halaman,
           progres: _progres,
-        ),
-      ],
-    );
-  }
-}
-
-class PopularCarouselPlaceholder extends StatelessWidget {
-  const PopularCarouselPlaceholder({
-    super.key,
-    this.judul = 'Populer Hari Ini',
-  });
-
-  final String judul;
-
-  @override
-  Widget build(BuildContext context) {
-    final gelap = Theme.of(context).brightness == Brightness.dark;
-    final dasar = gelap ? Colors.grey.shade800 : Colors.grey.shade300;
-    final terang = gelap ? Colors.grey.shade700 : Colors.grey.shade100;
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        KepalaSection(judul: judul),
-        Shimmer.fromColors(
-          baseColor: dasar,
-          highlightColor: terang,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Container(
-              height: tinggiBannerPopuler,
-              decoration: BoxDecoration(
-                color: dasar,
-                borderRadius: BorderRadius.circular(20),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
-        Center(
-          child: Shimmer.fromColors(
-            baseColor: dasar,
-            highlightColor: terang,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (var i = 0; i < 5; i++)
-                  Container(
-                    width: i == 0
-                        ? IndikatorBanner.lebarAktif
-                        : IndikatorBanner.lebarIdle,
-                    height: IndikatorBanner.tinggi,
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                    decoration: BoxDecoration(
-                      color: dasar,
-                      borderRadius: BorderRadius.circular(
-                        IndikatorBanner.tinggi / 2,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
         ),
       ],
     );

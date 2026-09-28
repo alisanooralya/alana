@@ -9,7 +9,7 @@ import 'package:image_picker/image_picker.dart';
 
 import 'package:alana/core/diagnostics/error_log.dart';
 import 'package:alana/core/utils/pesan_error.dart';
-import 'package:alana/core/widgets/loading_view.dart';
+import 'package:alana/core/widgets/loading_spinner.dart';
 import 'package:alana/features/auth/data/auth_validators.dart';
 import 'package:alana/features/auth/presentation/auth_providers.dart';
 import 'package:alana/features/auth/presentation/widgets/auth_widgets.dart';
@@ -207,7 +207,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Profil')),
       body: profilAsync.when(
-        loading: () => const LoadingView(),
+        loading: () => const LoadingSpinner(),
         error: (error, _) => Center(
           child: Text('Gagal memuat profil. ${pesanErrorRamah(error)}'),
         ),

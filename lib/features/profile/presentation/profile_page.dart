@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/core/widgets/error_view.dart';
-import 'package:alana/core/widgets/loading_view.dart';
+import 'package:alana/core/widgets/loading_spinner.dart';
 import 'package:alana/features/auth/data/auth_repository.dart';
 import 'package:alana/features/auth/data/auth_validators.dart';
 import 'package:alana/features/auth/presentation/auth_providers.dart';
@@ -121,7 +121,7 @@ class ProfilePage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Profil')),
       body: profilAsync.when(
-        loading: () => const LoadingView(),
+        loading: () => const LoadingSpinner(),
         error: (error, _) => ErrorView(
           pesan: 'Gagal memuat profil. ${pesanErrorRamah(error)}',
           onRetry: () => ref.invalidate(profileProvider),

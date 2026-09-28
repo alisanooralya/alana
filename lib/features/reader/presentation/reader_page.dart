@@ -14,7 +14,7 @@ import 'package:alana/features/downloads/data/download_manager.dart';
 import 'package:alana/features/downloads/data/download_repository.dart';
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
-import 'package:alana/core/widgets/loading_view.dart';
+import 'package:alana/core/widgets/loading_spinner.dart';
 import 'package:alana/features/detail/presentation/detail_providers.dart';
 import 'package:alana/features/history/data/history_repository.dart';
 import 'package:alana/features/profile/presentation/profile_providers.dart';
@@ -388,7 +388,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
           setState(() => _chromeTerlihat = !_chromeTerlihat);
         },
         child: pagesAsync.when(
-          loading: () => const LoadingView(),
+          loading: () => const LoadingSpinner(),
           error: (error, _) => ErrorView(
             pesan: pesanErrorRamah(error),
             onRetry: () {

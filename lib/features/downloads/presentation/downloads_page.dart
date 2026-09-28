@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/utils/pesan_error.dart';
-import 'package:alana/core/widgets/loading_view.dart';
+import 'package:alana/core/widgets/loading_spinner.dart';
 
 import '../data/download_manager.dart';
 import '../data/download_repository.dart';
@@ -21,7 +21,7 @@ class DownloadsPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Unduhan')),
       body: downloads.when(
-        loading: () => const LoadingView(),
+        loading: () => const LoadingSpinner(),
         error: (error, _) => Center(
           child: Text('Gagal memuat unduhan. ${pesanErrorRamah(error)}'),
         ),

@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
-import 'package:alana/core/widgets/loading_view.dart';
+import 'package:alana/core/widgets/loading_spinner.dart';
 import 'package:alana/core/widgets/offline_banner.dart';
 import 'package:alana/core/widgets/refreshable_body.dart';
 import 'package:alana/core/utils/pesan_error.dart';
@@ -184,7 +184,7 @@ class _HasilPencarian extends ConsumerWidget {
     }
 
     return hasil.when(
-      loading: () => const RefreshableBody(child: LoadingView()),
+      loading: () => const RefreshableBody(child: LoadingSpinner()),
       error: (error, _) => RefreshableBody(
         child: ErrorView(
           pesan: pesanErrorRamah(error),

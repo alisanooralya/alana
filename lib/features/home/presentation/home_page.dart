@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
+import 'package:alana/core/widgets/loading_spinner.dart';
 import 'package:alana/core/widgets/offline_banner.dart';
 import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/features/notifikasi/presentation/notifikasi_providers.dart';
@@ -12,7 +13,6 @@ import 'home_providers.dart';
 import 'latest_updates_controller.dart';
 import 'paginated_manga_state.dart';
 import 'widgets/home_section.dart';
-import 'widgets/loading_grid.dart';
 import 'widgets/manga_card.dart';
 import 'widgets/popular_carousel.dart';
 import 'widgets/update_card.dart';
@@ -119,9 +119,8 @@ class _HomePageState extends ConsumerState<HomePage> {
                 slivers: [
                   SliverToBoxAdapter(
                     child: populer.when(
-                      loading: () => const PopularCarouselPlaceholder(
-                        judul: 'Populer Hari Ini',
-                      ),
+                      loading: () =>
+                          const _SectionMemuat(judul: 'Populer Hari Ini'),
                       error: (error, _) => _SectionGagal(
                         judul: 'Populer Hari Ini',
                         pesan: pesanErrorRamah(error),
@@ -169,7 +168,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   ),
                   terbaru.when(
                     loading: () =>
-                        SliverToBoxAdapter(child: LoadingGrid(itemCount: 4)),
+                        const SliverToBoxAdapter(child: LoadingSpinner()),
                     error: (error, _) => SliverToBoxAdapter(
                       child: ErrorView(
                         pesan: pesanErrorRamah(error),

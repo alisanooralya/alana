@@ -8,25 +8,25 @@ import 'package:alana/utils/relative_time.dart';
 const double paddingHorizontalUpdate = 10;
 const double jarakAntarSelUpdate = 10;
 
-const double rasioCoverUpdate = 0.69;
+const double _rasioCover = 0.69;
 
 const double _tinggiJudul = 38;
 
-const double tinggiChip = 27;
-const double jarakAntarChip = 7;
+const double _tinggiChip = 27;
+const double _jarakAntarChip = 7;
 
 const int _chapterPerSel = 2;
 
-double hitungLebarSel(double lebarLayar) {
+double _hitungLebarSel(double lebarLayar) {
   return (lebarLayar - paddingHorizontalUpdate * 2 - jarakAntarSelUpdate) / 2;
 }
 
 double hitungTinggiSel(double lebarLayar) {
-  return hitungLebarSel(lebarLayar) / rasioCoverUpdate +
+  return _hitungLebarSel(lebarLayar) / _rasioCover +
       8 +
       _tinggiJudul +
-      _chapterPerSel * tinggiChip +
-      (_chapterPerSel - 1) * jarakAntarChip;
+      _chapterPerSel * _tinggiChip +
+      (_chapterPerSel - 1) * _jarakAntarChip;
 }
 
 class UpdateCard extends StatelessWidget {
@@ -49,7 +49,7 @@ class UpdateCard extends StatelessWidget {
           child: Stack(
             children: [
               AspectRatio(
-                aspectRatio: rasioCoverUpdate,
+                aspectRatio: _rasioCover,
                 child: CoverImage(
                   imageUrl: manga.thumbnail,
                   width: double.infinity,
@@ -77,7 +77,7 @@ class UpdateCard extends StatelessWidget {
           ),
         ),
         for (var i = 0; i < chapters.length; i++) ...[
-          if (i > 0) const SizedBox(height: jarakAntarChip),
+          if (i > 0) const SizedBox(height: _jarakAntarChip),
           ChipChapter(
             chapter: chapters[i],
             onTap: () => bacaChapter(context, manga, chapters[i]),
@@ -144,7 +144,7 @@ class ChipChapter extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: SizedBox(
-          height: tinggiChip,
+          height: _tinggiChip,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Row(

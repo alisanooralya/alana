@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:alana/core/widgets/cover_image.dart';
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
-import 'package:alana/core/widgets/loading_view.dart';
+import 'package:alana/core/widgets/loading_spinner.dart';
 import 'package:alana/core/widgets/offline_banner.dart';
 import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/core/utils/share_content.dart';
@@ -139,7 +139,7 @@ class _DetailPageState extends ConsumerState<DetailPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Detail')),
       body: detail.when(
-        loading: () => const LoadingView(),
+        loading: () => const LoadingSpinner(),
         error: (error, _) => ErrorView(
           pesan: pesanErrorRamah(error),
           onRetry: () => ref.invalidate(mangaDetailsProvider(widget.mangaId)),
