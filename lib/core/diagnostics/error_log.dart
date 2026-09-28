@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:path_provider/path_provider.dart';
 
-/// Satu entri error yang tertangkap.
 class AppErrorEntry {
   const AppErrorEntry({
     required this.waktu,
@@ -16,12 +15,6 @@ class AppErrorEntry {
   final String detail;
 }
 
-/// Perekam error Dart di perangkat.
-///
-/// Dipasang sekali di [main] sebelum aplikasi jalan. Setiap error
-/// framework maupun uncaught disimpan di memori (50 terakhir) dan
-/// ditambahkan ke file, sehingga bisa dibaca dari halaman Diagnostik
-/// tanpa PC, kabel, atau WiFi.
 class ErrorLog {
   const ErrorLog._();
 
@@ -30,7 +23,6 @@ class ErrorLog {
 
   static final List<AppErrorEntry> _entries = [];
 
-  /// Bertambah setiap ada entri baru. UI memakainya untuk refresh.
   static final ValueNotifier<int> versi = ValueNotifier(0);
 
   static List<AppErrorEntry> get entries => List.unmodifiable(_entries);
@@ -46,15 +38,6 @@ class ErrorLog {
     };
   }
 
-  /// Menulis log secara berurutan.
-  ///
-  /// Setiap error memicu penulisan ulang seluruh berkas. Dua error beruntun
-  /// (badai request, render loop) akan menjalankan dua writeAsString pada path
-  /// yang sama secara bersamaan, dan karena writeAsString memotong lalu menulis,
-  /// keduanya bisa saling menimpa sehingga log tersimpan terpotong - persis
-  /// saat user membuka Diagnostics untuk melaporkan bug. Antrean ini
-  /// menggabungkan penulisan beruntun menjadi satu dan melompati penulisan
-  /// yang sudah sama-sama kedaluwarsa.
   static Future<void> _tulis = Future<void>.value();
 
   static void catat(Object error, StackTrace? stack) {
@@ -86,7 +69,6 @@ class ErrorLog {
     }
   }
 
-  /// Isi file log dari sesi-sesi sebelumnya (kosong bila belum ada).
   static Future<String> bacaFile() async {
     try {
       final dir = await getApplicationDocumentsDirectory();

@@ -27,14 +27,13 @@ import 'package:alana/features/sync/data/sync_service.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   ErrorLog.pasang();
-  // Firebase untuk push (tanpa firebase_options: baca google-services.json).
-  // Gagal init tidak mematikan aplikasi (push saja yang mati).
+
   try {
     await Firebase.initializeApp();
   } catch (error, stack) {
     ErrorLog.catat(error, stack);
   }
-  // Flag onboarding dimuat sebelum runApp: tanpa kedip bagi pengguna lama.
+
   final prefs = await SharedPreferences.getInstance();
   runApp(
     ProviderScope(
@@ -46,9 +45,6 @@ Future<void> main() async {
 
 enum _StatusSiap { memuat, siap }
 
-/// Gerbang startup: menampilkan layar muat, menyiapkan penyimpanan
-/// di latar, lalu membuka aplikasi. Penyimpanan yang gagal TIDAK
-/// menggagalkan startup — repository berjalan dalam mode memori.
 class Bootstrap extends ConsumerStatefulWidget {
   const Bootstrap({super.key});
 
@@ -62,12 +58,8 @@ class _BootstrapState extends ConsumerState<Bootstrap> {
   @override
   void initState() {
     super.initState();
-    // Deep link: tautan reset password dan tautan share. Dipanggil di
-    // initState, bukan build, supaya tidak ikut mengulang setiap kali tema
-    // berubah dan membuat langganan uriLinkStream ganda.
+
     unawaited(mulaiDeepLink(ref));
-    // Supabase dulu (sesi menentukan rute awal), lalu Hive + notifikasi.
-    // Keduanya gagal-aman: aplikasi tetap jalan.
     SupabaseSetup.init()
         .then((_) => AppStorage.init())
         .then((_) => LayananNotifikasi.init())
@@ -93,7 +85,6 @@ class _BootstrapState extends ConsumerState<Bootstrap> {
         });
   }
 
-  /// Jadwalkan ulang pengingat tiap aplikasi dibuka (best-effort).
   Future<void> _jadwalkanPengingat() async {
     try {
       if (!ref.read(pengingatAktifProvider)) return;
@@ -159,7 +150,6 @@ class _LayarMuat extends StatelessWidget {
   }
 }
 
-/// Root aplikasi pembaca manhwa.
 class ManhwaApp extends ConsumerStatefulWidget {
   const ManhwaApp({super.key});
 

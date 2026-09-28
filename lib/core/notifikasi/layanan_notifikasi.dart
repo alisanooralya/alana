@@ -5,19 +5,12 @@ import 'package:timezone/timezone.dart' as tz;
 
 import 'package:alana/core/utils/deep_link.dart';
 
-/// Mekanik plugin notifikasi lokal (tanpa logika bisnis).
-///
-/// - Channel Android `pengingat_baca`.
-/// - Payload format `"mangaId|chapterId"` (chapter boleh kosong).
-/// - Navigasi didelegasikan lewat [daftarkanNavigasi] karena callback
-///   plugin tidak punya akses Riverpod/router.
 class LayananNotifikasi {
   const LayananNotifikasi._();
 
   static const channelId = 'pengingat_baca';
   static const channelName = 'Pengingat Baca';
 
-  /// Channel terpisah untuk push chapter baru via FCM.
   static const channelBabId = 'bab_baru';
   static const channelBabName = 'Chapter Baru';
 
@@ -28,15 +21,12 @@ class LayananNotifikasi {
   static void Function(String lokasi)? _pergi;
   static String? _lokasiTertunda;
 
-  /// Lokasi tertunda dari ketuk saat router belum siap (sekali ambil).
   static String? ambilTertunda() {
     final lokasi = _lokasiTertunda;
     _lokasiTertunda = null;
     return lokasi;
   }
 
-  /// Daftarkan cara pindah rute. Dipanggil sekali dari ManhwaApp.
-  /// Langsung meneruskan lokasi tertunda bila ada.
   static void daftarkanNavigasi(void Function(String lokasi) pergi) {
     _pergi = pergi;
     final tertunda = ambilTertunda();
@@ -81,7 +71,6 @@ class LayananNotifikasi {
       await android?.createNotificationChannel(kanal);
       await android?.createNotificationChannel(kanalBab);
 
-      // App dibuka dari notifikasi saat terminated.
       final awal = await _plugin.getNotificationAppLaunchDetails();
       if ((awal?.didNotificationLaunchApp ?? false) &&
           (awal?.notificationResponse?.payload?.isNotEmpty ?? false)) {
@@ -95,7 +84,6 @@ class LayananNotifikasi {
     }
   }
 
-  /// Minta izin tampilkan notifikasi (Android 13+). Aman di versi lama.
   static Future<bool> mintaIzin() async {
     try {
       final hasil = await _plugin
@@ -128,8 +116,6 @@ class LayananNotifikasi {
     );
   }
 
-  /// Tampilkan langsung di channel chapter baru (untuk push FCM
-  /// foreground). Payload tetap format `"manga|chapter"`.
   static Future<void> tampilkanBab({
     required int id,
     required String judul,
@@ -149,7 +135,6 @@ class LayananNotifikasi {
     }
   }
 
-  /// Tampilkan langsung (untuk tombol uji).
   static Future<void> tampilkanSekarang({
     required int id,
     required String judul,
@@ -169,7 +154,6 @@ class LayananNotifikasi {
     }
   }
 
-  /// Jadwalkan sekali pada waktu lokal [kapan].
   static Future<void> jadwalkan({
     required int id,
     required String judul,
@@ -200,16 +184,7 @@ class LayananNotifikasi {
     }
   }
 
-  /// Batalkan notifikasi milik fitur pengingat saja.
-  ///
-  /// Memakai cancelAll() seperti sebelumnya juga membatalkan notifikasi lain
-  /// yang tidak ada hubungannya, termasuk notifikasi chapter baru dari push
-  /// dan pengingat ke chapter lain. Penjadwalan ulang pengingat berjalan
-  /// setiap kali aplikasi dibuka, sehingga notifikasi lain ikut hilang tanpa
-  /// sebab.
   static Future<void> batalkanPengingat(List<int> ids) async {
-    // Plugin hanya punya cancel() untuk satu notifikasi dan cancelAll() untuk
-    // semuanya, jadi dibatalkan satu per satu.
     for (final id in ids) {
       try {
         await _plugin.cancel(id: id);
@@ -230,7 +205,6 @@ class LayananNotifikasi {
     }
   }
 
-  /// `"manga|chapter"` → `/baca/m/c` atau `/detail/m`. Null bila kosong.
   static String? _lokasiDariPayload(String? payload) {
     if (payload == null || payload.isEmpty) return null;
     final dariLink = internalLocationFromDeepLink(payload);
@@ -242,7 +216,6 @@ class LayananNotifikasi {
     );
   }
 
-  /// Rute dari data notifikasi FCM (`link` atau `manga_id`/`chapter_id`).
   static String? ruteDariNotif({
     String? mangaId,
     String? chapterId,
@@ -257,8 +230,6 @@ class LayananNotifikasi {
     return '/baca/$m/$c';
   }
 
-  /// Buka rute notifikasi: langsung bila navigator siap,
-  /// ditampung bila belum (dibaca saat aplikasi siap).
   static void bukaNotifikasi({
     String? mangaId,
     String? chapterId,
