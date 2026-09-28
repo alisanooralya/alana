@@ -248,7 +248,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             chapterName: args['chapterName']?.toString() ?? '',
             mangaTitle: args['mangaTitle']?.toString() ?? '',
             mangaThumbnail: args['mangaThumbnail']?.toString() ?? '',
-            halamanChapter: _halamanArg(args['halamanChapter']),
           );
         },
       ),
@@ -292,8 +291,3 @@ final goRouterProvider = Provider<GoRouter>((ref) {
   ref.onDispose(router.dispose);
   return router;
 });
-
-int _halamanArg(Object? nilai) {
-  if (nilai is num) return nilai.toInt() < 1 ? 1 : nilai.toInt();
-  return int.tryParse(nilai?.toString() ?? '') ?? 1;
-}

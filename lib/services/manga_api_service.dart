@@ -175,7 +175,12 @@ class MangaApiService {
     return _guard('get chapter list', () async {
       final json = await _client.getJson(
         '/v1/chapter/$mangaId/list',
-        queryParameters: {'page': page, 'page_size': _chapterPageSize},
+        queryParameters: {
+          'page': page,
+          'page_size': _chapterPageSize,
+          'sort': 'number',
+          'sort_order': 'desc',
+        },
       );
       final totalPage = _totalPage(json);
       return ChapterPage(

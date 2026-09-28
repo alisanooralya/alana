@@ -13,7 +13,9 @@ import 'package:alana/core/utils/share_content.dart';
 import 'package:alana/features/downloads/data/download_manager.dart';
 import 'package:alana/features/profile/presentation/profile_providers.dart';
 import 'package:alana/features/downloads/data/download_repository.dart';
+import 'package:alana/features/detail/data/detail_repository.dart';
 import 'package:alana/features/history/data/history_repository.dart';
+import 'package:alana/features/history/data/reading_history.dart';
 import 'package:alana/features/library/data/bookmark_repository.dart';
 import 'package:alana/features/library/data/bookmarked_manga.dart';
 import 'package:alana/models/chapter.dart';
@@ -110,12 +112,152 @@ class _DetailPageState extends ConsumerState<DetailPage> {
       );
   }
 
-  void _bukaChapter(
-    BuildContext context,
+  static int _nomorDariNama(String name) {
+    final cocok = RegExp(r'Chapter\s+([\d.]+)').firstMatch(name);
+    if (cocok == null) return 0;
+    return double.tryParse(cocok.group(1)!)?.round() ?? 0;
+  }
+
+  Future<void> _bukaLanjutBaca(
     MangaDetails info,
-    Chapter chapter,
+    MangaReadingProgress? progres,
+  ) async {
+    final lastId = progres?.lastChapterId ?? '';
+    final nomor = _nomorDariNama(progres?.lastChapterName ?? '');
+    if (lastId.isEmpty || nomor <= 0) {
+      await _bukaChapterTerbaru(info);
+      return;
+    }
+
+    final repository = ref.read(detailRepositoryProvider);
+    try {
+      final probe = await repository.getChapters(widget.mangaId, page: 1);
+      final total = probe.totalPage;
+      final halaman = total <= 1
+          ? 1
+          : await _halamanBerisiNomor(repository, widget.mangaId, total, nomor);
+      if (halaman == null) {
+        await _bukaChapterTerbaru(info);
+        return;
+      }
+      final result = halaman == 1
+          ? probe
+          : await repository.getChapters(widget.mangaId, page: halaman);
+      if (!mounted) return;
+      if (halaman != _halamanChapter) setState(() => _halamanChapter = halaman);
+      await _bukaSetelah(info, result.chapters, lastId, nomor, halaman, total);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('Gagal mencari chapter. ${pesanErrorRamah(error)}'),
+          ),
+        );
+    }
+  }
+
+  Future<int?> _halamanBerisiNomor(
+    DetailRepository repository,
+    String mangaId,
+    int totalPage,
+    int nomor,
+  ) async {
+    var bawah = 1;
+    var atas = totalPage;
+    while (bawah <= atas) {
+      final tengah = (bawah + atas) ~/ 2;
+      final result = await repository.getChapters(mangaId, page: tengah);
+      if (result.chapters.isEmpty) return null;
+      final pertama = result.chapters.first.number;
+      if (pertama == 0) return tengah;
+      if (pertama > nomor) {
+        bawah = tengah + 1;
+      } else {
+        atas = tengah - 1;
+      }
+    }
+    return bawah <= totalPage ? bawah : null;
+  }
+
+  Future<void> _bukaSetelah(
+    MangaDetails info,
+    List<Chapter> chapters,
+    String lastId,
+    int nomor,
     int halaman,
-  ) {
+    int totalPage,
+  ) async {
+    if (chapters.isEmpty) return;
+    var indeks = chapters.indexWhere((c) => c.url == lastId);
+    if (indeks == -1) {
+      indeks = chapters.indexWhere((c) => c.number == nomor);
+    }
+    if (indeks == -1) {
+      _bukaChapter(info, chapters.first);
+      return;
+    }
+    if (indeks + 1 < chapters.length) {
+      _bukaChapter(info, chapters[indeks + 1]);
+      return;
+    }
+    if (halaman < totalPage) {
+      try {
+        final berikut = await ref
+            .read(detailRepositoryProvider)
+            .getChapters(widget.mangaId, page: halaman + 1);
+        if (!mounted || berikut.chapters.isEmpty) return;
+        _bukaChapter(info, berikut.chapters.first);
+      } catch (error) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text('Gagal membuka chapter. ${pesanErrorRamah(error)}'),
+            ),
+          );
+      }
+      return;
+    }
+    _bukaChapter(info, chapters[indeks]);
+  }
+
+  Future<void> _bukaChapterTerbaru(MangaDetails info) async {
+    final repository = ref.read(detailRepositoryProvider);
+    try {
+      final pertama = await repository.getChapters(widget.mangaId, page: 1);
+      var daftar = pertama.chapters;
+      if (daftar.isEmpty && pertama.totalPage > 1) {
+        daftar = (await repository.getChapters(
+          widget.mangaId,
+          page: pertama.totalPage,
+        )).chapters;
+      }
+      if (!mounted) return;
+      if (daftar.isEmpty) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(content: Text('Judul ini belum punya chapter.')),
+          );
+        return;
+      }
+      _bukaChapter(info, daftar.first);
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('Gagal membuka chapter. ${pesanErrorRamah(error)}'),
+          ),
+        );
+    }
+  }
+
+  void _bukaChapter(MangaDetails info, Chapter chapter) {
     context.pushNamed(
       'reader',
       pathParameters: {'mangaId': widget.mangaId, 'chapterId': chapter.url},
@@ -123,7 +265,6 @@ class _DetailPageState extends ConsumerState<DetailPage> {
         'chapterName': chapter.name,
         'mangaTitle': info.title,
         'mangaThumbnail': info.thumbnail,
-        'halamanChapter': halaman,
       },
     );
   }
@@ -176,8 +317,11 @@ class _DetailPageState extends ConsumerState<DetailPage> {
               setState(() => _terbaruDulu = !_terbaruDulu);
             },
             onToggleBookmark: () => _toggleBookmark(info),
-            onBukaChapter: (chapter) =>
-                _bukaChapter(context, info, chapter, _halamanChapter),
+            onBukaChapter: (chapter) => _bukaChapter(info, chapter),
+            onBaca: () => _bukaLanjutBaca(
+              info,
+              ref.read(historyRepositoryProvider)[widget.mangaId],
+            ),
             downloads: downloads,
             onPilihHalaman: (halaman) {
               setState(() => _halamanChapter = halaman);
@@ -225,6 +369,7 @@ class _IsiDetail extends ConsumerWidget {
     required this.onToggleUrut,
     required this.onToggleBookmark,
     required this.onBukaChapter,
+    required this.onBaca,
     required this.downloads,
     required this.onPilihHalaman,
     required this.onDownloadAll,
@@ -243,6 +388,7 @@ class _IsiDetail extends ConsumerWidget {
   final VoidCallback onToggleUrut;
   final VoidCallback onToggleBookmark;
   final void Function(Chapter chapter) onBukaChapter;
+  final VoidCallback onBaca;
   final DownloadState? downloads;
   final ValueChanged<int> onPilihHalaman;
   final VoidCallback onDownloadAll;
@@ -268,27 +414,13 @@ class _IsiDetail extends ConsumerWidget {
           child: _HeaderDetail(
             info: info,
             ditandai: ditandai,
-            labelTombolBaca: _labelTombolBaca(
-              chaptersAsync.valueOrNull?.chapters,
-              dibaca,
-              progres?.lastChapterId,
-            ),
-            targetBaca: _targetBaca(
-              chaptersAsync.valueOrNull?.chapters,
-              dibaca,
-              progres?.lastChapterId,
-            ),
+            labelTombolBaca: (progres?.lastChapterId ?? '').isEmpty
+                ? 'Mulai Baca'
+                : 'Lanjut Baca',
             onToggleBookmark: onToggleBookmark,
             onShare: (shareContext) =>
                 shareManga(shareContext, info.title, mangaId),
-            onBaca: () {
-              final target = _targetBaca(
-                chaptersAsync.valueOrNull?.chapters,
-                dibaca,
-                progres?.lastChapterId,
-              );
-              if (target != null) onBukaChapter(target);
-            },
+            onBaca: onBaca,
           ),
         ),
         SliverToBoxAdapter(
@@ -514,7 +646,6 @@ class _HeaderDetail extends StatelessWidget {
     required this.info,
     required this.ditandai,
     required this.labelTombolBaca,
-    required this.targetBaca,
     required this.onToggleBookmark,
     required this.onShare,
     required this.onBaca,
@@ -523,7 +654,6 @@ class _HeaderDetail extends StatelessWidget {
   final MangaDetails info;
   final bool ditandai;
   final String labelTombolBaca;
-  final Chapter? targetBaca;
   final VoidCallback onToggleBookmark;
   final void Function(BuildContext) onShare;
   final VoidCallback onBaca;
@@ -602,7 +732,7 @@ class _HeaderDetail extends StatelessWidget {
             children: [
               Expanded(
                 child: FilledButton.icon(
-                  onPressed: targetBaca == null ? null : onBaca,
+                  onPressed: onBaca,
                   icon: const Icon(Icons.play_arrow),
                   label: Text(labelTombolBaca),
                 ),
@@ -841,40 +971,4 @@ String _ringkasStatistik(int views, int bookmarks) {
     if (bookmarks > 0) '${ringkas(bookmarks)} bookmark',
   ];
   return bagian.join(' • ');
-}
-
-String _labelTombolBaca(
-  List<Chapter>? chapters,
-  Set<String> dibaca,
-  String? lastChapterId,
-) {
-  final target = _targetBaca(chapters, dibaca, lastChapterId);
-  if (target == null) return 'Mulai Baca';
-  if (lastChapterId == null || lastChapterId.isEmpty) return 'Mulai Baca';
-  return 'Lanjut Baca';
-}
-
-Chapter? _targetBaca(
-  List<Chapter>? chapters,
-  Set<String> dibaca,
-  String? lastChapterId,
-) {
-  if (chapters == null || chapters.isEmpty) return null;
-  final terlamaDulu = _urutkan(chapters, false);
-  if (lastChapterId == null || lastChapterId.isEmpty) {
-    return terlamaDulu.first;
-  }
-  final posisi = terlamaDulu.indexWhere(
-    (chapter) => chapter.url == lastChapterId,
-  );
-  if (posisi == -1) {
-    for (final chapter in terlamaDulu) {
-      if (!dibaca.contains(chapter.url)) return chapter;
-    }
-    return terlamaDulu.first;
-  }
-  for (var i = posisi + 1; i < terlamaDulu.length; i++) {
-    if (!dibaca.contains(terlamaDulu[i].url)) return terlamaDulu[i];
-  }
-  return terlamaDulu[posisi];
 }

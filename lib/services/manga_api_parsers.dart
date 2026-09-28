@@ -49,6 +49,7 @@ List<Chapter> parseChapterList(dynamic data, {required String mangaId}) {
 
     return Chapter(
       name: name.trim(),
+      number: double.tryParse(chapterNumber)?.round() ?? 0,
       dateUpload: dateUpload,
       url: chapterId,
       chapterUrl: '${MangaApiClient.webBaseUrl}/series/$mangaId/$chapterId',

@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'package:alana/core/utils/pesan_error.dart';
@@ -15,12 +14,10 @@ import 'package:alana/features/downloads/data/download_repository.dart';
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_spinner.dart';
-import 'package:alana/features/detail/presentation/detail_providers.dart';
 import 'package:alana/features/history/data/history_repository.dart';
 import 'package:alana/features/profile/presentation/profile_providers.dart';
 import 'package:alana/features/settings/data/settings_repository.dart';
 import 'package:alana/features/sync/data/sync_service.dart';
-import 'package:alana/models/chapter.dart';
 import 'package:alana/models/page.dart' as manga;
 
 import '../data/reader_repository.dart';
@@ -36,7 +33,6 @@ class ReaderPage extends ConsumerStatefulWidget {
     this.chapterName = '',
     this.mangaTitle = '',
     this.mangaThumbnail = '',
-    this.halamanChapter = 1,
   });
 
   final String mangaId;
@@ -44,8 +40,6 @@ class ReaderPage extends ConsumerStatefulWidget {
   final String chapterName;
   final String mangaTitle;
   final String mangaThumbnail;
-
-  final int halamanChapter;
 
   @override
   ConsumerState<ReaderPage> createState() => _ReaderPageState();
@@ -182,20 +176,6 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     return px > 0 ? px : null;
   }
 
-  void _pindahChapter(Chapter target) {
-    unawaited(ref.read(syncServiceProvider).flushTertunda());
-    context.pushReplacementNamed(
-      'reader',
-      pathParameters: {'mangaId': widget.mangaId, 'chapterId': target.url},
-      extra: {
-        'chapterName': target.name,
-        'mangaTitle': widget.mangaTitle,
-        'mangaThumbnail': widget.mangaThumbnail,
-        'halamanChapter': widget.halamanChapter,
-      },
-    );
-  }
-
   Future<void> _bukaLaporan() async {
     final userId = ref.read(userIdProvider);
     if (userId == null || userId.isEmpty) {
@@ -240,16 +220,6 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     final AsyncValue<List<manga.Page>> pagesAsync = offline
         ? ref.watch(offlinePageListProvider(_kunciOffline))
         : ref.watch(pageListProvider(widget.chapterId));
-    final chaptersAsync = offline
-        ? const AsyncValue<ChapterPage>.data(ChapterPage(chapters: []))
-        : ref.watch(
-            chapterListProvider(
-              ChapterPageRequest(
-                mangaId: widget.mangaId,
-                page: widget.halamanChapter,
-              ),
-            ),
-          );
     _uid = ref.watch(userIdProvider);
 
     void tandaiDibaca(AsyncValue<List<manga.Page>> next) {
@@ -280,26 +250,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
       }
     }
 
-    final chapters = chaptersAsync.valueOrNull?.chapters;
-    final terlamaDulu = chapters == null ? null : _urutTerlamaDulu(chapters);
-    final posisi = terlamaDulu?.indexWhere(
-      (chapter) => chapter.url == widget.chapterId,
-    );
-    final sebelumnya = (terlamaDulu != null && posisi != null && posisi > 0)
-        ? terlamaDulu[posisi - 1]
-        : null;
-    final berikutnya =
-        (terlamaDulu != null &&
-            posisi != null &&
-            posisi >= 0 &&
-            posisi < terlamaDulu.length - 1)
-        ? terlamaDulu[posisi + 1]
-        : null;
-
     String judul = widget.chapterName;
-    if (judul.isEmpty && terlamaDulu != null && posisi != null && posisi >= 0) {
-      judul = terlamaDulu[posisi].name;
-    }
     if (judul.isEmpty) judul = 'Membaca';
 
     return Scaffold(
@@ -364,36 +315,6 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
               ],
             )
           : null,
-      bottomNavigationBar: _chromeTerlihat
-          ? SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: sebelumnya == null
-                            ? null
-                            : () => _pindahChapter(sebelumnya),
-                        icon: const Icon(Icons.chevron_left),
-                        label: const Text('Sebelumnya'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: FilledButton.icon(
-                        onPressed: berikutnya == null
-                            ? null
-                            : () => _pindahChapter(berikutnya),
-                        icon: const Icon(Icons.chevron_right),
-                        label: const Text('Berikutnya'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          : null,
       body: GestureDetector(
         onTap: () {
           setState(() => _chromeTerlihat = !_chromeTerlihat);
@@ -450,20 +371,6 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
       ),
     );
   }
-}
-
-List<Chapter> _urutTerlamaDulu(List<Chapter> daftar) {
-  final denganTanggal = daftar.where((c) => c.dateUpload > 0).toList();
-  if (denganTanggal.isEmpty) return [...daftar];
-  final idTanpaTanggal = daftar
-      .where((c) => c.dateUpload <= 0)
-      .map((c) => c.url)
-      .toSet();
-  denganTanggal.sort((a, b) => a.dateUpload.compareTo(b.dateUpload));
-  return [
-    ...denganTanggal,
-    ...daftar.where((c) => idTanpaTanggal.contains(c.url)),
-  ];
 }
 
 class _ImmersiveSession {
