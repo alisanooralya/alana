@@ -152,8 +152,17 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
   }) {
     _cobaRestore();
     if (offline) return;
-    final decodeWidth = _lebarDecode(context);
-    for (var i = index + 1; i <= index + 2 && i < pages.length; i++) {
+
+    // Provider harus identik dengan yang diminta `ReaderImage`, termasuk
+    // `height`. Sebelumnya `height` tidak ikut, jadi batas decode-nya beda dan
+    // `ResizeImage` menghasilkan key cache yang lain: hasil preload tidak
+    // pernah dipakai, sementara 1080x16553 = 68 MB per halaman sudah terpakai
+    // di `imageCache`. Satu halaman saja karena tiap bitmap webtoon besar.
+    final batas = batasDecode(
+      lebarLogis: MediaQuery.sizeOf(context).width,
+      dpr: MediaQuery.maybeDevicePixelRatioOf(context) ?? 1,
+    );
+    for (var i = index + 1; i <= index + 1 && i < pages.length; i++) {
       unawaited(
         precacheImage(
           ResizeImage(
@@ -161,19 +170,14 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
               pages[i].imageUrl,
               headers: readerImageHeaders,
             ),
-            width: decodeWidth,
+            width: batas.width,
+            height: batas.height,
+            policy: ResizeImagePolicy.fit,
           ),
           context,
         ).then((_) {}, onError: (_) {}),
       );
     }
-  }
-
-  static int? _lebarDecode(BuildContext context) {
-    final logical = MediaQuery.sizeOf(context).width;
-    final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 1;
-    final px = (logical * dpr).round();
-    return px > 0 ? px : null;
   }
 
   Future<void> _bukaLaporan() async {

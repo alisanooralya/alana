@@ -3,17 +3,27 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-const faktorTinggiDecode = 2;
+/// Batas piksel per gambar (RGBA, 4 byte per piksel).
+///
+/// 16 Mpx = 64 MB. Dulu pembatasnya tinggi gambar (`tinggiLayar * dpr * 2`),
+/// dan itu membuat strip webtoon 800x12777 ter-decode jadi 403x4800: karena
+/// `fit` memakai skala min, tinggi yang lebih dulu membatasi, padahal yang
+/// perlu tajam itu lebarnya.
+const int batasPikselReader = 16 * 1024 * 1024;
 
+/// Batas decode dalam piksel.
+///
+/// [height] di sini bukan tinggi gambar, melainkan plafon jumlah piksel:
+/// `batasPiksel / width`. Dipakai bareng `ResizeImagePolicy.fit` supaya
+/// rasio aspek tetap terjaga dan tidak pernah di-upscale melebihi lebar sumber.
 ({int? width, int? height}) batasDecode({
   required double lebarLogis,
-  required double tinggiLogis,
   required double dpr,
-  int faktorTinggi = faktorTinggiDecode,
+  int batasPiksel = batasPikselReader,
 }) {
   final px = (lebarLogis * dpr).round();
-  final py = (tinggiLogis * dpr * faktorTinggi).round();
-  return (width: px > 0 ? px : null, height: py > 0 ? py : null);
+  if (px <= 0) return (width: null, height: null);
+  return (width: px, height: batasPiksel ~/ px);
 }
 
 class ReaderImage extends StatefulWidget {
@@ -74,17 +84,15 @@ class _ReaderImageState extends State<ReaderImage> {
   }
 
   ({int? width, int? height}) _batasDecode(BuildContext context) {
-    final ukuran = MediaQuery.sizeOf(context);
     return batasDecode(
-      lebarLogis: ukuran.width,
-      tinggiLogis: ukuran.height,
+      lebarLogis: MediaQuery.sizeOf(context).width,
       dpr: MediaQuery.maybeDevicePixelRatioOf(context) ?? 1,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final placeholderHeight = MediaQuery.of(context).size.width * 1.5;
+    final placeholderHeight = MediaQuery.of(context).size.width * 0.6;
     final batas = _batasDecode(context);
 
     final viewer = InteractiveViewer(
@@ -93,12 +101,24 @@ class _ReaderImageState extends State<ReaderImage> {
       maxScale: 4,
       panEnabled: _zoomAktif,
       child: widget.localPath != null && widget.localPath!.isNotEmpty
-          ? Image.file(
-              File(widget.localPath!),
+          ? Image(
+              // Bukan `Image.file(cacheWidth:, cacheHeight:)`. `cacheWidth`
+              // dan `cacheHeight` melewati `ResizeImage.resizeIfNeeded` yang
+              // tidak menyertakan `policy`, sehingga default-nya
+              // `ResizeImagePolicy.exact`: lebarnya dijepit ke lebar sumber
+              // karena `allowUpscaling` false, sementara tingginya dipaksa
+              // turun sesuai batas.
+              // Strip 800x12777 jadi 800x4800 dan rasio aspeknya meleset
+              // 2,66 kali. Path offline wajib memakai policy eksplisit supaya
+              // sama dengan path online.
+              image: ResizeImage(
+                FileImage(File(widget.localPath!)),
+                width: batas.width,
+                height: batas.height,
+                policy: ResizeImagePolicy.fit,
+              ),
               width: double.infinity,
               fit: BoxFit.fitWidth,
-              cacheWidth: batas.width,
-              cacheHeight: batas.height,
               errorBuilder: (context, error, stackTrace) => SizedBox(
                 height: placeholderHeight,
                 child: const Center(
