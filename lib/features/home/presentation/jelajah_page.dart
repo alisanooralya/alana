@@ -23,24 +23,17 @@ class JelajahPage extends ConsumerStatefulWidget {
   ConsumerState<JelajahPage> createState() => _JelajahPageState();
 }
 
-class _JelajahPageState extends ConsumerState<JelajahPage>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
+class _JelajahPageState extends ConsumerState<JelajahPage> {
   final _scrollController = ScrollController();
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this)
-      ..addListener(_onTabChanged);
     _scrollController.addListener(_onScroll);
   }
 
   @override
   void dispose() {
-    _tabController
-      ..removeListener(_onTabChanged)
-      ..dispose();
     _scrollController
       ..removeListener(_onScroll)
       ..dispose();
@@ -52,19 +45,6 @@ class _JelajahPageState extends ConsumerState<JelajahPage>
     final position = _scrollController.position;
     if (position.pixels >= position.maxScrollExtent - 300) {
       unawaited(ref.read(jelajahControllerProvider.notifier).muatBerikutnya());
-    }
-  }
-
-  void _onTabChanged() {
-    if (_tabController.indexIsChanging) return;
-    setState(() {});
-    if (_tabController.index == 0) {
-      final query = ref.read(jelajahFilterProvider);
-      if (query.genreSlugs.isNotEmpty) {
-        ref.read(jelajahFilterProvider.notifier).state = query.copyWith(
-          genreSlugs: const [],
-        );
-      }
     }
   }
 
@@ -97,9 +77,9 @@ class _JelajahPageState extends ConsumerState<JelajahPage>
         .where((genre) => query.genreSlugs.contains(genre.slug))
         .map((genre) => genre.name)
         .toList();
-    final title = _tabController.index == 1 && selectedGenreNames.isNotEmpty
-        ? 'Genre: ${selectedGenreNames.join(', ')}'
-        : 'Jelajah';
+    final title = selectedGenreNames.isEmpty
+        ? 'Jelajah'
+        : 'Genre: ${selectedGenreNames.join(', ')}';
 
     return Scaffold(
       appBar: AppBar(
@@ -115,13 +95,6 @@ class _JelajahPageState extends ConsumerState<JelajahPage>
             ),
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Semua'),
-            Tab(text: 'Genre'),
-          ],
-        ),
       ),
       body: Column(
         children: [
@@ -131,11 +104,7 @@ class _JelajahPageState extends ConsumerState<JelajahPage>
               onRefresh: () async {
                 await ref.read(jelajahControllerProvider.notifier).muatUlang();
               },
-              child: _JelajahResults(
-                scrollController: _scrollController,
-                genreMode: _tabController.index == 1,
-                genres: genres,
-              ),
+              child: _JelajahResults(scrollController: _scrollController),
             ),
           ),
         ],
@@ -145,15 +114,9 @@ class _JelajahPageState extends ConsumerState<JelajahPage>
 }
 
 class _JelajahResults extends ConsumerWidget {
-  const _JelajahResults({
-    required this.scrollController,
-    required this.genreMode,
-    required this.genres,
-  });
+  const _JelajahResults({required this.scrollController});
 
   final ScrollController scrollController;
-  final bool genreMode;
-  final List<Genre> genres;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -182,8 +145,6 @@ class _JelajahResults extends ConsumerWidget {
         return CustomScrollView(
           controller: scrollController,
           slivers: [
-            if (genreMode)
-              SliverToBoxAdapter(child: _GenreSelector(genres: genres)),
             SliverPadding(
               padding: const EdgeInsets.all(12),
               sliver: SliverGrid.builder(
@@ -239,52 +200,6 @@ class _JelajahResults extends ConsumerWidget {
           ],
         );
       },
-    );
-  }
-}
-
-class _GenreSelector extends ConsumerWidget {
-  const _GenreSelector({required this.genres});
-
-  final List<Genre> genres;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (genres.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
-        child: Text('Genre belum tersedia.'),
-      );
-    }
-
-    final selected = ref.watch(jelajahFilterProvider).genreSlugs;
-    return SizedBox(
-      height: 60,
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-        scrollDirection: Axis.horizontal,
-        itemCount: genres.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final genre = genres[index];
-          return ChoiceChip(
-            label: Text(genre.name),
-            selected: selected.contains(genre.slug),
-            onSelected: (dipilih) {
-              final query = ref.read(jelajahFilterProvider);
-              final genreBaru = <String>{...query.genreSlugs};
-              if (dipilih) {
-                genreBaru.add(genre.slug);
-              } else {
-                genreBaru.remove(genre.slug);
-              }
-              ref.read(jelajahFilterProvider.notifier).state = query.copyWith(
-                genreSlugs: genreBaru,
-              );
-            },
-          );
-        },
-      ),
     );
   }
 }

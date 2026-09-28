@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/core/widgets/error_view.dart';
-import 'package:alana/core/widgets/loading_view.dart';
 import 'package:alana/utils/relative_time.dart';
 
 import '../data/notification_repository.dart';
@@ -65,7 +64,7 @@ class NotificationListPage extends ConsumerWidget {
           ref.invalidate(belumDibacaProvider);
         },
         child: daftarAsync.when(
-          loading: () => const LoadingView(),
+          loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, _) => ErrorView(
             pesan: 'Gagal memuat notifikasi. ${pesanErrorRamah(error)}',
             onRetry: () {
