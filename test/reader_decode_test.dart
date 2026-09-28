@@ -61,7 +61,7 @@ void main() {
 
       expect(batas.width, 1080);
       expect(batas.height, batasPikselReader ~/ 1080);
-      expect(batas.height, greaterThan(15000));
+      expect(batas.height, greaterThan(10000));
     });
 
     test('tinggi gambar tidak lagi memengaruhi batas', () {
@@ -81,22 +81,38 @@ void main() {
   });
 
   group('jalur online, ResizeImagePolicy.fit', () {
-    test('strip webtoon ter-decode pada lebar penuh sumber', () {
+    test('batas memori sekarang memberi upscale yang terkontrol', () {
+      // Angka hasil nyata untuk batas sekarang, bukan perkiraan. Kalau
+      // `batasMemoriReader` diubah, test ini yang memberi tahu konsekuensinya.
+      const layarPx = 1080;
       final batas = batasDecode(lebarLogis: 360, dpr: 3);
 
-      for (final sumber in [_sampul, _infiniteMage, _goblinInc]) {
+      // Halaman pendek dan Goblin Inc (800x10228) masih di bawah plafon
+      // 11650 px, jadi ter-decode pada lebar penuh sumber.
+      for (final sumber in [_sampul, _goblinInc]) {
         final out = decodeFit(
           w: sumber.w,
           h: sumber.h,
           maxWidth: batas.width,
           maxHeight: batas.height,
         );
-
-        // Tidak boleh lebih kecil dari sumber: kalau lebih kecil, `fit` ikut
-        // diperbesar ke lebar layar dan gambar jadi buram.
         expect(out.w, sumber.w);
         expect(out.h, sumber.h);
       }
+
+      // Infinite Mage (800x12777) melewati plafon, jadi hanya dikecilkan
+      // sampai upscale 1,5x. Inilah batasAbu-abu yang harus dijaga: kalau
+      // batas memori diturunkan lagi, angka ini naik dan gambar jadi lembut.
+      final panjang = decodeFit(
+        w: _infiniteMage.w,
+        h: _infiniteMage.h,
+        maxWidth: batas.width,
+        maxHeight: batas.height,
+      );
+      expect(panjang.w, 729);
+      expect(panjang.h, 11650);
+      expect(layarPx / panjang.w, lessThan(1.6));
+      expect(panjang.w * panjang.h, lessThanOrEqualTo(batasPikselReader));
     });
 
     test('rasio aspek tetap terjaga', () {
@@ -125,8 +141,8 @@ void main() {
       );
 
       expect(out.w * out.h, lessThanOrEqualTo(batasPikselReader));
-      // Masih tajam: lebar sumber 2000 dijepit ke 1080, jadi upscale kecil.
-      expect(out.w, greaterThan(900));
+      // Lebar sumber 2000 dijepit ke 1080, jadi upscale-nya kecil.
+      expect(1080 / out.w, lessThan(1.6));
     });
   });
 

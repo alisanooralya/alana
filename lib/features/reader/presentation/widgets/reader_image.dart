@@ -3,19 +3,28 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
-/// Batas piksel per gambar (RGBA, 4 byte per piksel).
+/// Batas memori per gambar yang sudah di-decode (RGBA, 4 byte per piksel).
 ///
-/// 16 Mpx = 64 MB. Dulu pembatasnya tinggi gambar (`tinggiLayar * dpr * 2`),
-/// dan itu membuat strip webtoon 800x12777 ter-decode jadi 403x4800: karena
-/// `fit` memakai skala min, tinggi yang lebih dulu membatasi, padahal yang
-/// perlu tajam itu lebarnya.
-const int batasPikselReader = 16 * 1024 * 1024;
+/// Dinyatakan dalam byte, bukan piksel, supaya tidak salah baca: 8 juta piksel
+/// itu 32 MB, bukan 8 MB.
+///
+/// Trade-off yang disengaja: makin kecil batasnya, makin banyak strip yang muat
+/// di `imageCache` sehingga lebih sedikit yang terevict, tapi strip yang lebih
+/// tinggi dari batas ikut jadi kecil dan harus diperbesar saat ditampilkan.
+/// Di 48 MB, Goblin Inc (800x10228) dan Infinite Mage (800x12777) sama-sama
+/// cuma di-upscale 1,5x. Turunkan ke 32 MB untuk tambah muat di cache, tapi
+/// Infinite Mage jadi 2,2x dan terasa lembut.
+const int batasMemoriReader = 48 << 20;
+
+/// Turunan piksel dari [batasMemoriReader]. Harus `const` karena dipakai sebagai
+/// nilai bawaan parameter.
+const int batasPikselReader = batasMemoriReader ~/ 4;
 
 /// Batas decode dalam piksel.
 ///
 /// [height] di sini bukan tinggi gambar, melainkan plafon jumlah piksel:
-/// `batasPiksel / width`. Dipakai bareng `ResizeImagePolicy.fit` supaya
-/// rasio aspek tetap terjaga dan tidak pernah di-upscale melebihi lebar sumber.
+/// `batasPiksel / width`. Dipakai bareng `ResizeImagePolicy.fit` supaya rasio
+/// aspek tetap terjaga dan tidak pernah di-upscale melebihi lebar sumber.
 ({int? width, int? height}) batasDecode({
   required double lebarLogis,
   required double dpr,
