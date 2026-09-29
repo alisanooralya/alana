@@ -93,11 +93,6 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar>
           label: 'Pustaka',
         ),
         NavigationDestination(
-          icon: Icon(Icons.history_outlined),
-          selectedIcon: Icon(Icons.history),
-          label: 'Riwayat',
-        ),
-        NavigationDestination(
           icon: Icon(Icons.person_outline),
           selectedIcon: Icon(Icons.person),
           label: 'Profil',

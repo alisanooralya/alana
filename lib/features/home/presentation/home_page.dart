@@ -15,6 +15,7 @@ import 'latest_updates_controller.dart';
 import 'widgets/home_section.dart';
 import 'widgets/manga_card.dart';
 import 'widgets/popular_carousel.dart';
+import 'widgets/riwayat_section.dart';
 import 'widgets/update_card.dart';
 
 const int _jumlahRekomendasi = 6;
@@ -123,30 +124,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                       },
                     ),
                   ),
-                  SliverToBoxAdapter(
-                    child: rekomendasi.when(
-                      loading: () => const _SectionMemuat(judul: 'Rekomendasi'),
-                      error: (error, _) => _SectionGagal(
-                        judul: 'Rekomendasi',
-                        pesan: pesanErrorRamah(error),
-                        onRetry: () => ref.invalidate(recommendedMangaProvider),
-                      ),
-                      data: (response) {
-                        if (response.mangas.isEmpty) {
-                          return const _SectionKosong(judul: 'Rekomendasi');
-                        }
-                        return HomeSection(
-                          judul: 'Rekomendasi',
-                          children: [
-                            for (final manga in response.mangas.take(
-                              _jumlahRekomendasi,
-                            ))
-                              MangaCard(manga: manga),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
+                  const SliverToBoxAdapter(child: RiwayatSection()),
                   const SliverToBoxAdapter(
                     child: KepalaSection(judul: 'Pembaruan Terbaru'),
                   ),
@@ -214,6 +192,30 @@ class _HomePageState extends ConsumerState<HomePage> {
                         ],
                       );
                     },
+                  ),
+                  SliverToBoxAdapter(
+                    child: rekomendasi.when(
+                      loading: () => const _SectionMemuat(judul: 'Rekomendasi'),
+                      error: (error, _) => _SectionGagal(
+                        judul: 'Rekomendasi',
+                        pesan: pesanErrorRamah(error),
+                        onRetry: () => ref.invalidate(recommendedMangaProvider),
+                      ),
+                      data: (response) {
+                        if (response.mangas.isEmpty) {
+                          return const _SectionKosong(judul: 'Rekomendasi');
+                        }
+                        return HomeSection(
+                          judul: 'Rekomendasi',
+                          children: [
+                            for (final manga in response.mangas.take(
+                              _jumlahRekomendasi,
+                            ))
+                              MangaCard(manga: manga),
+                          ],
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),

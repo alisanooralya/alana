@@ -72,22 +72,6 @@ class HistoryPage extends ConsumerWidget {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            trailing: IconButton(
-                              tooltip: 'Hapus dari Riwayat',
-                              icon: const Icon(Icons.delete_outline),
-                              onPressed: () {
-                                ref
-                                    .read(historyRepositoryProvider.notifier)
-                                    .hapus(item.mangaId);
-                                ScaffoldMessenger.of(context)
-                                  ..hideCurrentSnackBar()
-                                  ..showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Dihapus dari Riwayat.'),
-                                    ),
-                                  );
-                              },
-                            ),
                             onTap: () {
                               if (item.lastChapterId.isEmpty) {
                                 if (item.mangaId.isEmpty) return;

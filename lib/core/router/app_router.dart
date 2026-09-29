@@ -196,15 +196,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/riwayat',
-                name: 'riwayat',
-                builder: (context, state) => const HistoryPage(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
                 path: '/profil',
                 name: 'profil',
                 builder: (context, state) => const ProfilePage(),
@@ -212,6 +203,11 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/riwayat',
+        name: 'riwayat',
+        builder: (context, state) => const HistoryPage(),
       ),
       GoRoute(
         path: '/jelajah',
