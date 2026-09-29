@@ -245,8 +245,6 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
       'chapter_title': e.lastChapterName,
       'scroll_index': e.scrollIndex,
       'scroll_leading': e.scrollLeading,
-      // Kolom lama tidak lagi dipakai untuk restore, tapi masih ditulis supaya
-      // versi aplikasi lama tidak kehilangan posisinya.
       'scroll_position': e.scrollOffset,
       'updated_at': e.updatedAt.toUtc().toIso8601String(),
       'deleted_at': null,

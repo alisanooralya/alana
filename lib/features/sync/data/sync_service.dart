@@ -240,9 +240,6 @@ class SyncService {
       }
       final waktu =
           DateTime.tryParse(r['updated_at']?.toString() ?? '') ?? _epoch();
-      // `scroll_index` dan `scroll_leading` yang dipakai restore. Kolom
-      // `scroll_position` lama sengaja tidak dikonversi: piksel lama tidak
-      // punya indeks yang bisa dipercaya karena tinggi item pernah berubah.
       final indeks = int.tryParse(r['scroll_index']?.toString() ?? '') ?? 0;
       final depan =
           double.tryParse(r['scroll_leading']?.toString() ?? '') ?? 0.0;

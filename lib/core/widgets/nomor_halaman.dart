@@ -15,7 +15,6 @@ class NomorHalaman extends StatelessWidget {
   final ValueChanged<int> onPilih;
   final bool sedangMemuat;
 
-  /// Berapa nomor yang terlihat sekaligus di tengah layar sempit.
   final int jumlahTampak;
 
   @override

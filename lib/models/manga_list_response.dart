@@ -5,8 +5,6 @@ class MangaListResponse {
   final List<Manga> mangas;
   final bool hasNextPage;
 
-  /// Total halaman dari `meta.total_page`. Dibutuhkannya page bar; kalau
-  /// server tidak mengirimnya, hanya [hasNextPage] yang bisa dipakai.
   final int totalPage;
 
   const MangaListResponse({

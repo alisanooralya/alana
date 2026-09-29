@@ -166,14 +166,6 @@ class _ChapterReportSheetState extends ConsumerState<ChapterReportSheet> {
                 }
               },
             ),
-            if (_error != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                _error!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ],
-            // TODO sementara: hapus blok ini setelah akar masalah diperbaiki.
             const SizedBox(height: 20),
             Row(
               children: [

@@ -22,21 +22,9 @@ class MangaReadingProgress {
 
   final Set<String> readChapterIds;
 
-  /// Halaman yang paling atas terlihat. Ini yang dipakai untuk restore.
   final int scrollIndex;
-
-  /// Tepi depan halaman itu relatif terhadap atas viewport, dinormalisasi
-  /// terhadap tinggi viewport. Bisa negatif kalau halaman itu sudah sebagian
-  /// terlewat ke atas.
   final double scrollLeading;
 
-  /// Piksel absolut dari versi lama.
-  ///
-  /// Tidak lagi dipakai untuk restore dan **tidak dikonversi** ke
-  /// [scrollIndex]: tinggi item pernah berubah-ubah (placeholder 0,6 kali
-  /// lebar lalu rasio asli), jadi piksel lama tidak punya indeks yang bisa
-  /// dipercaya. Kolomnya masih ikut ditulis supaya versi aplikasi lama tidak
-  /// kehilangan datanya.
   final double scrollOffset;
   final int pageCount;
   final DateTime updatedAt;
