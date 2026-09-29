@@ -1,19 +1,20 @@
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+
+import '../../data/page_ratio.dart';
+import '../../data/reader_net.dart';
 
 /// Batas memori per gambar yang sudah di-decode (RGBA, 4 byte per piksel).
 ///
 /// Dinyatakan dalam byte, bukan piksel, supaya tidak salah baca: 8 juta piksel
 /// itu 32 MB, bukan 8 MB.
 ///
-/// Trade-off yang disengaja: makin kecil batasnya, makin banyak strip yang muat
-/// di `imageCache` sehingga lebih sedikit yang terevict, tapi strip yang lebih
-/// tinggi dari batas ikut jadi kecil dan harus diperbesar saat ditampilkan.
-/// Di 48 MB, Goblin Inc (800x10228) dan Infinite Mage (800x12777) sama-sama
-/// cuma di-upscale 1,5x. Turunkan ke 32 MB untuk tambah muat di cache, tapi
-/// Infinite Mage jadi 2,2x dan terasa lembut.
+/// Strip 800x12777 yang ter-decode penuh menjadi 729x11650 = 34 MB, jadi
+/// beberapa strip muat bersama di `imageCache` tanpa saling menyingkirkan.
 const int batasMemoriReader = 48 << 20;
 
 /// Turunan piksel dari [batasMemoriReader]. Harus `const` karena dipakai sebagai
@@ -35,38 +36,67 @@ const int batasPikselReader = batasMemoriReader ~/ 4;
   return (width: px, height: batasPiksel ~/ px);
 }
 
+/// Warna latar panel yang menggantikan gambar. Hitungan instance bisa
+/// melewati batas cache GPU kalau memakai warna terang, jadi gelap.
+const Color _warnaPanel = Color(0xFF141414);
+
 class ReaderImage extends StatefulWidget {
   const ReaderImage({
     super.key,
     required this.imageUrl,
     required this.headers,
+    this.cacheManager,
+    required this.rasio,
     this.localPath,
     this.onLoaded,
-    this.sedangGeser = false,
-    this.onTerlihat,
+    this.onDimensi,
+    this.onTinggiBerubah,
   });
 
   final String imageUrl;
   final Map<String, String> headers;
   final String? localPath;
+
+  /// Cache manager khusus reader. Wajib sama dengan yang dipakai
+  /// `precacheImage`, dan `cacheKey` wajib sama juga, supaya hasil preload
+  /// benar-benar dipakai dan tidak ada unduhan ganda untuk satu url.
+  ///
+  /// `null` berarti pakai [readerCacheManager]. Defaultnya ada supaya widget
+  /// bisa diuji tanpa membangun cache manager sungguhan; halaman reader tetap
+  /// mengirimnya secara eksplisit.
+  final BaseCacheManager? cacheManager;
+
+  /// Rasio efektif halaman ini, sudah di-resolve oleh
+  /// `ReaderRatioController` memakai urutan: rasio sendiri, tetangga terdekat,
+  /// median, lalu konstanta.
+  ///
+  /// Tinggi item **tidak pernah** memakai tebakan lebar. Pada satu chapter
+  /// terukur tinggi antarhalaman ranging dari 276 px sampai 4500 px, jadi
+  /// placeholder berbasis lebar salah sampai 20 kali dan itulah penyebab
+  /// posisi baca meloncat.
+  final ValueListenable<double?> rasio;
+
+  /// Dipanggil sekali setelah gambar benar-benar tampil.
+  ///
+  /// Tidak pernah dipanggil lebih dulu karena tinggi item sudah pasti dari
+  /// `AspectRatio`, jadi pemanggil bebas melakukan kerja berat di sini.
   final VoidCallback? onLoaded;
 
-  /// True selama pengguna sedang menggeser daftar.
+  /// Jaring pengaman: dimensi asli dari `ImageInfo` setelah decode.
   ///
-  /// Saat true dan gambar ini belum pernah tampil, widget hanya drew
-  /// placeholder tanpa memulai decode. Tanpa gerbang ini, `ListView.builder`
-  /// membangun item jauh lebih cepat daripada decode selesai saat di-fling, dan
-  /// tiap strip webtoon 37 MB langsung masuk antrean. Akibatnya `imageCache`
-  /// penuh, evict, lalu gambar yang sudah dibaca hilang.
-  final bool sedangGeser;
+  /// Dipanggil hanya kalau probe header gagal, dan hanya saat nilainya beda
+  /// dari yang sudah dipakai. `ResizeImagePolicy.fit` menjaga rasio, jadi
+  /// `width / height` di sini sama dengan rasio sumber.
+  final void Function(int width, int height)? onDimensi;
 
-  /// Dipanggil sekali saat item ini menjadi yang teratas di layar.
+  /// Rasio berubah setelah halaman ini sudah tampil, jadi tinggi item
+  /// berubah dan isi viewport ikut bergeser.
   ///
-  /// Ini yang memberi tahu halamanZTiap reader halaman berapa yang sedang dibaca,
-  /// untuk evict halaman lain di luar jendela. Widget memeriksa sendiri
-  /// posisinya lewat post-frame callback, jadi halaman reader tidak perlu
-  /// menghitung offset tiap item.
-  final VoidCallback? onTerlihat;
+  /// [top] adalah posisi item **sebelum** perubahan (jarak tepi atas item ke
+  /// tepi atas layar). Kalau [top] negatif, item berada di atas layar dan
+  /// pemanggil harus menggeser scroll sebesar [deltaTinggi] supaya konten
+  /// yang sedang dibaca tidak loncat.
+  final void Function(double top, double deltaTinggi)? onTinggiBerubah;
 
   @override
   State<ReaderImage> createState() => _ReaderImageState();
@@ -74,42 +104,78 @@ class ReaderImage extends StatefulWidget {
 
 class _ReaderImageState extends State<ReaderImage> {
   final TransformationController _transform = TransformationController();
+
   int _attempt = 0;
   bool _sudahTampil = false;
+  bool _sudahLaporDimensi = false;
   bool _zoomAktif = false;
-  bool _sudahMelapor = false;
+
+  double? _topSebelum;
+  double _tinggiSebelum = 0;
+  ImageStream? _streamDimensi;
+  ImageStreamListener? _pendengarDimensi;
+
+  bool get _offline => widget.localPath != null && widget.localPath!.isNotEmpty;
+
+  /// Sama persis dengan yang dipakai `precacheImage`, sehingga kunci cache
+  /// yang dihasilkan identik dan tidak ada unduhan ganda.
+  BaseCacheManager get _cacheManager =>
+      widget.cacheManager ?? readerCacheManager;
 
   @override
   void initState() {
     super.initState();
     _transform.addListener(_onTransform);
+    widget.rasio.addListener(_onRasioBerubah);
+  }
+
+  @override
+  void didUpdateWidget(ReaderImage old) {
+    super.didUpdateWidget(old);
+    if (!identical(old.rasio, widget.rasio)) {
+      old.rasio.removeListener(_onRasioBerubah);
+      widget.rasio.addListener(_onRasioBerubah);
+    }
   }
 
   @override
   void dispose() {
+    widget.rasio.removeListener(_onRasioBerubah);
     _transform.removeListener(_onTransform);
     _transform.dispose();
+    final stream = _streamDimensi;
+    final pendengar = _pendengarDimensi;
+    if (stream != null && pendengar != null) {
+      stream.removeListener(pendengar);
+    }
+    _streamDimensi = null;
+    _pendengarDimensi = null;
     super.dispose();
   }
 
-  void _periksaPosisi() {
-    if (_sudahMelapor || widget.onTerlihat == null) return;
-
-    final context = this.context;
-    if (!context.mounted) return;
+  /// Rasio baru masuk sementara item ini sudah punya tinggi. Catat posisi
+  /// sekarang — sebelum layout baru dihitung — lalu ukur ulang setelah frame
+  /// untuk memperkirakan berapa banyak konten yang harus dikompensasi.
+  void _onRasioBerubah() {
     final box = context.findRenderObject() as RenderBox?;
-    if (box == null || !box.hasSize || !box.attached) return;
+    if (box == null || !box.attached || !box.hasSize) {
+      _topSebelum = null;
+      return;
+    }
+    _topSebelum = box.localToGlobal(Offset.zero).dy;
+    _tinggiSebelum = box.size.height;
 
-    final posisi = box.localToGlobal(Offset.zero).dy;
-    final tinggiLayar = MediaQuery.sizeOf(context).height;
-
-    // Item dianggap "teratas" kalau puncaknya sudah melewati atau menyentuh
-    // tepi atas layar, tapi masih jauh dari bawah. Hanya satu item yang bisa
-    // memenuhi ini pada satu waktu, jadi tidak perlu rebutan antar widget.
-    if (posisi > 24 || posisi < -tinggiLayar * 0.75) return;
-
-    _sudahMelapor = true;
-    widget.onTerlihat!.call();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final top = _topSebelum;
+      _topSebelum = null;
+      if (top == null) return;
+      final after = context.findRenderObject() as RenderBox?;
+      if (after == null || !after.hasSize) return;
+      final delta = after.size.height - _tinggiSebelum;
+      if (delta.abs() < 0.5) return;
+      widget.onTinggiBerubah?.call(top, delta);
+    });
   }
 
   void _onTransform() {
@@ -125,146 +191,202 @@ class _ReaderImageState extends State<ReaderImage> {
   void _tandaiTampil() {
     if (_sudahTampil) return;
     _sudahTampil = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      setState(() {});
-      widget.onLoaded?.call();
-    });
+    _laporkanDimensi();
+    widget.onLoaded?.call();
   }
 
-  ({int? width, int? height}) _batasDecode(BuildContext context) {
-    return batasDecode(
+  /// Ambil dimensi dari `ImageInfo` provider yang sama persis dengan yang
+  /// dirender, lalu lepas listener supaya tidak menahan cache entry.
+  void _laporkanDimensi() {
+    if (_sudahLaporDimensi) return;
+    _sudahLaporDimensi = true;
+
+    final stream = _providerGambar().resolve(
+      createLocalImageConfiguration(context),
+    );
+    _streamDimensi = stream;
+    late final ImageStreamListener pendengar;
+    void lepas() {
+      stream.removeListener(pendengar);
+      if (identical(_pendengarDimensi, pendengar)) _pendengarDimensi = null;
+      if (identical(_streamDimensi, stream)) _streamDimensi = null;
+    }
+
+    pendengar = ImageStreamListener(
+      (info, _) {
+        lepas();
+        // `info.image` milik `imageCache`; jangan di-`dispose` di sini.
+        widget.onDimensi?.call(info.image.width, info.image.height);
+      },
+      // Tanpa ini, gambar yang gagal resolve membuat listener menggantung dan
+      // State widget tertahan sampai list dibuang.
+      onError: (error, _) => lepas(),
+    );
+    _pendengarDimensi = pendengar;
+    stream.addListener(pendengar);
+  }
+
+  ResizeImage _providerGambar() {
+    final batas = batasDecode(
       lebarLogis: MediaQuery.sizeOf(context).width,
       dpr: MediaQuery.maybeDevicePixelRatioOf(context) ?? 1,
+    );
+    return ResizeImage(
+      _offline
+          ? FileImage(File(widget.localPath!))
+          : CachedNetworkImageProvider(
+              widget.imageUrl,
+              headers: widget.headers,
+              cacheManager: _cacheManager,
+              // Derived dari url, bukan dari state widget, jadi provider di
+              // dalam `precacheImage` menghasilkan kunci yang sama tanpa perlu
+              // berbagi objek apa pun.
+              cacheKey: readerCacheKey(widget.imageUrl),
+            ),
+      width: batas.width,
+      height: batas.height,
+      policy: ResizeImagePolicy.fit,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final placeholderHeight = MediaQuery.of(context).size.width * 0.6;
-    final batas = _batasDecode(context);
+    return ValueListenableBuilder<double?>(
+      valueListenable: widget.rasio,
+      builder: (context, rasio, _) {
+        return AspectRatio(
+          aspectRatio: rasio ?? rasioKonstantaAwal,
+          child: _bangunGambar(),
+        );
+      },
+    );
+  }
 
-    // Gambar yang sudah pernah tampil tidak pernah dikembalikan jadi
-    // placeholder, jadi tidak ada kedip saat pengguna menggeser.
-    if (widget.sedangGeser && !_sudahTampil) {
-      return SizedBox(
-        height: placeholderHeight,
-        child: const Center(
-          child: SizedBox(
-            width: 28,
-            height: 28,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
-      );
-    }
-
+  Widget _bangunGambar() {
     final viewer = InteractiveViewer(
       transformationController: _transform,
       minScale: 1,
       maxScale: 4,
       panEnabled: _zoomAktif,
-      child: widget.localPath != null && widget.localPath!.isNotEmpty
-          ? Image(
-              // Bukan `Image.file(cacheWidth:, cacheHeight:)`. `cacheWidth`
-              // dan `cacheHeight` melewati `ResizeImage.resizeIfNeeded` yang
-              // tidak menyertakan `policy`, sehingga default-nya
-              // `ResizeImagePolicy.exact`: lebarnya dijepit ke lebar sumber
-              // karena `allowUpscaling` false, sementara tingginya dipaksa
-              // turun sesuai batas.
-              // Strip 800x12777 jadi 800x4800 dan rasio aspeknya meleset
-              // 2,66 kali. Path offline wajib memakai policy eksplisit supaya
-              // sama dengan path online.
-              image: ResizeImage(
-                FileImage(File(widget.localPath!)),
-                width: batas.width,
-                height: batas.height,
-                policy: ResizeImagePolicy.fit,
-              ),
-              width: double.infinity,
-              fit: BoxFit.fitWidth,
-              // Tanpa frameBuilder ini jalur offline tidak pernah menandai
-              // gambar sebagai tampil, jadi gerbang `sedangGeser` akan
-              // menaruhnya balik jadi spinner setiap kali digeser.
-              frameBuilder: (context, child, frame, wasSyncLoaded) {
-                if (frame != null) _tandaiTampil();
-                return child;
-              },
-              errorBuilder: (context, error, stackTrace) => SizedBox(
-                height: placeholderHeight,
-                child: const Center(
-                  child: Text('File gambar offline tidak tersedia.'),
-                ),
-              ),
-            )
-          : CachedNetworkImage(
-              key: ValueKey('reader-$_attempt-${widget.imageUrl}'),
-              imageUrl: widget.imageUrl,
-              httpHeaders: widget.headers,
-              width: double.infinity,
-              fit: BoxFit.fitWidth,
-              fadeInDuration: const Duration(milliseconds: 200),
-              imageBuilder: (context, imageProvider) {
-                _tandaiTampil();
-                return Image(
-                  image: ResizeImage(
-                    imageProvider,
-                    width: batas.width,
-                    height: batas.height,
-                    policy: ResizeImagePolicy.fit,
-                  ),
-                  width: double.infinity,
-                  fit: BoxFit.fitWidth,
-                );
-              },
-              placeholder: (context, url) => SizedBox(
-                height: placeholderHeight,
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(
-                        width: 28,
-                        height: 28,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Memuat gambar…',
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              errorWidget: (context, url, error) => SizedBox(
-                height: placeholderHeight,
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.broken_image_outlined, size: 48),
-                      const SizedBox(height: 8),
-                      const Text('Gagal memuat gambar.'),
-                      TextButton.icon(
-                        onPressed: () {
-                          setState(() => _attempt++);
-                        },
-                        icon: const Icon(Icons.refresh),
-                        label: const Text('Coba lagi'),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+      child: _offline ? _gambarOffline() : _gambarOnline(),
     );
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _periksaPosisi();
-    });
-
+    // Ketuk dua kali mengembalikan zoom. Tanpa ini satu item yang ter-zoom
+    // menangkap gesture pan dan list tidak bisa digulir lagi.
     if (!_zoomAktif) return viewer;
-    return GestureDetector(onDoubleTap: _resetZoom, child: viewer);
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onDoubleTap: _resetZoom,
+      child: viewer,
+    );
+  }
+
+  Widget _gambarOffline() {
+    return Image(
+      key: ValueKey('offline-$_attempt-${widget.imageUrl}'),
+      image: _providerGambar(),
+      width: double.infinity,
+      fit: BoxFit.fitWidth,
+      gaplessPlayback: true,
+      frameBuilder: (context, child, frame, wasSyncLoaded) {
+        if (frame != null) _tandaiTampil();
+        return child;
+      },
+      errorBuilder: (context, error, stackTrace) => _panelError(
+        pesan: 'File gambar offline tidak tersedia.',
+        kunci: 'err-offline-$_attempt',
+        onCobaLagi: () => setState(() => _attempt++),
+      ),
+    );
+  }
+
+  Widget _gambarOnline() {
+    // Satu pembacaan MediaQuery per build, bukan dua di dalam `imageBuilder`
+    // yang dipanggil sekali per frame decode.
+    final batas = batasDecode(
+      lebarLogis: MediaQuery.sizeOf(context).width,
+      dpr: MediaQuery.maybeDevicePixelRatioOf(context) ?? 1,
+    );
+    return CachedNetworkImage(
+      key: ValueKey('reader-$_attempt-${widget.imageUrl}'),
+      imageUrl: widget.imageUrl,
+      httpHeaders: widget.headers,
+      cacheManager: _cacheManager,
+      cacheKey: readerCacheKey(widget.imageUrl),
+      width: double.infinity,
+      fit: BoxFit.fitWidth,
+      fadeInDuration: Duration.zero,
+      imageBuilder: (context, imageProvider) {
+        return Image(
+          image: ResizeImage(
+            imageProvider,
+            width: batas.width,
+            height: batas.height,
+            policy: ResizeImagePolicy.fit,
+          ),
+          width: double.infinity,
+          fit: BoxFit.fitWidth,
+          gaplessPlayback: true,
+          frameBuilder: (context, child, frame, wasSyncLoaded) {
+            if (frame != null) _tandaiTampil();
+            return child;
+          },
+        );
+      },
+      placeholder: (context, url) => const _Panel(),
+      errorWidget: (context, url, error) => _panelError(
+        pesan: 'Gagal memuat gambar.',
+        kunci: 'err-online-$_attempt',
+        onCobaLagi: () => setState(() => _attempt++),
+      ),
+    );
+  }
+
+  Widget _panelError({
+    required String pesan,
+    required String kunci,
+    required VoidCallback onCobaLagi,
+  }) {
+    return _Panel(
+      Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.broken_image_outlined, size: 48),
+          const SizedBox(height: 8),
+          Text(
+            pesan,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+          TextButton.icon(
+            key: ValueKey(kunci),
+            onPressed: onCobaLagi,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Coba lagi'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Panel extends StatelessWidget {
+  const _Panel([this.child]);
+
+  final Widget? child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: _warnaPanel,
+      child: Center(
+        child:
+            child ??
+            const SizedBox(
+              width: 28,
+              height: 28,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+      ),
+    );
   }
 }

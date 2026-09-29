@@ -1,6 +1,3 @@
-import 'dart:convert';
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -47,12 +44,6 @@ import 'package:alana/features/reader/presentation/widgets/reader_image.dart';
 const _sampul = (w: 800, h: 614);
 const _infiniteMage = (w: 800, h: 12777);
 const _goblinInc = (w: 800, h: 10228);
-
-/// PNG 1x1 yang valid, supaya jalur offline punya file nyata untuk di-decode.
-final _png1x1 = base64Decode(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8'
-  'z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-);
 
 void main() {
   group('batasDecode', () {
@@ -188,6 +179,7 @@ void main() {
     Future<void> pumpReader(
       WidgetTester tester, {
       required String localPath,
+      double rasio = 0.08,
     }) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 3.0;
@@ -200,6 +192,7 @@ void main() {
               imageUrl: 'https://contoh.invalid/01.jpg',
               localPath: localPath,
               headers: const {'Referer': 'https://app.shinigami.asia/'},
+              rasio: ValueNotifier<double?>(rasio),
             ),
           ),
         ),
@@ -230,6 +223,7 @@ void main() {
                 imageUrl: 'https://contoh.invalid/01.jpg',
                 localPath: '/tidak/ada/gambar.jpg',
                 headers: const {'Referer': 'https://app.shinigami.asia/'},
+                rasio: ValueNotifier<double?>(0.08),
               ),
             ),
           ),
@@ -244,13 +238,20 @@ void main() {
     });
   });
 
-  group('gerbang saat menggeser', () {
-    /// Dua strip webtoon 37 MB dipanggil decode bersamaan saat di-fling akan
-    /// membuat imageCache penuh dan evict gambar yang sudah dibaca. Gerbang
-    /// `sedangGeser` menahan decode sampai pengguna berhenti.
-    Future<void> pumpReader(
+  group('tinggi item terkunci', () {
+    /// Tinggi item pernah mengikuti `lebar * 0.6` sampai gambar termuat, lalu
+    /// melompat mengikuti rasio asli. Pada satu chapter terukur tinggi antar
+    /// halaman ranging dari 276 px sampai 4500 px, jadi lompatan itu sendiri
+    /// menggagalkan pemulihan posisi baca.
+    ///
+    /// Widget harus berada di dalam `ListView`, bukan langsung di `Scaffold`
+    /// body. Di `Scaffold` body tinggi sudah dibatasi viewport, jadi
+    /// `AspectRatio` akan memakai tinggi layar (800), bukan `lebar / rasio` —
+    /// dan itu bukan kondisi nyata reader.
+    Future<double> tinggiDalamList(
       WidgetTester tester, {
-      required bool sedangGeser,
+      required double? rasio,
+      String? localPath,
     }) async {
       tester.view.physicalSize = const Size(1080, 2400);
       tester.view.devicePixelRatio = 3.0;
@@ -259,81 +260,54 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: ReaderImage(
-              imageUrl: 'https://contoh.invalid/01.jpg',
-              headers: const {'Referer': 'https://app.shinigami.asia/'},
-              sedangGeser: sedangGeser,
+            body: ListView(
+              children: [
+                ReaderImage(
+                  imageUrl: 'https://contoh.invalid/01.jpg',
+                  localPath: localPath,
+                  headers: const {},
+                  rasio: ValueNotifier<double?>(rasio),
+                ),
+              ],
             ),
           ),
         ),
       );
+      await tester.pump();
+      return tester.getSize(find.byType(ReaderImage)).height;
     }
 
-    testWidgets('tidak ada provider gambar selama menggeser', (tester) async {
-      await pumpReader(tester, sedangGeser: true);
-
-      // Kalau `CachedNetworkImage` ikut dibangun, `Image` akan ada dan decode
-      // langsung dimulai.
-      expect(find.byType(Image), findsNothing);
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-    });
-
-    testWidgets('provider gambar muncul setelah menggeser berhenti', (
+    testWidgets('placeholder, gambar, dan error semua punya tinggi sama', (
       tester,
     ) async {
-      await pumpReader(tester, sedangGeser: false);
+      // Lebar logis 360 pada 1080/3.
+      final denganRasio = await tinggiDalamList(tester, rasio: 0.08);
+      expect(denganRasio, closeTo(360 / 0.08, 1));
 
-      expect(find.byType(Image), findsOneWidget);
+      // Tanpa rasio, konstanta 0,1 yang dipakai — bukan 0,6 kali lebar.
+      final tanpaRasio = await tinggiDalamList(tester, rasio: null);
+      expect(tanpaRasio, closeTo(360 / 0.1, 1));
+      expect(tanpaRasio, isNot(closeTo(360 * 0.6, 1)));
     });
 
-    testWidgets('gambar yang sudah tampil tidak kembali jadi spinner', (
+    testWidgets('tinggi tidak bergantung pada gambar yang termuat', (
       tester,
     ) async {
-      final file = File('${Directory.systemTemp.path}/alana_reader_1x1.png');
-      file.writeAsBytesSync(_png1x1);
-      addTearDown(() {
-        if (file.existsSync()) file.deleteSync();
-      });
+      // Berkas tidak ada, jadi `Image` tidak akan pernah selesai decode dan
+      // tidak bisa mengubah tinggi. Mesmo setelah error, tinggi harus tetap
+      // mengikuti `AspectRatio`.
+      final tinggi = await tinggiDalamList(
+        tester,
+        rasio: 0.086,
+        localPath: '/tidak/ada/gambar.jpg',
+      );
+      await tester.pump(const Duration(milliseconds: 50));
 
-      tester.view.physicalSize = const Size(1080, 2400);
-      tester.view.devicePixelRatio = 3.0;
-      addTearDown(tester.view.reset);
-
-      // `FileImage` memakai I/O sungguhan, jadi lewat runAsync.
-      // pumpAndSettle tidak bisa dipakai karena spinner di placeholder
-      // berputar terus.
-      Future<void> pump(bool sedangGeser) async {
-        await tester.runAsync(() async {
-          await tester.pumpWidget(
-            MaterialApp(
-              home: Scaffold(
-                body: ReaderImage(
-                  imageUrl: '',
-                  localPath: file.path,
-                  headers: const {},
-                  sedangGeser: sedangGeser,
-                ),
-              ),
-            ),
-          );
-          await Future<void>.delayed(const Duration(milliseconds: 80));
-        });
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 50));
-      }
-
-      await pump(false);
-      expect(find.byType(Image), findsOneWidget);
-
-      // Sekarang pengguna mulai menggeser. Kalau gerbang tidak membedakan
-      // "belum tampil" dari "sudah tampil", gambar yang sedang dibaca akan
-      // berkedip jadi spinner.
-      await pump(true);
-
-      expect(find.byType(Image), findsOneWidget);
-      final provider = tester.widget<Image>(find.byType(Image)).image;
-      expect(provider, isA<ResizeImage>());
-      expect((provider as ResizeImage).policy, ResizeImagePolicy.fit);
+      expect(tinggi, closeTo(360 / 0.086, 1));
+      expect(
+        tester.getSize(find.byType(ReaderImage)).height,
+        closeTo(360 / 0.086, 1),
+      );
     });
   });
 }

@@ -7,6 +7,7 @@ class AppStorage {
   static const String historyBoxName = 'history';
   static const String settingsBoxName = 'settings';
   static const String downloadsBoxName = 'downloads';
+  static const String pageRatioBoxName = 'page_ratio';
 
   static bool _siap = false;
   static bool get siap => _siap;
@@ -22,6 +23,7 @@ class AppStorage {
         Hive.openBox(historyBoxName),
         Hive.openBox(settingsBoxName),
         Hive.openBox(downloadsBoxName),
+        Hive.openBox(pageRatioBoxName),
       ]);
       _siap = true;
     } catch (error) {
@@ -33,6 +35,7 @@ class AppStorage {
   static Box? get historyBox => _siap ? Hive.box(historyBoxName) : null;
   static Box? get settingsBox => _siap ? Hive.box(settingsBoxName) : null;
   static Box? get downloadsBox => _siap ? Hive.box(downloadsBoxName) : null;
+  static Box? get pageRatioBox => _siap ? Hive.box(pageRatioBoxName) : null;
 
   static const tombsKey = '__tombs__';
 
