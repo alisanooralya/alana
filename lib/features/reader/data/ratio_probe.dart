@@ -8,58 +8,35 @@ import 'page_ratio.dart';
 import 'reader_net.dart';
 import 'reader_repository.dart';
 
-/// Hasil satu probe.
-///
-/// Pemisahan ini penting karena 403 dan 429 tidak boleh dicoba ulang dalam
-/// sesi yang sama: mencoba lagi hanya memperpanjang pemblokiran dan menambah
-/// trafik ke server yang sedang menolak.
 sealed class HasilProbe {
   const HasilProbe();
 }
 
-/// Rasio berhasil dibaca dari header.
 final class HasilRasio extends HasilProbe {
   const HasilRasio(this.rasio);
 
   final double rasio;
 }
 
-/// Tidak ada yang bisa dibaca: 404, header tak dikenal, timeout, atau error
-/// jaringan. Boleh dicoba lagi di sesi berikutnya.
 final class HasilKosong extends HasilProbe {
   const HasilKosong([this.statusCode]);
 
   final int? statusCode;
 }
 
-/// Server menolak: 403 atau 429. Pemanggil harus menghentikan seluruh probe
-/// chapter dan mengandalkan jaring pengaman `ImageInfo`.
 final class HasilDiblokir extends HasilProbe {
   const HasilDiblokir(this.statusCode);
 
   final int statusCode;
 }
 
-/// Ambil rasio gambar dari header berkas dengan mengunduh **2 KB pertama saja**.
-///
-///-Ini yang membuat tinggi item bisa dikunci sejak frame pertama, jadi jalur
-/// online tidak perlu menunggu decode dan tidak pernah perlu mengoreksi tinggi
-/// setelah gambar tampil. Server mendukung `accept-ranges: bytes`, dan marker
-/// SOF JPEG berada di offset sekitar 140, jadi 2 KB lebih dari cukup.
-///
-/// Semua request melewati [batasKoneksiCdn] supaya probe berbagi batas dengan
-/// unduhan gambar dan preload.
 class RatioProbe {
   RatioProbe({Dio? dio}) : _dio = dio ?? Dio();
 
-  /// 2048. SOF JPEG terukur di offset 140, VP8L dan VP8X di bawah 26, PNG di
-  /// bawah 24, jadi 2 KB memberi ruang untuk EXIF dan APP1 yang besar.
   static const int batasByte = 2048;
 
   static const Duration batasWaktu = Duration(seconds: 4);
 
-  /// Status yang berarti "coba lagi nanti" atau memang tidak akan berhasil
-  /// dalam sesi ini. Keduanya tidak di-retry.
   static const int statusForbidden = 403;
   static const int statusTooManyRequests = 429;
 
@@ -92,16 +69,12 @@ class RatioProbe {
           headers: {
             ...readerImageHeaders,
             'Range': 'bytes=0-${batasByte - 1}',
-            // Tanpa ini server boleh mengompres, dan offset byte dari range
-            // tidak lagi sama dengan offset di dalam berkas.
             'Accept-Encoding': 'identity',
           },
           receiveTimeout: batasWaktu,
           sendTimeout: batasWaktu,
           followRedirects: true,
           maxRedirects: 3,
-          // 403 dan 429 harus sampai ke sini sebagai respons biasa supaya bisa
-          // diklasifikasikan, bukan dilempar sebagai exception.
           validateStatus: (kode) => kode != null && kode >= 200 && kode < 500,
         ),
       );
@@ -121,9 +94,6 @@ class RatioProbe {
       try {
         await for (final chunk in body.stream) {
           collected.add(chunk);
-          // Pada 206 stream berhenti sendiri di 2048 byte. Pada 200 — server
-          // mengabaikan `Range` dan mau mengirim berkas penuh yang bisa
-          // beberapa megabyte — kita berhenti sendiri dan batalkan di bawah.
           if (collected.length >= batasByte) break;
         }
       } finally {
@@ -131,7 +101,6 @@ class RatioProbe {
       }
       bytes = collected.takeBytes();
     } on DioException catch (error) {
-      // Pembatalan yang kita sengaja lakukan bukan kegagalan.
       if (error.type != DioExceptionType.cancel) {
         if (diblokir(error.response?.statusCode)) {
           return HasilDiblokir(error.response!.statusCode!);

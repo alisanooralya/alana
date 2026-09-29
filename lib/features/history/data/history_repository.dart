@@ -152,7 +152,8 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
     String mangaThumbnail = '',
     required String chapterId,
     String chapterName = '',
-    required double scrollOffset,
+    required int scrollIndex,
+    required double scrollLeading,
     required int pageCount,
   }) {
     final lama =
@@ -161,7 +162,8 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
     var baru = lama.copyWith(
       lastChapterId: chapterId,
       lastChapterName: chapterName.isEmpty ? lama.lastChapterName : chapterName,
-      scrollOffset: scrollOffset,
+      scrollIndex: scrollIndex,
+      scrollLeading: scrollLeading,
       pageCount: pageCount,
       updatedAt: DateTime.now(),
     );
@@ -241,6 +243,10 @@ class HistoryRepository extends Notifier<Map<String, MangaReadingProgress>> {
       'cover_url': e.mangaThumbnail,
       'chapter_id': e.lastChapterId,
       'chapter_title': e.lastChapterName,
+      'scroll_index': e.scrollIndex,
+      'scroll_leading': e.scrollLeading,
+      // Kolom lama tidak lagi dipakai untuk restore, tapi masih ditulis supaya
+      // versi aplikasi lama tidak kehilangan posisinya.
       'scroll_position': e.scrollOffset,
       'updated_at': e.updatedAt.toUtc().toIso8601String(),
       'deleted_at': null,

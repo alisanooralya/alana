@@ -2,30 +2,16 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 
 import '../../data/page_ratio.dart';
 import '../../data/reader_net.dart';
 
-/// Batas memori per gambar yang sudah di-decode (RGBA, 4 byte per piksel).
-///
-/// Dinyatakan dalam byte, bukan piksel, supaya tidak salah baca: 8 juta piksel
-/// itu 32 MB, bukan 8 MB.
-///
-/// Strip 800x12777 yang ter-decode penuh menjadi 729x11650 = 34 MB, jadi
-/// beberapa strip muat bersama di `imageCache` tanpa saling menyingkirkan.
 const int batasMemoriReader = 48 << 20;
-
-/// Turunan piksel dari [batasMemoriReader]. Harus `const` karena dipakai sebagai
-/// nilai bawaan parameter.
 const int batasPikselReader = batasMemoriReader ~/ 4;
 
-/// Batas decode dalam piksel.
-///
-/// [height] di sini bukan tinggi gambar, melainkan plafon jumlah piksel:
-/// `batasPiksel / width`. Dipakai bareng `ResizeImagePolicy.fit` supaya rasio
-/// aspek tetap terjaga dan tidak pernah di-upscale melebihi lebar sumber.
 ({int? width, int? height}) batasDecode({
   required double lebarLogis,
   required double dpr,
@@ -36,8 +22,6 @@ const int batasPikselReader = batasMemoriReader ~/ 4;
   return (width: px, height: batasPiksel ~/ px);
 }
 
-/// Warna latar panel yang menggantikan gambar. Hitungan instance bisa
-/// melewati batas cache GPU kalau memakai warna terang, jadi gelap.
 const Color _warnaPanel = Color(0xFF141414);
 
 class ReaderImage extends StatefulWidget {
@@ -57,45 +41,11 @@ class ReaderImage extends StatefulWidget {
   final Map<String, String> headers;
   final String? localPath;
 
-  /// Cache manager khusus reader. Wajib sama dengan yang dipakai
-  /// `precacheImage`, dan `cacheKey` wajib sama juga, supaya hasil preload
-  /// benar-benar dipakai dan tidak ada unduhan ganda untuk satu url.
-  ///
-  /// `null` berarti pakai [readerCacheManager]. Defaultnya ada supaya widget
-  /// bisa diuji tanpa membangun cache manager sungguhan; halaman reader tetap
-  /// mengirimnya secara eksplisit.
   final BaseCacheManager? cacheManager;
-
-  /// Rasio efektif halaman ini, sudah di-resolve oleh
-  /// `ReaderRatioController` memakai urutan: rasio sendiri, tetangga terdekat,
-  /// median, lalu konstanta.
-  ///
-  /// Tinggi item **tidak pernah** memakai tebakan lebar. Pada satu chapter
-  /// terukur tinggi antarhalaman ranging dari 276 px sampai 4500 px, jadi
-  /// placeholder berbasis lebar salah sampai 20 kali dan itulah penyebab
-  /// posisi baca meloncat.
   final ValueListenable<double?> rasio;
-
-  /// Dipanggil sekali setelah gambar benar-benar tampil.
-  ///
-  /// Tidak pernah dipanggil lebih dulu karena tinggi item sudah pasti dari
-  /// `AspectRatio`, jadi pemanggil bebas melakukan kerja berat di sini.
   final VoidCallback? onLoaded;
 
-  /// Jaring pengaman: dimensi asli dari `ImageInfo` setelah decode.
-  ///
-  /// Dipanggil hanya kalau probe header gagal, dan hanya saat nilainya beda
-  /// dari yang sudah dipakai. `ResizeImagePolicy.fit` menjaga rasio, jadi
-  /// `width / height` di sini sama dengan rasio sumber.
   final void Function(int width, int height)? onDimensi;
-
-  /// Rasio berubah setelah halaman ini sudah tampil, jadi tinggi item
-  /// berubah dan isi viewport ikut bergeser.
-  ///
-  /// [top] adalah posisi item **sebelum** perubahan (jarak tepi atas item ke
-  /// tepi atas layar). Kalau [top] negatif, item berada di atas layar dan
-  /// pemanggil harus menggeser scroll sebesar [deltaTinggi] supaya konten
-  /// yang sedang dibaca tidak loncat.
   final void Function(double top, double deltaTinggi)? onTinggiBerubah;
 
   @override
@@ -117,8 +67,6 @@ class _ReaderImageState extends State<ReaderImage> {
 
   bool get _offline => widget.localPath != null && widget.localPath!.isNotEmpty;
 
-  /// Sama persis dengan yang dipakai `precacheImage`, sehingga kunci cache
-  /// yang dihasilkan identik dan tidak ada unduhan ganda.
   BaseCacheManager get _cacheManager =>
       widget.cacheManager ?? readerCacheManager;
 
@@ -153,9 +101,6 @@ class _ReaderImageState extends State<ReaderImage> {
     super.dispose();
   }
 
-  /// Rasio baru masuk sementara item ini sudah punya tinggi. Catat posisi
-  /// sekarang — sebelum layout baru dihitung — lalu ukur ulang setelah frame
-  /// untuk memperkirakan berapa banyak konten yang harus dikompensasi.
   void _onRasioBerubah() {
     final box = context.findRenderObject() as RenderBox?;
     if (box == null || !box.attached || !box.hasSize) {
@@ -195,8 +140,6 @@ class _ReaderImageState extends State<ReaderImage> {
     widget.onLoaded?.call();
   }
 
-  /// Ambil dimensi dari `ImageInfo` provider yang sama persis dengan yang
-  /// dirender, lalu lepas listener supaya tidak menahan cache entry.
   void _laporkanDimensi() {
     if (_sudahLaporDimensi) return;
     _sudahLaporDimensi = true;
@@ -215,11 +158,8 @@ class _ReaderImageState extends State<ReaderImage> {
     pendengar = ImageStreamListener(
       (info, _) {
         lepas();
-        // `info.image` milik `imageCache`; jangan di-`dispose` di sini.
         widget.onDimensi?.call(info.image.width, info.image.height);
       },
-      // Tanpa ini, gambar yang gagal resolve membuat listener menggantung dan
-      // State widget tertahan sampai list dibuang.
       onError: (error, _) => lepas(),
     );
     _pendengarDimensi = pendengar;
@@ -238,9 +178,6 @@ class _ReaderImageState extends State<ReaderImage> {
               widget.imageUrl,
               headers: widget.headers,
               cacheManager: _cacheManager,
-              // Derived dari url, bukan dari state widget, jadi provider di
-              // dalam `precacheImage` menghasilkan kunci yang sama tanpa perlu
-              // berbagi objek apa pun.
               cacheKey: readerCacheKey(widget.imageUrl),
             ),
       width: batas.width,
@@ -263,21 +200,41 @@ class _ReaderImageState extends State<ReaderImage> {
   }
 
   Widget _bangunGambar() {
-    final viewer = InteractiveViewer(
-      transformationController: _transform,
-      minScale: 1,
-      maxScale: 4,
-      panEnabled: _zoomAktif,
-      child: _offline ? _gambarOffline() : _gambarOnline(),
+    final konten = _offline ? _gambarOffline() : _gambarOnline();
+
+    if (_zoomAktif) {
+      return InteractiveViewer(
+        transformationController: _transform,
+        minScale: 1,
+        maxScale: 4,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onDoubleTap: _resetZoom,
+          child: konten,
+        ),
+      );
+    }
+
+    return RawGestureDetector(
+      behavior: HitTestBehavior.translucent,
+      gestures: {
+        ZoomMulaiGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<ZoomMulaiGestureRecognizer>(
+              () => ZoomMulaiGestureRecognizer(debugOwner: this),
+              (recognizer) => recognizer.onMulai = _mulaiZoom,
+            ),
+      },
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onDoubleTap: _mulaiZoom,
+        child: konten,
+      ),
     );
-    // Ketuk dua kali mengembalikan zoom. Tanpa ini satu item yang ter-zoom
-    // menangkap gesture pan dan list tidak bisa digulir lagi.
-    if (!_zoomAktif) return viewer;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onDoubleTap: _resetZoom,
-      child: viewer,
-    );
+  }
+
+  void _mulaiZoom() {
+    if (_zoomAktif) return;
+    setState(() => _zoomAktif = true);
   }
 
   Widget _gambarOffline() {
@@ -300,8 +257,6 @@ class _ReaderImageState extends State<ReaderImage> {
   }
 
   Widget _gambarOnline() {
-    // Satu pembacaan MediaQuery per build, bukan dua di dalam `imageBuilder`
-    // yang dipanggil sekali per frame decode.
     final batas = batasDecode(
       lebarLogis: MediaQuery.sizeOf(context).width,
       dpr: MediaQuery.maybeDevicePixelRatioOf(context) ?? 1,
@@ -388,5 +343,50 @@ class _Panel extends StatelessWidget {
             ),
       ),
     );
+  }
+}
+
+class ZoomMulaiGestureRecognizer extends OneSequenceGestureRecognizer {
+  ZoomMulaiGestureRecognizer({super.debugOwner});
+
+  VoidCallback? onMulai;
+
+  final Set<int> _jaris = <int>{};
+  bool _sudahMulai = false;
+
+  @override
+  bool isPointerAllowed(PointerDownEvent event) => true;
+
+  @override
+  void addAllowedPointer(PointerDownEvent event) {
+    if (_jaris.isNotEmpty && !_sudahMulai) {
+      _sudahMulai = true;
+      onMulai?.call();
+    }
+    _jaris.add(event.pointer);
+    super.addAllowedPointer(event);
+  }
+
+  @override
+  void handleEvent(PointerEvent event) {
+    if (event is PointerUpEvent || event is PointerCancelEvent) {
+      _jaris.remove(event.pointer);
+    }
+    if (_jaris.length < 2) _sudahMulai = false;
+  }
+
+  @override
+  void didStopTrackingLastPointer(int pointer) {
+    _jaris.clear();
+    _sudahMulai = false;
+  }
+
+  @override
+  String get debugDescription => 'zoom dua jari';
+
+  @override
+  void dispose() {
+    _jaris.clear();
+    super.dispose();
   }
 }

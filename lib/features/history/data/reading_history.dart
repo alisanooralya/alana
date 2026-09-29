@@ -6,6 +6,8 @@ class MangaReadingProgress {
     this.lastChapterId = '',
     this.lastChapterName = '',
     this.readChapterIds = const {},
+    this.scrollIndex = 0,
+    this.scrollLeading = 0,
     this.scrollOffset = 0,
     this.pageCount = 0,
     required this.updatedAt,
@@ -20,6 +22,21 @@ class MangaReadingProgress {
 
   final Set<String> readChapterIds;
 
+  /// Halaman yang paling atas terlihat. Ini yang dipakai untuk restore.
+  final int scrollIndex;
+
+  /// Tepi depan halaman itu relatif terhadap atas viewport, dinormalisasi
+  /// terhadap tinggi viewport. Bisa negatif kalau halaman itu sudah sebagian
+  /// terlewat ke atas.
+  final double scrollLeading;
+
+  /// Piksel absolut dari versi lama.
+  ///
+  /// Tidak lagi dipakai untuk restore dan **tidak dikonversi** ke
+  /// [scrollIndex]: tinggi item pernah berubah-ubah (placeholder 0,6 kali
+  /// lebar lalu rasio asli), jadi piksel lama tidak punya indeks yang bisa
+  /// dipercaya. Kolomnya masih ikut ditulis supaya versi aplikasi lama tidak
+  /// kehilangan datanya.
   final double scrollOffset;
   final int pageCount;
   final DateTime updatedAt;
@@ -31,6 +48,8 @@ class MangaReadingProgress {
     String? lastChapterId,
     String? lastChapterName,
     Set<String>? readChapterIds,
+    int? scrollIndex,
+    double? scrollLeading,
     double? scrollOffset,
     int? pageCount,
     DateTime? updatedAt,
@@ -43,6 +62,8 @@ class MangaReadingProgress {
       lastChapterId: lastChapterId ?? this.lastChapterId,
       lastChapterName: lastChapterName ?? this.lastChapterName,
       readChapterIds: readChapterIds ?? this.readChapterIds,
+      scrollIndex: scrollIndex ?? this.scrollIndex,
+      scrollLeading: scrollLeading ?? this.scrollLeading,
       scrollOffset: scrollOffset ?? this.scrollOffset,
       pageCount: pageCount ?? this.pageCount,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -58,6 +79,8 @@ class MangaReadingProgress {
       'lastChapterId': lastChapterId,
       'lastChapterName': lastChapterName,
       'readChapterIds': readChapterIds.toList(),
+      'scrollIndex': scrollIndex,
+      'scrollLeading': scrollLeading,
       'scrollOffset': scrollOffset,
       'pageCount': pageCount,
       'updatedAt': updatedAt.toIso8601String(),
@@ -76,6 +99,9 @@ class MangaReadingProgress {
       readChapterIds: rawIds is List
           ? {for (final id in rawIds) id.toString()}
           : const {},
+      scrollIndex: int.tryParse(map['scrollIndex']?.toString() ?? '') ?? 0,
+      scrollLeading:
+          double.tryParse(map['scrollLeading']?.toString() ?? '') ?? 0,
       scrollOffset: double.tryParse(map['scrollOffset']?.toString() ?? '') ?? 0,
       pageCount: int.tryParse(map['pageCount']?.toString() ?? '') ?? 0,
       updatedAt:

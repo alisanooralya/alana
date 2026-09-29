@@ -5,17 +5,8 @@ import 'package:hive/hive.dart';
 
 import 'package:alana/core/storage/app_storage.dart';
 
-/// Rasio dikembalikan sebagai `lebar / tinggi`.
-///
-/// Strip webtoon punya rasio kecil (800x9700 = 0,082) sementara sampul punya
-/// rasio besar (800x614 = 1,30). Rentang yang terukur pada satu chapter:
-/// 0,080 sampai 1,303, jadi tinggi di layar bisa berbeda **16,3 kali**
-/// antarhalaman. Angka ini yang membuat tinggi item harus berasal dari rasio,
-/// bukan dari tebakan lebar.
 typedef Dimensi = ({int w, int h});
 
-/// Header JPEG: marker SOF. `0xC4` (DHT), `0xC8` (JPG) dan `0xCC` (DAC)
-/// berada di rentang yang sama tapi bukan SOF.
 const Set<int> _sofJpeg = {
   0xC0,
   0xC1,
@@ -47,12 +38,10 @@ Dimensi? parseJpeg(Uint8List b) {
       i++;
       continue;
     }
-    // SOI, EOI dan marker RSTn tidak punya field panjang.
     if (m == 0xD8 || m == 0xD9 || m == 0x01 || (m >= 0xD0 && m <= 0xD7)) {
       i += 2;
       continue;
     }
-    // SOS: data terkompresi mulai di sini, dimensi tidak ada lagi di depan.
     if (m == 0xDA) return null;
     if (i + 4 > b.length) return null;
 
@@ -77,7 +66,6 @@ Dimensi? parsePng(Uint8List b) {
   for (var i = 0; i < sig.length; i++) {
     if (b[i] != sig[i]) return null;
   }
-  // 0-7 signature, 8-11 panjang chunk, 12-15 'IHDR', 16-19 lebar, 20-23 tinggi.
   if (b[12] != 0x49 || b[13] != 0x48 || b[14] != 0x44 || b[15] != 0x52) {
     return null;
   }
@@ -96,12 +84,8 @@ Dimensi? parseWebp(Uint8List b) {
   }
   final tag = String.fromCharCodes(b.sublist(12, 16));
 
-  // Panjang yang dibutuhkan berbeda per varian, jadi dijaga per cabang.
-  // VP8L cukup 21 byte, VP8X dan VP8 lossy butuh 26. Satu syarat panjang di
-  // awal akan menolak header VP8L yang sebenarnya sudah lengkap.
   if (tag == 'VP8X') {
     if (b.length < 26) return null;
-    // 16-19 flag, 20-22 lebar-1, 23-25 tinggi-1; keduanya little-endian 24 bit.
     final w = 1 + (b[20] | (b[21] << 8) | (b[22] << 16));
     final h = 1 + (b[23] | (b[24] << 8) | (b[25] << 16));
     if (w <= 0 || h <= 0) return null;
@@ -110,7 +94,6 @@ Dimensi? parseWebp(Uint8List b) {
 
   if (tag == 'VP8 ') {
     if (b.length < 26) return null;
-    // 16-18 frame tag, 19-21 start code, 22-23 lebar, 24-25 tinggi (14 bit).
     if (b[19] != 0x9D || b[20] != 0x01 || b[21] != 0x2A) return null;
     final w = b[22] | ((b[23] & 0x3F) << 8);
     final h = b[24] | ((b[25] & 0x3F) << 8);
@@ -120,7 +103,6 @@ Dimensi? parseWebp(Uint8List b) {
 
   if (tag == 'VP8L') {
     if (b.length < 21) return null;
-    // 16 signature 0x2F, 17-20 empat byte: lebar-1 (14 bit) lalu tinggi-1.
     if (b[16] != 0x2F) return null;
     final bits = b[17] | (b[18] << 8) | (b[19] << 16) | (b[20] << 24);
     final w = (bits & 0x3FFF) + 1;
@@ -132,20 +114,11 @@ Dimensi? parseWebp(Uint8List b) {
   return null;
 }
 
-/// Titik masuk tunggal. Format yang tidak dikenali — termasuk AVIF, yang
-/// memang ada di header `Accept` tapi tidak diuraikan di sini — mengembalikan
-/// `null` supaya pemanggil jatuh ke jaring pengaman.
 Dimensi? parseHeaderGambar(Uint8List b) {
   if (b.isEmpty) return null;
   return parseJpeg(b) ?? parsePng(b) ?? parseWebp(b);
 }
 
-/// Baca dimensi dari file lokal tanpa decode penuh.
-///
-/// `ImageDescriptor.encoded` hanya membaca header, jadi untuk strip 800x10000
-/// biayanya beberapa kilobyte, bukan ukuran berkas. Descriptor dan buffer
-/// harus di-`dispose`; tidak dilakukan, native image akan bocor sampai
-/// document berikutnya dibuang.
 Future<Dimensi?> bacaDimensiFileLokal(String path) async {
   ui.ImmutableBuffer? buffer;
   ui.ImageDescriptor? descriptor;
@@ -164,26 +137,8 @@ Future<Dimensi?> bacaDimensiFileLokal(String path) async {
   }
 }
 
-/// Nilai awal ketika belum ada satu pun rasio yang diketahui untuk chapter ini.
-///
-/// Strip webtoon yang terukur bernilai sekitar 0,08 sampai 0,14, jadi 0,10
-/// mewakili tengah yang wajar dan tidak membuat halaman pendek melompat tinggi.
 const double rasioKonstantaAwal = 0.1;
 
-/// Memilih rasio untuk halaman pada [index].
-///
-/// Urutan, sesuai hasil pengukuran di satu chapter yang sama (16 halaman):
-/// mean 0,2009 tapi median 0,0863. Mean membuat strip **4,6 kali** terlalu
-/// tinggi karena satu halaman landscape menarik rata-ratanya ke atas, jadi rata-
-/// rata dilarang; yang dipakai urutan:
-///   1. rasio yang sudah diketahui untuk halaman itu sendiri,
-///   2. tetangga langsung — halaman sebelum atau sesudahnya. Strip webtoon
-///      berurutan dan rasionya mirip antarhalaman, jadi ini hampir selalu
-///      benar. Hanya jarak satu yang dipertimbangkan: halaman yang jauh sudah
-///      diketahui biasanya berarti probe-nya belum sampai, dan meniru halaman
-///      yang jauh lebih buruk daripada memakai median seluruh chapter.
-///   3. median rasio yang sudah diketahui,
-///   4. [rasioKonstantaAwal].
 double pilihRasio({
   required int index,
   required List<double?> rasionya,
@@ -194,8 +149,6 @@ double pilihRasio({
   final sendiri = _sah(rasionya[index]);
   if (sendiri != null) return sendiri;
 
-  // Tetangga langsung saja. Jarak sama diambil halaman sebelum, sebab
-  // pengguna lebih sering kembali ke belakang dan itu yang paling terasa.
   final sebelum = index > 0 ? _sah(rasionya[index - 1]) : null;
   final sesudah = index + 1 < rasionya.length
       ? _sah(rasionya[index + 1])
@@ -206,9 +159,6 @@ double pilihRasio({
   return medianDiketahui(rasionya) ?? konstanta;
 }
 
-/// Rasio dianggap "belum diketahui" bukan hanya `null`, tapi juga nol dan
-/// negatif. `AspectRatio` membagi dengan nilai ini, jadi nol akan membuat item
-/// tak terhingga atau melempar.
 double? _sah(double? nilai) {
   if (nilai == null) return null;
   if (!nilai.isFinite || nilai <= 0) return null;
@@ -223,12 +173,6 @@ double? medianDiketahui(List<double?> rasionya) {
   return (ada[tengah - 1] + ada[tengah]) / 2;
 }
 
-/// Rasio per `imageUrl`, bertahan lintas sesi.
-///
-/// Dimensi gambar adalah data yang tidak pernah berubah untuk URL yang sama,
-/// jadi tidak ada alasan memindai ulang setelah ketemu satu kali. Box ini
-/// global, bukan per pengguna: isinya bukan data pribadi, dan cache yang
-/// dibagi membuat perangkat dengan dua akun tidak melakukan probe dua kali.
 class RatioCache {
   const RatioCache._();
 
@@ -255,8 +199,6 @@ class RatioCache {
     final box = _box;
     if (box == null || imageUrl.isEmpty) return;
     if (!rasio.isFinite || rasio <= 0) return;
-    // `put` pada key yang sudah ada tidak memindahkan posisi di `keys`, jadi
-    // entri yang paling sering dibaca juga yang paling dulu terbuang.
     box.put(imageUrl, rasio);
     _buangLebih();
   }

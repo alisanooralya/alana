@@ -70,7 +70,8 @@ class SyncRemote {
             .from('reading_history')
             .select(
               'manga_id, manga_title, cover_url, chapter_id, '
-              'chapter_title, scroll_position, updated_at, deleted_at',
+              'chapter_title, scroll_index, scroll_leading, scroll_position, '
+              'updated_at, deleted_at',
             )
             .eq('user_id', uid)
             .order('manga_id')

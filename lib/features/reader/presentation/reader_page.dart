@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 
 import 'package:alana/core/utils/pesan_error.dart';
@@ -23,6 +24,7 @@ import 'package:alana/models/page.dart' as manga;
 import '../data/reader_net.dart';
 import '../data/reader_repository.dart';
 import 'chapter_report_sheet.dart';
+import 'reader_anchor.dart';
 import 'reader_providers.dart';
 import 'reader_ratio_controller.dart';
 import 'widgets/reader_image.dart';
@@ -49,38 +51,25 @@ class ReaderPage extends ConsumerStatefulWidget {
 
 class _ReaderPageState extends ConsumerState<ReaderPage>
     with WidgetsBindingObserver {
-  /// Chrome digerakkan `ValueNotifier`, bukan `setState`.
-  ///
-  /// Sebelumnya`_chromeTerlihat` adalah kondisi `setState` yang memunculkan dan
-  /// menghilangkan `AppBar`, jadi tinggi `Scaffold` berubah dan seluruh isi list
-  /// bergeser — yang ikut menggeser offset baca. Sekarang hanya opasitas dan
-  /// posisinya yang berubah; tinggi list tidak pernah tersentuh.
   final ValueNotifier<bool> _chromeTerlihat = ValueNotifier<bool>(true);
 
-  /// Halaman yang paling atas viewport. Mengatur urutan probe dan menentukan
-  /// rasio mana yang perlu ditunggu sebelum list pertama tampil.
   final ValueNotifier<int> _indeksAktif = ValueNotifier<int>(0);
 
-  final _scrollController = ScrollController();
-  final _listKey = GlobalKey();
+  final ItemScrollController _itemScrollController = ItemScrollController();
+  final ItemPositionsListener _itemPositions = ItemPositionsListener.create();
 
   Timer? _saveTimer;
   String? _uid;
   int _jumlahHalamanTerakhir = 0;
   bool _offlineAktif = false;
   bool _sudahRestore = false;
+  bool _bolehSimpan = false;
+
+  AnchorBaca? _anchorTersimpan;
 
   ReaderRatioController? _rasio;
   String? _rasioUntuk;
   bool _riwayatSudahDisegarkan = false;
-
-  double? _targetOffset;
-  bool _restoreTercapai = false;
-
-  /// Hanya menahan preload, bukan decode. Dulu flag ini memakai `setState` dan
-  /// ikut menekan decode sampai pengguna berhenti, yang membuat gambar yang
-  /// sedang dibaca hilang; sekarang tinggi item sudah pasti, jadi cukup
-  /// menahan permintaan pratinjau.
   bool _sedangGeres = false;
 
   ({String mangaId, String chapterId}) get _kunciOffline =>
@@ -95,9 +84,6 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
         ref.read(settingsRepositoryProvider).keepScreenOn,
       ),
     );
-    _scrollController.addListener(_onScroll);
-    // Angka trafik hanya berlaku untuk satu sesi baca, jadi penghitung dimulai
-    // dari nol setiap reader dibuka.
     PenghitungTrafik.reset();
   }
 
@@ -106,28 +92,20 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     super.didChangeDependencies();
     if (_riwayatSudahDisegarkan) return;
     _riwayatSudahDisegarkan = true;
-    // Sengaja di sini, bukan di `initState`.
-    //
-    // `ref.invalidate` mencari `UncontrolledProviderScope` lewat
-    // `dependOnInheritedWidgetOfExactType`, yang melempar assertion kalau
-    // dipanggil sebelum `initState` selesai. Assertion itu tidak diabaikan
-    // di debug: seluruh subtree reader diganti `ErrorWidget`, dan di mode
-    // release `ErrorWidget` hanya kotak putih kosong — reader terlihat
-    // "layar putih" padahal tidak ada satu pun widget yang dirender.
-    //
-    // `didChangeDependencies` berjalan setelah `initState` dan sebelum build
-    // pertama, jadi nilainya masih terbaca segar oleh `build` di bawah.
     ref.invalidate(historyRepositoryProvider);
+  }
+
+  @override
+  void deactivate() {
+    _saveTimer?.cancel();
+    _simpanPosisi();
+    super.deactivate();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _saveTimer?.cancel();
-    _scrollController.removeListener(_onScroll);
-    _simpanPosisi();
-    unawaited(SyncService.dorongSekarang(_uid, mangaId: widget.mangaId));
-    _scrollController.dispose();
     _rasio?.dispose();
     _chromeTerlihat.dispose();
     _indeksAktif.dispose();
@@ -142,68 +120,56 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
       _saveTimer?.cancel();
-      _simpanPosisi();
-      unawaited(ref.read(syncServiceProvider).flushTertunda());
+      _simpanPosisiDanDorong();
     }
   }
 
-  void _onScroll() {
+  void _jadwalSimpan() {
     _saveTimer?.cancel();
     _saveTimer = Timer(const Duration(seconds: 1), _simpanPosisi);
   }
 
   bool _onScrollNotification(ScrollNotification notifikasi) {
-    if (notifikasi is ScrollStartNotification) {
-      // Hanya flag; tidak ada `setState`, jadi list tidak dibangun ulang.
+    if (notifikasi is ScrollUpdateNotification) {
+      _jadwalSimpan();
+    } else if (notifikasi is ScrollStartNotification) {
       _sedangGeres = true;
     } else if (notifikasi is ScrollEndNotification) {
       _sedangGeres = false;
-      _perbaruiIndeksAktif();
-      // Jendela probe mengikuti halaman yang sedang tampil, bukan seluruh
-      // chapter. Chapter yang hanya dibaca seperempat cukup mengirim probe
-      // seperempat saja.
+      _sinkronIndeksAktif();
       _rasio?.aturJendela(_indeksAktif.value);
       _preload();
     }
 
     if (notifikasi is UserScrollNotification &&
         notifikasi.direction != ScrollDirection.idle) {
-      _targetOffset = null;
-      _restoreTercapai = true;
+      _bolehSimpan = true;
     }
     return false;
   }
 
-  /// Cari halaman teratas yang masih terlihat.
-  ///
-  /// Dipanggil hanya saat scroll selesai, bukan per frame. Tinggi item dihitung
-  /// dari rasio, jadi hasilnya sama dengan tinggi yang benar-benar dipakai
-  /// `AspectRatio`.
-  void _perbaruiIndeksAktif() {
-    final controller = _rasio;
-    if (controller == null) return;
-    if (!_scrollController.hasClients) return;
-    final box = _listKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null || !box.hasSize) return;
+  void _simpanPosisiDanDorong() {
+    _simpanPosisi();
+    unawaited(SyncService.dorongSekarang(_uid, mangaId: widget.mangaId));
+  }
 
-    final lebar = box.size.width;
-    final atas = _scrollController.offset;
-    var kumulatif = 0.0;
-    var ditemukan = 0;
-    for (var i = 0; i < controller.pages.length; i++) {
-      final rasio = controller.rasioEfektif(i);
-      final tinggi = rasio > 0 ? lebar / rasio : lebar;
-      if (kumulatif + tinggi > atas + 1) {
-        ditemukan = i;
-        break;
-      }
-      kumulatif += tinggi;
+  AnchorBaca? get _anchorSekarang {
+    final anchor = anchorDariPosisi(_itemPositions.itemPositions.value);
+    if (anchor == null) return null;
+    if (_indeksAktif.value != anchor.scrollIndex) {
+      _indeksAktif.value = anchor.scrollIndex;
     }
-    if (_indeksAktif.value != ditemukan) _indeksAktif.value = ditemukan;
+    return anchor;
+  }
+
+  void _sinkronIndeksAktif() {
+    _anchorSekarang;
   }
 
   void _simpanPosisi() {
-    if (!_scrollController.hasClients) return;
+    if (!_bolehSimpan) return;
+    final anchor = _anchorSekarang;
+    if (anchor == null) return;
     ref
         .read(historyRepositoryProvider.notifier)
         .simpanPosisi(
@@ -212,38 +178,53 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
           mangaThumbnail: widget.mangaThumbnail,
           chapterId: widget.chapterId,
           chapterName: widget.chapterName,
-          scrollOffset: _scrollController.offset,
+          scrollIndex: anchor.scrollIndex,
+          scrollLeading: anchor.scrollLeading,
           pageCount: _jumlahHalamanTerakhir,
         );
   }
 
-  void _restorePosisi(double offset) {
+  void _restoreAnchor(AnchorBaca? anchor) {
     if (_sudahRestore) return;
     _sudahRestore = true;
-    if (offset <= 0) return;
-    _targetOffset = offset;
+    if (anchor == null) return;
+    if (anchor.scrollIndex <= 0) return;
+    _anchorTersimpan = anchor;
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _cobaRestore();
+      if (!_itemScrollController.isAttached) return;
+      _itemScrollController.jumpTo(
+        index: anchor.scrollIndex,
+        alignment: anchor.scrollLeading,
+      );
     });
   }
 
-  void _cobaRestore() {
-    final target = _targetOffset;
-    if (target == null || _restoreTercapai) return;
-    if (!_scrollController.hasClients) return;
-    final max = _scrollController.position.maxScrollExtent;
-    if (max <= 0) return;
-    final sampai = target.clamp(0.0, max).toDouble();
-    _scrollController.jumpTo(sampai);
-    _restoreTercapai = sampai >= target - 1;
+  void _kompensasiTinggi(double top, double deltaTinggi) {
+    if (deltaTinggi.abs() < 0.5) return;
+    if (top >= 0) return;
+    if (!_itemScrollController.isAttached) return;
+    final anchor = _anchorSekarang ?? _anchorTersimpan;
+    if (anchor == null) return;
+    final tinggi = MediaQuery.sizeOf(context).height;
+    if (tinggi <= 0) return;
+
+    final depan = koreksiLeading(
+      scrollLeading: anchor.scrollLeading,
+      deltaTinggi: deltaTinggi,
+      tinggiViewport: tinggi,
+    );
+    if ((depan - anchor.scrollLeading).abs() < 0.0005) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_itemScrollController.isAttached) return;
+      _itemScrollController.jumpTo(index: anchor.scrollIndex, alignment: depan);
+    });
   }
 
   void _siapkanRasio(List<manga.Page> pages, {required bool offline}) {
     final kunci = '${offline}_${widget.chapterId}_${pages.length}';
     if (_rasio != null && _rasioUntuk == kunci) return;
-    // Bukan `dispose()`: notifier lama masih didengarkan item yang belum
-    // rebuilt.
     _rasio?.hentikan();
     _rasioUntuk = kunci;
 
@@ -252,67 +233,29 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     _offlineAktif = offline;
 
     final tersimpan = ref.read(historyRepositoryProvider)[widget.mangaId];
-    final awal = tersimpan?.lastChapterId == widget.chapterId
-        ? _perkiraanIndeksAwal(tersimpan?.scrollOffset ?? 0, controller)
-        : 0;
+    final milikChapterIni = tersimpan?.lastChapterId == widget.chapterId;
+    final awal = milikChapterIni ? (tersimpan?.scrollIndex ?? 0) : 0;
     _indeksAktif.value = awal;
+    _restoreAnchor(
+      milikChapterIni
+          ? (scrollIndex: awal, scrollLeading: tersimpan?.scrollLeading ?? 0)
+          : null,
+    );
 
     unawaited(
       controller.tungguAwal(awal).then((_) {
-        // Rasio untuk halaman yang terlihat sudah ada; list tampil dengan
-        // fallback sisanya. `setState` satu kali agar tinggi yang terkunci
-        // ikut terpasang, lalu posisi baca dicoba lagi karena `maxScrollExtent`
-        // yang dipakai frame pertama masih memakai rasio estimasi.
         if (!mounted) return;
         setState(() {});
-        _cobaRestore();
       }),
     );
   }
 
-  /// Tebakan halaman awal hanya untuk mengurutkan probe dan menentukan rasio
-  /// mana yang ditunggu. Menebak seperti ini tidak pernah menggeser scroll.
-  int _perkiraanIndeksAwal(double offset, ReaderRatioController controller) {
-    if (offset <= 0) return 0;
-    final lebar = MediaQuery.sizeOf(context).width;
-    var kumulatif = 0.0;
-    for (var i = 0; i < controller.pages.length; i++) {
-      final rasio = controller.rasioEfektif(i);
-      kumulatif += rasio > 0 ? lebar / rasio : lebar;
-      if (kumulatif > offset) return i;
-    }
-    return controller.pages.length - 1;
-  }
-
-  /// Jaring pengaman: rasio asli dari `ImageInfo`, dipakai hanya kalau probe
-  /// header gagal. Nilai yang sudah cocok dilewati supaya tidak menulis Hive
-  /// berulang.
   void _adopsiDimensi(int index, int width, int height) {
     final controller = _rasio;
     if (controller == null || width <= 0 || height <= 0) return;
     controller.tetapkan(index, width / height);
   }
 
-  /// Rasio masuk setelah halaman tampil, jadi tinggi item berubah. Kalau item
-  /// itu berada di atas layar, geser scroll sebesar perubahan tinggi supaya
-  /// konten yang sedang dibaca tidak loncat.
-  void _kompensasiTinggi(double top, double deltaTinggi) {
-    if (deltaTinggi.abs() < 0.5) return;
-    if (top >= 0) return;
-    if (!_scrollController.hasClients) return;
-    final position = _scrollController.position;
-    final dari = _scrollController.offset;
-    final sampai = (dari + deltaTinggi).clamp(0.0, position.maxScrollExtent);
-    if ((sampai - dari).abs() < 0.5) return;
-    _scrollController.jumpTo(sampai);
-  }
-
-  /// Dua halaman ke depan dari halaman yang sedang tampil.
-  ///
-  /// Cache manager, kunci cache, dan batas decode semuanya identik dengan
-  /// yang diminta `ReaderImage`. Kalau salah satu beda, `ResizeImage` dan
-  /// `CachedNetworkImageProvider` menghasilkan kunci `ImageCache` yang lain,
-  /// hasil preload tidak akan dipakai, dan satu url terunduh dua kali.
   void _preload() {
     final controller = _rasio;
     if (controller == null) return;
@@ -427,66 +370,70 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: () {
-                _chromeTerlihat.value = !_chromeTerlihat.value;
-              },
-              child: pagesAsync.when(
-                loading: () => const LoadingSpinner(),
-                error: (error, _) => ErrorView(
-                  pesan: pesanErrorRamah(error),
-                  onRetry: () {
-                    if (offline) {
-                      ref.invalidate(offlinePageListProvider(_kunciOffline));
-                    } else {
-                      ref.invalidate(pageListProvider(widget.chapterId));
+      body: PopScope(
+        canPop: true,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) _simpanPosisiDanDorong();
+        },
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () {
+                  _chromeTerlihat.value = !_chromeTerlihat.value;
+                },
+                child: pagesAsync.when(
+                  loading: () => const LoadingSpinner(),
+                  error: (error, _) => ErrorView(
+                    pesan: pesanErrorRamah(error),
+                    onRetry: () {
+                      if (offline) {
+                        ref.invalidate(offlinePageListProvider(_kunciOffline));
+                      } else {
+                        ref.invalidate(pageListProvider(widget.chapterId));
+                      }
+                    },
+                  ),
+                  data: (pages) {
+                    if (pages.isEmpty) {
+                      return const EmptyView(
+                        judul: 'Belum ada gambar',
+                        deskripsi: 'Chapter ini belum memiliki gambar.',
+                        ikon: Icons.image_not_supported_outlined,
+                      );
                     }
+                    _jumlahHalamanTerakhir = pages.length;
+                    _siapkanRasio(pages, offline: offline);
+                    return _bangunList(pages, offline: offline);
                   },
                 ),
-                data: (pages) {
-                  if (pages.isEmpty) {
-                    return const EmptyView(
-                      judul: 'Belum ada gambar',
-                      deskripsi: 'Chapter ini belum memiliki gambar.',
-                      ikon: Icons.image_not_supported_outlined,
-                    );
-                  }
-                  _jumlahHalamanTerakhir = pages.length;
-                  _siapkanRasio(pages, offline: offline);
-                  return _bangunList(pages, offline: offline);
+              ),
+            ),
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: ValueListenableBuilder<bool>(
+                valueListenable: _chromeTerlihat,
+                builder: (context, terlihat, _) {
+                  return AnimatedSlide(
+                    offset: terlihat ? Offset.zero : const Offset(0, -1),
+                    duration: const Duration(milliseconds: 200),
+                    child: AnimatedOpacity(
+                      opacity: terlihat ? 1 : 0,
+                      duration: const Duration(milliseconds: 200),
+                      child: IgnorePointer(
+                        ignoring: !terlihat,
+                        child: _bangunAppBar(judul, offline: offline),
+                      ),
+                    ),
+                  );
                 },
               ),
             ),
-          ),
-          // Chrome menumpuk di atas list, jadi menampilkan atau
-          // menyembunyikannya tidak pernah mengubah tinggi konten.
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: ValueListenableBuilder<bool>(
-              valueListenable: _chromeTerlihat,
-              builder: (context, terlihat, _) {
-                return AnimatedSlide(
-                  offset: terlihat ? Offset.zero : const Offset(0, -1),
-                  duration: const Duration(milliseconds: 200),
-                  child: AnimatedOpacity(
-                    opacity: terlihat ? 1 : 0,
-                    duration: const Duration(milliseconds: 200),
-                    child: IgnorePointer(
-                      ignoring: !terlihat,
-                      child: _bangunAppBar(judul, offline: offline),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -557,28 +504,13 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
 
     return NotificationListener<ScrollNotification>(
       onNotification: _onScrollNotification,
-      child: ListView.builder(
-        key: _listKey,
-        controller: _scrollController,
-        padding: EdgeInsets.zero,
-        // 1,5 kali tinggi layar. `ScrollCacheExtent.viewport` menyatakan
-        // angka sebagai pengali sumbu utama viewport, jadi nilainya ikut
-        // menyesuaikan orientasi dan tinggi layar tanpa perlu membaca
-        // MediaQuery di sini.
-        // Cukup untuk scroll kontinu tanpa decode berhenti, tanpa menahan
-        // terlalu banyak bitmap besar sekaligus.
-        scrollCacheExtent: const ScrollCacheExtent.viewport(1.5),
+      child: ScrollablePositionedList.builder(
         itemCount: pages.length,
+        itemScrollController: _itemScrollController,
+        itemPositionsListener: _itemPositions,
+        padding: EdgeInsets.zero,
+        minCacheExtent: MediaQuery.sizeOf(context).height * 1.5,
         itemBuilder: (context, index) {
-          if (index == 0) {
-            final tersimpan = ref.read(
-              historyRepositoryProvider,
-            )[widget.mangaId];
-            final offset = tersimpan?.lastChapterId == widget.chapterId
-                ? tersimpan?.scrollOffset ?? 0.0
-                : 0.0;
-            _restorePosisi(offset);
-          }
           return ReaderImage(
             imageUrl: pages[index].imageUrl,
             localPath: offline ? pages[index].imageUrl : null,

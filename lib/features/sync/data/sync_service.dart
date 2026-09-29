@@ -240,7 +240,14 @@ class SyncService {
       }
       final waktu =
           DateTime.tryParse(r['updated_at']?.toString() ?? '') ?? _epoch();
-      final posisi = double.tryParse(r['scroll_position']?.toString() ?? '');
+      // `scroll_index` dan `scroll_leading` yang dipakai restore. Kolom
+      // `scroll_position` lama sengaja tidak dikonversi: piksel lama tidak
+      // punya indeks yang bisa dipercaya karena tinggi item pernah berubah.
+      final indeks = int.tryParse(r['scroll_index']?.toString() ?? '') ?? 0;
+      final depan =
+          double.tryParse(r['scroll_leading']?.toString() ?? '') ?? 0.0;
+      final posisiLama =
+          double.tryParse(r['scroll_position']?.toString() ?? '') ?? 0.0;
       remote[id] = (
         updated: waktu,
         data: <String, dynamic>{
@@ -250,7 +257,9 @@ class SyncService {
           'lastChapterId': r['chapter_id']?.toString() ?? '',
           'lastChapterName': r['chapter_title']?.toString() ?? '',
           'readChapterIds': const <String>[],
-          'scrollOffset': posisi ?? 0.0,
+          'scrollIndex': indeks,
+          'scrollLeading': depan,
+          'scrollOffset': posisiLama,
           'pageCount': 0,
           'updatedAt': waktu.toIso8601String(),
           'pending': false,
