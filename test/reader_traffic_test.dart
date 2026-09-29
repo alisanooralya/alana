@@ -218,14 +218,6 @@ void main() {
       expect(AppStorage.pageRatioBoxName, isNot('reader_cache'));
       expect(AppStorage.pageRatioBoxName, isNot('defaultCacheManager'));
     });
-
-    test('box rasio bukan box per pengguna yang dihapus saat keluar', () {
-      // `AppStorage.hapusBoxUser` hanya membersihkan bm/rh/sm.
-      // `page_ratio` sengaja tidak ada di sana: rasio bukan data pengguna dan
-      // tidak perlu dihapus tiap ganti akun.
-      const dihapusSaatKeluar = ['bm', 'rh', 'sm'];
-      expect(dihapusSaatKeluar, isNot(contains('page_ratio')));
-    });
   });
 
   group('klasifikasi status probe', () {

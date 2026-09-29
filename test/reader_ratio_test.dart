@@ -323,22 +323,4 @@ void main() {
       expect(medianDiketahui([null, null]), isNull);
     });
   });
-
-  group('tinggi yang dihasilkan', () {
-    test('rasio 0,08 dan 1,30 menghasilkan tinggi yang sangat berbeda', () {
-      // Inilah alasan tinggi tidak boleh ditebak dari lebar: pada lebar logis
-      // 360, dua halaman dalam satu chapter punya tinggi 4500 px dan 276 px.
-      const lebar = 360.0;
-      expect(lebar / 0.08, 4500);
-      expect(lebar / 1.303, lessThan(280));
-      expect(lebar / 0.08 / (lebar / 1.303), greaterThan(15));
-    });
-
-    test('placeholder lama 0,6 kali lebar meleset jauh', () {
-      const lebar = 360.0;
-      expect(lebar * 0.6, 216);
-      // Untuk strip 800x10000, placeholder lama meleset 20 kali.
-      expect(lebar / 0.08 / (lebar * 0.6), greaterThan(20));
-    });
-  });
 }

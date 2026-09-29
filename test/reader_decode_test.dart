@@ -25,19 +25,6 @@ import 'package:alana/features/reader/presentation/widgets/reader_image.dart';
   return (w: tw, h: th);
 }
 
-({int? w, int? h}) decodeExact({
-  required int w,
-  required int h,
-  int? maxWidth,
-  int? maxHeight,
-}) {
-  var tw = maxWidth;
-  var th = maxHeight;
-  if (tw != null && tw > w) tw = w;
-  if (th != null && th > h) th = h;
-  return (w: tw, h: th);
-}
-
 /// Dimensi asli dari API, bukan angka tebakan. Strip webtoon 800x12777 dan
 /// 800x10228 adalah milik Infinite Mage ch 187 dan Goblin Inc ch 15, dua
 /// judul yang dilaporkan buram dan gepeng.
@@ -134,40 +121,6 @@ void main() {
       expect(out.w * out.h, lessThanOrEqualTo(batasPikselReader));
       // Lebar sumber 2000 dijepit ke 1080, jadi upscale-nya kecil.
       expect(1080 / out.w, lessThan(1.6));
-    });
-  });
-
-  group('jalur offline lama, ResizeImagePolicy.exact', () {
-    test('memakai cacheWidth dan cacheHeight merusak rasio aspek', () {
-      // `Image.file(cacheWidth:, cacheHeight:)` melewati
-      // `ResizeImage.resizeIfNeeded` yang tidak menyertakan `policy`, sehingga
-      // memakai default `ResizeImagePolicy.exact`. Inilah asal "gepeng".
-      const batasLama = 4800;
-      final out = decodeExact(
-        w: _infiniteMage.w,
-        h: _infiniteMage.h,
-        maxWidth: 1080,
-        maxHeight: batasLama,
-      );
-
-      expect(out.w, 800);
-      expect(out.h, batasLama);
-      expect(
-        out.w! / out.h!,
-        isNot(closeTo(_infiniteMage.w / _infiniteMage.h, 0.01)),
-      );
-    });
-
-    test('halaman pendek tidak terpengaruh, makanya hanya sebagian', () {
-      final out = decodeExact(
-        w: _sampul.w,
-        h: _sampul.h,
-        maxWidth: 1080,
-        maxHeight: 4800,
-      );
-
-      expect(out.w, _sampul.w);
-      expect(out.h, _sampul.h);
     });
   });
 

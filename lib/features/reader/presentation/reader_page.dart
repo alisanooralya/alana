@@ -72,6 +72,7 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
 
   ReaderRatioController? _rasio;
   String? _rasioUntuk;
+  bool _riwayatSudahDisegarkan = false;
 
   double? _targetOffset;
   bool _restoreTercapai = false;
@@ -95,10 +96,28 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
       ),
     );
     _scrollController.addListener(_onScroll);
-    ref.invalidate(historyRepositoryProvider);
     // Angka trafik hanya berlaku untuk satu sesi baca, jadi penghitung dimulai
     // dari nol setiap reader dibuka.
     PenghitungTrafik.reset();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_riwayatSudahDisegarkan) return;
+    _riwayatSudahDisegarkan = true;
+    // Sengaja di sini, bukan di `initState`.
+    //
+    // `ref.invalidate` mencari `UncontrolledProviderScope` lewat
+    // `dependOnInheritedWidgetOfExactType`, yang melempar assertion kalau
+    // dipanggil sebelum `initState` selesai. Assertion itu tidak diabaikan
+    // di debug: seluruh subtree reader diganti `ErrorWidget`, dan di mode
+    // release `ErrorWidget` hanya kotak putih kosong — reader terlihat
+    // "layar putih" padahal tidak ada satu pun widget yang dirender.
+    //
+    // `didChangeDependencies` berjalan setelah `initState` dan sebelum build
+    // pertama, jadi nilainya masih terbaca segar oleh `build` di bawah.
+    ref.invalidate(historyRepositoryProvider);
   }
 
   @override

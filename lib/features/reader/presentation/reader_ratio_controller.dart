@@ -25,7 +25,12 @@ class ReaderRatioController {
     required this.pages,
     required this.online,
     RatioProbe? probe,
-  }) : _probe = probe ?? RatioProbe() {
+  }) : _probe = probe ?? RatioProbe(),
+       // Panjang harus ditetapkan di sini. Growable list tidak lagi bertambah
+       // sendiri saat ditulis dengan indeks: `list[0] = x` pada list kosong
+       // melempar RangeError, dan itu menggagalkan seluruh build reader.
+       _diketahui = List<double?>.filled(pages.length, null),
+       _efektif = List<double>.filled(pages.length, rasioKonstantaAwal) {
     for (var i = 0; i < pages.length; i++) {
       _diketahui[i] = _rasioAwal(pages[i]);
     }
@@ -50,8 +55,8 @@ class ReaderRatioController {
   /// Berapa halaman ke depan yang ditunggu sebelum list pertama ditampilkan.
   static const int halamanAntar = 2;
 
-  final List<double?> _diketahui = [];
-  final List<double> _efektif = [];
+  final List<double?> _diketahui;
+  final List<double> _efektif;
   final Map<int, List<Completer<void>>> _menunggu = {};
   bool _dibatalkan = false;
   bool _diblokir = false;
