@@ -155,13 +155,10 @@ class _ReaderImageState extends State<ReaderImage> {
       if (identical(_streamDimensi, stream)) _streamDimensi = null;
     }
 
-    pendengar = ImageStreamListener(
-      (info, _) {
-        lepas();
-        widget.onDimensi?.call(info.image.width, info.image.height);
-      },
-      onError: (error, _) => lepas(),
-    );
+    pendengar = ImageStreamListener((info, _) {
+      lepas();
+      widget.onDimensi?.call(info.image.width, info.image.height);
+    }, onError: (error, _) => lepas());
     _pendengarDimensi = pendengar;
     stream.addListener(pendengar);
   }
