@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import 'package:alana/core/diagnostics/error_log.dart';
 import 'package:alana/core/utils/pesan_error.dart';
@@ -111,6 +112,21 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       ),
     );
     if (sumber == null || !mounted) return;
+
+    if (sumber == ImageSource.camera) {
+      final izin = await Permission.camera.request();
+      if (!izin.isGranted) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('Izin kamera diperlukan untuk foto profil.'),
+            ),
+          );
+        return;
+      }
+    }
 
     final diambil = await ImagePicker().pickImage(
       source: sumber,
