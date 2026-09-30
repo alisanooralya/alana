@@ -47,7 +47,7 @@ class MangaApiService {
         queryParameters: {
           'type': 'project',
           'page': page,
-          'page_size': 24,
+          'page_size': 20,
           'is_update': true,
           'sort': 'latest',
           'sort_order': 'desc',
