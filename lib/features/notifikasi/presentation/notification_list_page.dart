@@ -7,6 +7,8 @@ import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/utils/relative_time.dart';
 
+import 'package:alana/features/profile/presentation/profile_providers.dart';
+
 import '../data/notification_repository.dart';
 import 'notifikasi_providers.dart';
 
@@ -50,13 +52,32 @@ class NotificationListPage extends ConsumerWidget {
     }
   }
 
+  Future<void> _tandaiSemuaDibaca(WidgetRef ref) async {
+    final uid = ref.read(userIdProvider);
+    if (uid == null || uid.isEmpty) return;
+    await ref.read(notificationRepositoryProvider).tandaiSemuaDibaca(uid);
+    ref.invalidate(daftarNotifikasiProvider);
+    ref.invalidate(belumDibacaProvider);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final daftarAsync = ref.watch(daftarNotifikasiProvider);
+    final belumDibaca = ref.watch(belumDibacaProvider).valueOrNull ?? 0;
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifikasi')),
+      appBar: AppBar(
+        title: const Text('Notifikasi'),
+        actions: [
+          if (belumDibaca > 0)
+            IconButton(
+              tooltip: 'Tandai sudah dibaca',
+              icon: const Icon(Icons.done_all),
+              onPressed: () => _tandaiSemuaDibaca(ref),
+            ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(daftarNotifikasiProvider);
