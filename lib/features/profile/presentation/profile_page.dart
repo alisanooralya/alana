@@ -115,7 +115,6 @@ class ProfilePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profilAsync = ref.watch(profileProvider);
-    final email = ref.watch(userEmailProvider);
     final punyaEmail = ref.watch(punyaEmailProvider);
 
     return Scaffold(
@@ -140,8 +139,9 @@ class ProfilePage extends ConsumerWidget {
               : profil.username.isNotEmpty
               ? profil.username
               : 'Tanpa nama';
+          final scheme = Theme.of(context).colorScheme;
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             children: [
               Center(
                 child: Column(
@@ -149,7 +149,7 @@ class ProfilePage extends ConsumerWidget {
                     ProfileAvatar(
                       avatarUrl: profil.avatarUrl,
                       inisial: profil.inisial,
-                      radius: 48,
+                      radius: 56,
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -160,78 +160,93 @@ class ProfilePage extends ConsumerWidget {
                     if (profil.username.isNotEmpty)
                       Text(
                         '@${profil.username}',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
+                        style: Theme.of(context).textTheme.bodyMedium
+                            ?.copyWith(color: scheme.onSurfaceVariant),
                       ),
-                    if (email != null && email.isNotEmpty)
-                      Text(email, style: Theme.of(context).textTheme.bodySmall),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  _TombolAksi(
+                    ikon: Icons.camera_alt_outlined,
+                    label: 'Pasang Foto',
+                    onTap: () => context.pushNamed('ubah-profil'),
+                  ),
+                  const SizedBox(width: 10),
+                  _TombolAksi(
+                    ikon: Icons.edit_outlined,
+                    label: 'Ubah Info',
+                    onTap: () => context.pushNamed('ubah-profil'),
+                  ),
+                  const SizedBox(width: 10),
+                  _TombolAksi(
+                    ikon: Icons.settings_outlined,
+                    label: 'Pengaturan',
+                    onTap: () => context.pushNamed('pengaturan'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
               const Divider(),
-              ListTile(
-                leading: const Icon(Icons.edit_outlined),
-                title: const Text('Edit Profil'),
-                subtitle: const Text('Foto, nama, username'),
-                trailing: const Icon(Icons.chevron_right),
+              _ItemMenu(
+                ikon: Icons.person_outline,
+                label: 'Edit Profil',
+                deskripsi: 'Foto, nama, dan username',
                 onTap: () => context.pushNamed('ubah-profil'),
               ),
-              ListTile(
-                leading: const Icon(Icons.settings_outlined),
-                title: const Text('Pengaturan'),
-                subtitle: const Text('Tema, layar, diagnostik'),
-                trailing: const Icon(Icons.chevron_right),
+              _ItemMenu(
+                ikon: Icons.settings_outlined,
+                label: 'Pengaturan',
+                deskripsi: 'Tema, layar, dan diagnostik',
                 onTap: () => context.pushNamed('pengaturan'),
               ),
-              ListTile(
-                leading: const Icon(Icons.info_outline),
-                title: const Text('Tentang Aplikasi'),
-                subtitle: const Text('Versi, sumber data, dan lisensi'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => context.pushNamed('tentang-aplikasi'),
-              ),
-              ListTile(
-                leading: const Icon(Icons.download_outlined),
-                title: const Text('Unduhan'),
-                subtitle: const Text('Chapter tersimpan untuk baca offline'),
-                trailing: const Icon(Icons.chevron_right),
+              _ItemMenu(
+                ikon: Icons.download_outlined,
+                label: 'Unduhan',
+                deskripsi: 'Chapter tersimpan untuk baca offline',
                 onTap: () => context.pushNamed('unduhan'),
               ),
               if (punyaEmail)
-                ListTile(
-                  leading: const Icon(Icons.security_outlined),
-                  title: const Text('Keamanan'),
-                  subtitle: const Text('Ganti password'),
-                  trailing: const Icon(Icons.chevron_right),
+                _ItemMenu(
+                  ikon: Icons.lock_outline,
+                  label: 'Keamanan',
+                  deskripsi: 'Ganti password',
                   onTap: () => context.pushNamed('keamanan'),
                 )
               else
-                const ListTile(
-                  leading: Icon(Icons.info_outline),
-                  title: Text('Akun ini masuk lewat Google'),
-                  subtitle: Text('Password dikelola oleh Google.'),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Icon(
+                    Icons.info_outline,
+                    color: scheme.onSurfaceVariant,
+                  ),
+                  title: const Text('Akun ini masuk lewat Google'),
+                  subtitle: const Text('Password dikelola oleh Google.'),
                 ),
+              _ItemMenu(
+                ikon: Icons.info_outline,
+                label: 'Tentang Aplikasi',
+                deskripsi: 'Versi, sumber data, dan lisensi',
+                onTap: () => context.pushNamed('tentang-aplikasi'),
+              ),
+              const Divider(),
               ListTile(
-                leading: Icon(
-                  Icons.logout,
-                  color: Theme.of(context).colorScheme.error,
-                ),
-                title: Text(
-                  'Keluar',
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(Icons.logout, color: scheme.error),
+                title: Text('Keluar', style: TextStyle(color: scheme.error)),
                 onTap: () => _keluar(context, ref),
               ),
               ListTile(
+                contentPadding: EdgeInsets.zero,
                 leading: Icon(
                   Icons.delete_forever_outlined,
-                  color: Theme.of(context).colorScheme.error,
+                  color: scheme.error,
                 ),
                 title: Text(
                   'Hapus Akun',
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                  style: TextStyle(color: scheme.error),
                 ),
                 subtitle: const Text('Hapus permanen dari server'),
                 onTap: () => _hapusAkun(context, ref),
@@ -240,6 +255,73 @@ class ProfilePage extends ConsumerWidget {
           );
         },
       ),
+    );
+  }
+}
+
+class _TombolAksi extends StatelessWidget {
+  const _TombolAksi({
+    required this.ikon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData ikon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: Material(
+        color: scheme.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Column(
+              children: [
+                Icon(ikon, size: 24),
+                const SizedBox(height: 6),
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.labelLarge,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ItemMenu extends StatelessWidget {
+  const _ItemMenu({
+    required this.ikon,
+    required this.label,
+    required this.deskripsi,
+    required this.onTap,
+  });
+
+  final IconData ikon;
+  final String label;
+  final String deskripsi;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(ikon, color: scheme.onSurfaceVariant),
+      title: Text(label),
+      subtitle: Text(deskripsi),
+      onTap: onTap,
     );
   }
 }
