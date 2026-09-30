@@ -353,16 +353,19 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
           );
     }
 
-    if (!downloadAsync.isLoading) {
-      if (offline) {
-        ref.listen(offlinePageListProvider(_kunciOffline), (previous, next) {
-          tandaiDibaca(next);
-        });
-      } else {
-        ref.listen(pageListProvider(widget.chapterId), (previous, next) {
-          tandaiDibaca(next);
-        });
-      }
+    if (offline) {
+      ref.listen(offlinePageListProvider(_kunciOffline), (previous, next) {
+        tandaiDibaca(next);
+      });
+    } else {
+      ref.listen(pageListProvider(widget.chapterId), (previous, next) {
+        tandaiDibaca(next);
+      });
+    }
+    if (pagesAsync.hasValue) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) tandaiDibaca(pagesAsync);
+      });
     }
 
     String judul = widget.chapterName;
