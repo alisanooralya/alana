@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:alana/core/diagnostics/error_log.dart';
 import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
@@ -54,6 +55,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     setState(() => _mengunggah = true);
     try {
       await pilihDanUnggahAvatar(context, ref);
+    } catch (error, stack) {
+      // Pengaman terakhir; error alur sudah ditangani di avatar_picker.
+      ErrorLog.catat(error, stack);
     } finally {
       if (mounted) setState(() => _mengunggah = false);
     }
