@@ -85,3 +85,10 @@ jobs:
           name: app-release-apks
           path: build/app/outputs/flutter-apk/*-release.apk
           retention-days: 3
+
+      - name: Upload mapping.txt sebagai artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mapping-txt
+          path: build/app/outputs/mapping/release/mapping.txt
+          retention-days: 3
