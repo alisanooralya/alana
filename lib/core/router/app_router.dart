@@ -22,12 +22,14 @@ import 'package:alana/features/library/presentation/library_page.dart';
 import 'package:alana/features/notifikasi/presentation/notification_list_page.dart';
 import 'package:alana/features/onboarding/data/onboarding_repository.dart';
 import 'package:alana/features/onboarding/presentation/onboarding_page.dart';
+import 'package:alana/features/profile/presentation/account_page.dart';
+import 'package:alana/features/profile/presentation/appearance_page.dart';
 import 'package:alana/features/profile/presentation/edit_profile_page.dart';
+import 'package:alana/features/profile/presentation/notification_settings_page.dart';
 import 'package:alana/features/profile/presentation/profile_page.dart';
-import 'package:alana/features/profile/presentation/security_page.dart';
+import 'package:alana/features/profile/presentation/storage_data_page.dart';
 import 'package:alana/features/reader/presentation/reader_page.dart';
 import 'package:alana/features/settings/presentation/diagnostics_page.dart';
-import 'package:alana/features/settings/presentation/settings_page.dart';
 import 'package:alana/features/splash/presentation/splash_page.dart';
 import 'package:alana/features/splash/presentation/splash_providers.dart';
 
@@ -264,17 +266,27 @@ final goRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const DownloadsPage(),
       ),
       GoRoute(
-        path: '/profil/keamanan',
-        name: 'keamanan',
-        builder: (context, state) => const SecurityPage(),
+        path: '/profil/akun',
+        name: 'akun',
+        builder: (context, state) => const AccountPage(),
       ),
       GoRoute(
-        path: '/profil/pengaturan',
-        name: 'pengaturan',
-        builder: (context, state) => const SettingsPage(),
+        path: '/profil/tampilan',
+        name: 'tampilan',
+        builder: (context, state) => const AppearancePage(),
       ),
       GoRoute(
-        path: '/profil/pengaturan/diagnostik',
+        path: '/profil/notifikasi',
+        name: 'pengaturan-notifikasi',
+        builder: (context, state) => const NotificationSettingsPage(),
+      ),
+      GoRoute(
+        path: '/profil/penyimpanan-data',
+        name: 'penyimpanan-data',
+        builder: (context, state) => const StorageDataPage(),
+      ),
+      GoRoute(
+        path: '/profil/diagnostik',
         name: 'diagnostik',
         builder: (context, state) => const DiagnosticsPage(),
       ),

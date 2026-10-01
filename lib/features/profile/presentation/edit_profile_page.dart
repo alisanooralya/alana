@@ -1,14 +1,9 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:image_cropper/image_cropper.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
 
-import 'package:alana/core/diagnostics/error_log.dart';
 import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/core/widgets/loading_spinner.dart';
 import 'package:alana/features/auth/data/auth_validators.dart';
@@ -17,7 +12,6 @@ import 'package:alana/features/auth/presentation/widgets/auth_widgets.dart';
 
 import '../data/profile_repository.dart';
 import 'profile_providers.dart';
-import 'widgets/profile_avatar.dart';
 
 class EditProfilePage extends ConsumerStatefulWidget {
   const EditProfilePage({super.key, this.baru = false});
@@ -37,9 +31,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   bool _cekUsername = false;
   bool? _usernameTersedia;
   bool _menyimpan = false;
-  bool _mengunggah = false;
   String? _pesanError;
-  String? _avatarBaru;
 
   @override
   void initState() {
@@ -78,102 +70,6 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         _usernameTersedia = dipakai == null ? null : !dipakai;
       });
     });
-  }
-
-  Future<void> _gantiFoto() async {
-    try {
-      await _gantiFotoInner();
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _pesanError = pesanErrorRamah(error));
-      ErrorLog.catat(error, StackTrace.current);
-    }
-  }
-
-  Future<void> _gantiFotoInner() async {
-    final sumber = await showModalBottomSheet<ImageSource>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Pilih dari galeri'),
-              onTap: () => Navigator.of(context).pop(ImageSource.gallery),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Ambil dari kamera'),
-              onTap: () => Navigator.of(context).pop(ImageSource.camera),
-            ),
-          ],
-        ),
-      ),
-    );
-    if (sumber == null || !mounted) return;
-
-    if (sumber == ImageSource.camera) {
-      final izin = await Permission.camera.request();
-      if (!izin.isGranted) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(
-              content: Text('Izin kamera diperlukan untuk foto profil.'),
-            ),
-          );
-        return;
-      }
-    }
-
-    final diambil = await ImagePicker().pickImage(
-      source: sumber,
-      imageQuality: 90,
-    );
-    if (diambil == null || !mounted) return;
-
-    final potong = await ImageCropper().cropImage(
-      sourcePath: diambil.path,
-      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
-      compressFormat: ImageCompressFormat.jpg,
-      compressQuality: 80,
-      maxWidth: 512,
-      maxHeight: 512,
-      uiSettings: [
-        AndroidUiSettings(toolbarTitle: 'Potong foto', lockAspectRatio: true),
-      ],
-    );
-    if (potong == null || !mounted) return;
-
-    final uid = ref.read(userIdProvider);
-    if (uid == null || uid.isEmpty) {
-      setState(() => _pesanError = 'Sesi tidak valid. Masuk ulang.');
-      return;
-    }
-    setState(() {
-      _mengunggah = true;
-      _pesanError = null;
-    });
-    try {
-      final url = await ref
-          .read(profileRepositoryProvider)
-          .unggahAvatar(uid, File(potong.path));
-      if (!mounted) return;
-      setState(() => _avatarBaru = url);
-      ref.invalidate(profileProvider);
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(content: Text('Foto profil diperbarui.')),
-        );
-    } catch (error, stack) {
-      ErrorLog.catat(error, stack);
-      if (mounted) setState(() => _pesanError = pesanAuthRamah(error));
-    } finally {
-      if (mounted) setState(() => _mengunggah = false);
-    }
   }
 
   Future<void> _simpan(String uidAwal, String usernameAwal) async {
@@ -221,7 +117,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     final uid = ref.watch(userIdProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit Profil')),
+      appBar: AppBar(title: const Text('Ubah Info')),
       body: profilAsync.when(
         loading: () => const LoadingSpinner(),
         error: (error, _) => Center(
@@ -238,7 +134,6 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
             _nama.text = profil.displayName;
             _username.text = profil.username;
           }
-          final avatar = _avatarBaru ?? profil.avatarUrl;
           final statusUsername = _statusUsername();
 
           return SingleChildScrollView(
@@ -248,51 +143,10 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               children: [
                 if (widget.baru)
                   const AuthInfoText(
-                    pesan: 'Kamu masuk dengan Google. Pilih username sendiri agar mudah dikenali.',
+                    pesan:
+                        'Kamu masuk dengan Google. Pilih username sendiri agar mudah dikenali.',
                   ),
                 if (widget.baru) const SizedBox(height: 16),
-                Center(
-                  child: Stack(
-                    children: [
-                      ProfileAvatar(
-                        avatarUrl: avatar,
-                        inisial: profil.inisial,
-                        radius: 56,
-                      ),
-                      if (_mengunggah)
-                        const Positioned.fill(
-                          child: Center(child: CircularProgressIndicator()),
-                        ),
-                      Positioned(
-                        right: 0,
-                        bottom: 0,
-                        child: FilledButton(
-                          style: FilledButton.styleFrom(
-                            shape: const CircleBorder(),
-                            padding: const EdgeInsets.all(10),
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          onPressed: _mengunggah ? null : _gantiFoto,
-                          child: const Icon(Icons.camera_alt, size: 20),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.center,
-                  child: TextButton(
-                    onPressed: _mengunggah
-                        ? null
-                        : () {
-                            _gantiFoto();
-                          },
-                    child: Text(_mengunggah ? 'Mengunggah…' : 'Ganti foto'),
-                  ),
-                ),
-                const SizedBox(height: 8),
                 Form(
                   key: _formKey,
                   child: Column(
@@ -336,7 +190,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                 ],
                 const SizedBox(height: 16),
                 FilledButton(
-                  onPressed: (_menyimpan || _mengunggah)
+                  onPressed: _menyimpan
                       ? null
                       : () => _simpan(uid, profil.username),
                   child: _menyimpan
