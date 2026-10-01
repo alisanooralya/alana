@@ -92,10 +92,7 @@ class AccountPage extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(
-            'Keamanan',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
+          Text('Keamanan', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
           if (punyaEmail)
             const _FormGantiPassword()
@@ -113,22 +110,15 @@ class AccountPage extends ConsumerWidget {
           const SizedBox(height: 24),
           Text(
             'Zona sensitif',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: scheme.error,
-            ),
+            style: Theme.of(context).textTheme.titleMedium
+                ?.copyWith(color: scheme.error),
           ),
           const SizedBox(height: 8),
           Card(
             color: scheme.errorContainer,
             child: ListTile(
-              leading: Icon(
-                Icons.delete_forever_outlined,
-                color: scheme.error,
-              ),
-              title: Text(
-                'Hapus Akun',
-                style: TextStyle(color: scheme.error),
-              ),
+              leading: Icon(Icons.delete_forever_outlined, color: scheme.error),
+              title: Text('Hapus Akun', style: TextStyle(color: scheme.error)),
               subtitle: const Text('Hapus permanen dari server'),
               onTap: () => _hapusAkun(context, ref),
             ),
@@ -143,8 +133,7 @@ class _FormGantiPassword extends ConsumerStatefulWidget {
   const _FormGantiPassword();
 
   @override
-  ConsumerState<_FormGantiPassword> createState() =>
-      _FormGantiPasswordState();
+  ConsumerState<_FormGantiPassword> createState() => _FormGantiPasswordState();
 }
 
 class _FormGantiPasswordState extends ConsumerState<_FormGantiPassword> {

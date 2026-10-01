@@ -134,18 +134,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                   const SizedBox(height: 14),
                   Text(
                     nama,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: Theme.of(context).textTheme.headlineSmall
+                        ?.copyWith(fontWeight: FontWeight.w600),
                     textAlign: TextAlign.center,
                   ),
                   if (profil.username.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(
                       '@${profil.username}',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: scheme.onSurfaceVariant,
-                      ),
+                      style: Theme.of(context).textTheme.bodyMedium
+                          ?.copyWith(color: scheme.onSurfaceVariant),
                     ),
                   ],
                 ],
@@ -205,10 +203,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               ListTile(
                 contentPadding: const EdgeInsets.symmetric(vertical: 10),
                 leading: Icon(Icons.logout, color: scheme.error),
-                title: Text(
-                  'Keluar',
-                  style: TextStyle(color: scheme.error),
-                ),
+                title: Text('Keluar', style: TextStyle(color: scheme.error)),
                 onTap: _keluar,
               ),
             ],
@@ -277,10 +272,7 @@ class _ItemKategori extends StatelessWidget {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(vertical: 10),
       leading: Icon(ikon, color: scheme.onSurfaceVariant, size: 26),
-      title: Text(
-        label,
-        style: Theme.of(context).textTheme.titleMedium,
-      ),
+      title: Text(label, style: Theme.of(context).textTheme.titleMedium),
       onTap: onTap,
     );
   }

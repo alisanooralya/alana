@@ -18,10 +18,7 @@ class AppearancePage extends ConsumerWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text(
-              'Tema',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            child: Text('Tema', style: Theme.of(context).textTheme.titleMedium),
           ),
           RadioGroup<AppThemeMode>(
             groupValue: pengaturan.themeMode,

@@ -16,10 +16,7 @@ import '../../data/profile_repository.dart';
 /// upload ke Supabase Storage -> invalidate [profileProvider].
 /// Dipakai tombol "Pasang Foto" di [ProfilePage].
 /// Return true bila upload berhasil.
-Future<bool> pilihDanUnggahAvatar(
-  BuildContext context,
-  WidgetRef ref,
-) async {
+Future<bool> pilihDanUnggahAvatar(BuildContext context, WidgetRef ref) async {
   final sumber = await showModalBottomSheet<ImageSource>(
     context: context,
     builder: (context) => SafeArea(
@@ -95,9 +92,7 @@ Future<bool> pilihDanUnggahAvatar(
     if (!context.mounted) return true;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(content: Text('Foto profil diperbarui.')),
-      );
+      ..showSnackBar(const SnackBar(content: Text('Foto profil diperbarui.')));
     return true;
   } catch (error, stack) {
     ErrorLog.catat(error, stack);

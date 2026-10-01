@@ -143,8 +143,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               children: [
                 if (widget.baru)
                   const AuthInfoText(
-                    pesan:
-                        'Kamu masuk dengan Google. Pilih username sendiri agar mudah dikenali.',
+                    pesan: 'Kamu masuk dengan Google. Pilih username sendiri agar mudah dikenali.',
                   ),
                 if (widget.baru) const SizedBox(height: 16),
                 Form(
