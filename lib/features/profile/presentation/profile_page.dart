@@ -205,7 +205,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               const Divider(height: 1),
               const SizedBox(height: 4),
               ListTile(
-                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(vertical: 2),
                 leading: Icon(Icons.logout, color: scheme.error),
                 title: Text('Keluar', style: TextStyle(color: scheme.error)),
                 onTap: _keluar,
@@ -274,7 +274,7 @@ class _ItemKategori extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(vertical: 10),
+      contentPadding: const EdgeInsets.symmetric(vertical: 2),
       leading: Icon(ikon, color: scheme.onSurfaceVariant, size: 26),
       title: Text(label, style: Theme.of(context).textTheme.titleMedium),
       onTap: onTap,

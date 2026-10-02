@@ -37,9 +37,7 @@ android {
 
     buildTypes {
         release {
-            // R8 tetap aktif; keep rules ada di proguard-rules.pro.
-            // Jangan dimatikan: UCropActivity dan receiver notifikasi
-            // hanya ketemu sistem bila namanya tidak di-obfuscate.
+            // R8 aktif; keep rules ada di proguard-rules.pro.
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
