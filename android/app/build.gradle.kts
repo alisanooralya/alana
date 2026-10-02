@@ -37,6 +37,14 @@ android {
 
     buildTypes {
         release {
+            // R8 tetap aktif; keep rules ada di proguard-rules.pro.
+            // Jangan dimatikan: UCropActivity dan receiver notifikasi
+            // hanya ketemu sistem bila namanya tidak di-obfuscate.
+            isMinifyEnabled = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
             signingConfig = if (!System.getenv("KEYSTORE_PATH").isNullOrBlank()) {
                 signingConfigs.getByName("release")
             } else {
