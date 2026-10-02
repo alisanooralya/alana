@@ -14,7 +14,6 @@ import 'package:alana/features/auth/presentation/reset_password_page.dart';
 import 'package:alana/features/auth/presentation/verify_email_page.dart';
 import 'package:alana/features/detail/presentation/detail_page.dart';
 import 'package:alana/features/downloads/presentation/downloads_page.dart';
-import 'package:alana/features/history/presentation/history_page.dart';
 import 'package:alana/features/home/presentation/home_page.dart';
 import 'package:alana/features/home/presentation/jelajah_page.dart';
 import 'package:alana/features/home/presentation/search_page.dart';
@@ -205,11 +204,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
             ],
           ),
         ],
-      ),
-      GoRoute(
-        path: '/riwayat',
-        name: 'riwayat',
-        builder: (context, state) => const HistoryPage(),
       ),
       GoRoute(
         path: '/jelajah',
