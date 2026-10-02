@@ -32,9 +32,7 @@ class LibraryPage extends ConsumerWidget {
           children: [
             PendingBar(),
             Expanded(
-              child: TabBarView(
-                children: [_TabBookmark(), _TabRiwayat()],
-              ),
+              child: TabBarView(children: [_TabBookmark(), _TabRiwayat()]),
             ),
           ],
         ),
@@ -61,8 +59,7 @@ class _TabBookmark extends ConsumerWidget {
                 SliverFillRemaining(
                   child: EmptyView(
                     judul: 'Pustaka masih kosong',
-                    deskripsi:
-                        'Ketuk ikon bookmark di halaman detail untuk menyimpan judul.',
+                    deskripsi: 'Ketuk ikon bookmark di halaman detail untuk menyimpan judul.',
                     ikon: Icons.bookmark_outline,
                   ),
                 ),
@@ -71,8 +68,7 @@ class _TabBookmark extends ConsumerWidget {
           : ListView.separated(
               padding: const EdgeInsets.all(12),
               itemCount: daftar.length,
-              separatorBuilder: (context, index) =>
-                  const SizedBox(height: 4),
+              separatorBuilder: (context, index) => const SizedBox(height: 4),
               itemBuilder: (context, index) {
                 final item = daftar[index];
                 return Card(
@@ -85,9 +81,7 @@ class _TabBookmark extends ConsumerWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    subtitle: Text(
-                      'Disimpan ${_formatTanggal(item.savedAt)}',
-                    ),
+                    subtitle: Text('Disimpan ${_formatTanggal(item.savedAt)}'),
                     trailing: IconButton(
                       tooltip: 'Hapus dari Pustaka',
                       icon: const Icon(Icons.delete_outline),
@@ -137,8 +131,7 @@ class _TabRiwayat extends ConsumerWidget {
                 SliverFillRemaining(
                   child: EmptyView(
                     judul: 'Riwayat masih kosong',
-                    deskripsi:
-                        'Chapter yang kamu baca akan tercatat di sini.',
+                    deskripsi: 'Chapter yang kamu baca akan tercatat di sini.',
                     ikon: Icons.history_outlined,
                   ),
                 ),
@@ -147,16 +140,14 @@ class _TabRiwayat extends ConsumerWidget {
           : ListView.separated(
               padding: const EdgeInsets.all(12),
               itemCount: daftar.length,
-              separatorBuilder: (context, index) =>
-                  const SizedBox(height: 4),
+              separatorBuilder: (context, index) => const SizedBox(height: 4),
               itemBuilder: (context, index) {
                 final item = daftar[index];
                 final judul = item.mangaTitle.isEmpty
                     ? item.mangaId
                     : item.mangaTitle;
                 final sub = [
-                  if (item.lastChapterName.isNotEmpty)
-                    item.lastChapterName,
+                  if (item.lastChapterName.isNotEmpty) item.lastChapterName,
                   _relatif(item),
                 ].where((bagian) => bagian.isNotEmpty).join(' • ');
 
