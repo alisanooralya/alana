@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -13,11 +14,33 @@ import 'package:alana/features/profile/presentation/profile_providers.dart';
 
 import '../../data/profile_repository.dart';
 
+/// Guard level-proses: cegah dua alur foto berjalan bersamaan dari
+/// pemanggil mana pun. Check-and-set sinkron, tanpa await di antaranya.
+bool _prosesAvatarBerjalan = false;
+
+/// Batas tunggu agar future yang tidak pernah selesai (mis. result
+/// native yatim) menjadi error terkendali, bukan hang selamanya.
+const _batasPilih = Duration(seconds: 120);
+const _batasCrop = Duration(seconds: 120);
+
 /// Alur pilih foto profil langsung: bottom-sheet sumber -> crop 1:1 ->
 /// upload ke Supabase Storage -> invalidate [profileProvider].
 /// Dipakai tombol "Pasang Foto" di [ProfilePage].
 /// Return true bila upload berhasil.
 Future<bool> pilihDanUnggahAvatar(BuildContext context, WidgetRef ref) async {
+  if (_prosesAvatarBerjalan) return false;
+  _prosesAvatarBerjalan = true;
+  try {
+    return await _pilihDanUnggahAvatarInner(context, ref);
+  } finally {
+    _prosesAvatarBerjalan = false;
+  }
+}
+
+Future<bool> _pilihDanUnggahAvatarInner(
+  BuildContext context,
+  WidgetRef ref,
+) async {
   // Baca dependency di awal; ref tidak aman dipakai setelah
   // proses pick/crop yang panjang bila State sudah di-dispose.
   final uid = ref.read(userIdProvider);
@@ -27,24 +50,40 @@ Future<bool> pilihDanUnggahAvatar(BuildContext context, WidgetRef ref) async {
   var tahap = 'memilih foto';
 
   try {
+    // Kunci opsi segera setelah satu opsi ditekan agar tap kedua
+    // tidak memicu pop ganda pada route di bawah sheet.
+    var opsiTerkunci = false;
     sumber = await showModalBottomSheet<ImageSource>(
       context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('Pilih dari galeri'),
-              onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+      builder: (_) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          void pilih(ImageSource nilai) {
+            if (opsiTerkunci) return;
+            opsiTerkunci = true;
+            setSheetState(() {});
+            Navigator.of(context).pop(nilai);
+          }
+
+          return SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  enabled: !opsiTerkunci,
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Pilih dari galeri'),
+                  onTap: () => pilih(ImageSource.gallery),
+                ),
+                ListTile(
+                  enabled: !opsiTerkunci,
+                  leading: const Icon(Icons.photo_camera_outlined),
+                  title: const Text('Ambil dari kamera'),
+                  onTap: () => pilih(ImageSource.camera),
+                ),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.photo_camera_outlined),
-              title: const Text('Ambil dari kamera'),
-              onTap: () => Navigator.of(context).pop(ImageSource.camera),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
     if (sumber == null || !context.mounted) return false;
@@ -64,24 +103,28 @@ Future<bool> pilihDanUnggahAvatar(BuildContext context, WidgetRef ref) async {
       }
     }
 
-    final diambil = await ImagePicker().pickImage(
-      source: sumber,
-      imageQuality: 90,
-    );
+    final diambil = await ImagePicker()
+        .pickImage(source: sumber, imageQuality: 90)
+        .timeout(_batasPilih);
     if (diambil == null || !context.mounted) return false;
 
     tahap = 'memotong foto';
-    final potong = await ImageCropper().cropImage(
-      sourcePath: diambil.path,
-      aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
-      compressFormat: ImageCompressFormat.jpg,
-      compressQuality: 80,
-      maxWidth: 512,
-      maxHeight: 512,
-      uiSettings: [
-        AndroidUiSettings(toolbarTitle: 'Potong foto', lockAspectRatio: true),
-      ],
-    );
+    final potong = await ImageCropper()
+        .cropImage(
+          sourcePath: diambil.path,
+          aspectRatio: const CropAspectRatio(ratioX: 1, ratioY: 1),
+          compressFormat: ImageCompressFormat.jpg,
+          compressQuality: 80,
+          maxWidth: 512,
+          maxHeight: 512,
+          uiSettings: [
+            AndroidUiSettings(
+              toolbarTitle: 'Potong foto',
+              lockAspectRatio: true,
+            ),
+          ],
+        )
+        .timeout(_batasCrop);
     if (potong == null || !context.mounted) return false;
 
     if (uid == null || uid.isEmpty) {
@@ -118,9 +161,11 @@ Future<bool> _gagal(
 ) async {
   ErrorLog.catat(error, stack);
   if (!context.mounted) return false;
-  final pesan = tahap == 'mengunggah foto'
-      ? pesanAuthRamah(error)
-      : _pesanTahap(sumber, tahap);
+  final pesan = switch (error) {
+    TimeoutException(:final message?) => message,
+    _ when tahap == 'mengunggah foto' => pesanAuthRamah(error),
+    _ => _pesanTahap(sumber, tahap),
+  };
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
     ..showSnackBar(SnackBar(content: Text(pesan)));
