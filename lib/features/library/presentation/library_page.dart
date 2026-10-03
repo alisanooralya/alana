@@ -1,9 +1,13 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:alana/core/widgets/cover_image.dart';
 import 'package:alana/core/widgets/empty_view.dart';
+import 'package:alana/features/downloads/data/download_manager.dart';
+import 'package:alana/features/downloads/data/download_repository.dart';
 import 'package:alana/features/history/data/history_repository.dart';
 import 'package:alana/features/history/data/reading_history.dart';
 import 'package:alana/features/library/data/bookmark_repository.dart';
@@ -17,7 +21,7 @@ class LibraryPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Pustaka'),
@@ -25,6 +29,7 @@ class LibraryPage extends ConsumerWidget {
             tabs: [
               Tab(text: 'Bookmark', icon: Icon(Icons.bookmark_outline)),
               Tab(text: 'Riwayat', icon: Icon(Icons.history_outlined)),
+              Tab(text: 'Unduhan', icon: Icon(Icons.download_outlined)),
             ],
           ),
         ),
@@ -32,7 +37,9 @@ class LibraryPage extends ConsumerWidget {
           children: [
             PendingBar(),
             Expanded(
-              child: TabBarView(children: [_TabBookmark(), _TabRiwayat()]),
+              child: TabBarView(
+                children: [_TabBookmark(), _TabRiwayat(), _TabUnduhan()],
+              ),
             ),
           ],
         ),
@@ -218,4 +225,140 @@ String _formatTanggal(DateTime tanggal) {
 String _relatif(MangaReadingProgress item) {
   final label = formatRelativeTime(item.updatedAt.toIso8601String());
   return label;
+}
+
+class _TabUnduhan extends ConsumerWidget {
+  const _TabUnduhan();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final unduhan = ref.watch(downloadManagerProvider);
+
+    return unduhan.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, _) => const CustomScrollView(
+        physics: AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverFillRemaining(
+            child: EmptyView(
+              judul: 'Gagal memuat unduhan',
+              deskripsi: 'Tarik untuk mencoba lagi.',
+              ikon: Icons.download_outlined,
+            ),
+          ),
+        ],
+      ),
+      data: (state) {
+        final groups = _kelompokUnduhan(state.entries.values);
+        if (groups.isEmpty) {
+          return const CustomScrollView(
+            physics: AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverFillRemaining(
+                child: EmptyView(
+                  judul: 'Belum ada unduhan',
+                  deskripsi:
+                      'Manhwa dengan chapter terunduh akan muncul di sini.',
+                  ikon: Icons.download_outlined,
+                ),
+              ),
+            ],
+          );
+        }
+        return RefreshIndicator(
+          onRefresh: () async => ref.invalidate(downloadManagerProvider),
+          child: ListView.separated(
+            padding: const EdgeInsets.all(12),
+            itemCount: groups.length + 1,
+            separatorBuilder: (context, index) => const SizedBox(height: 4),
+            itemBuilder: (context, index) {
+              if (index == 0) {
+                return Card(
+                  clipBehavior: Clip.antiAlias,
+                  child: ListTile(
+                    leading: const Icon(Icons.settings_outlined),
+                    title: const Text('Kelola unduhan'),
+                    subtitle: const Text(
+                      'Lihat progres, jeda, atau hapus chapter',
+                    ),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => context.pushNamed('unduhan'),
+                  ),
+                );
+              }
+              final group = groups[index - 1];
+              final cover = group.sampul;
+              return Card(
+                clipBehavior: Clip.antiAlias,
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(8),
+                  leading: cover.isNotEmpty && File(cover).existsSync()
+                      ? Image.file(
+                          File(cover),
+                          width: 48,
+                          height: 64,
+                          fit: BoxFit.cover,
+                        )
+                      : const SizedBox(
+                          width: 48,
+                          height: 64,
+                          child: Icon(Icons.menu_book_outlined),
+                        ),
+                  title: Text(
+                    group.judul,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text('${group.jumlah} chapter terunduh'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    if (group.mangaId.isEmpty) return;
+                    context.pushNamed(
+                      'detail',
+                      pathParameters: {'mangaId': group.mangaId},
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _KelompokUnduhan {
+  const _KelompokUnduhan({
+    required this.mangaId,
+    required this.judul,
+    required this.sampul,
+    required this.jumlah,
+  });
+
+  final String mangaId;
+  final String judul;
+  final String sampul;
+  final int jumlah;
+}
+
+List<_KelompokUnduhan> _kelompokUnduhan(Iterable<DownloadedChapter> entries) {
+  final perManga = <String, List<DownloadedChapter>>{};
+  for (final entry in entries) {
+    perManga.putIfAbsent(entry.mangaId, () => []).add(entry);
+  }
+  final result = <_KelompokUnduhan>[];
+  for (final item in perManga.entries) {
+    final pertama = item.value.first;
+    result.add(
+      _KelompokUnduhan(
+        mangaId: item.key,
+        judul: pertama.mangaTitle.isEmpty ? item.key : pertama.mangaTitle,
+        sampul: pertama.coverLocalPath,
+        jumlah: item.value.length,
+      ),
+    );
+  }
+  result.sort((a, b) => a.judul.compareTo(b.judul));
+  return result;
 }
