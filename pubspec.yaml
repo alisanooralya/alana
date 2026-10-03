@@ -1,7 +1,7 @@
 name: alana
-description: "A new Flutter project."
+description: "Sebuah Project flutter Aplikasi untuk Membaca Manhwa"
 publish_to: "none"
-version: 1.0.5+1
+version: 1.0.6
 
 environment:
   sdk: ^3.13.4
