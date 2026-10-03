@@ -98,8 +98,8 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar>
           label: 'Beranda',
         ),
         NavigationDestination(
-          icon: Icon(Icons.bookmark_outline),
-          selectedIcon: Icon(Icons.bookmark),
+          icon: Icon(Icons.local_library_outlined),
+          selectedIcon: Icon(Icons.local_library),
           label: 'Pustaka',
         ),
         NavigationDestination(
