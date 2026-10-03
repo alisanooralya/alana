@@ -120,7 +120,14 @@ Future<bool> _pilihDanUnggahAvatarInner(
           uiSettings: [
             AndroidUiSettings(
               toolbarTitle: 'Potong foto',
+              toolbarColor: const Color(0xFF0B0B17),
+              toolbarWidgetColor: Colors.white,
+              statusBarLight: false,
+              navBarLight: false,
+              backgroundColor: const Color(0xFF0B0B17),
+              activeControlsWidgetColor: Colors.white,
               lockAspectRatio: true,
+              hideBottomControls: true,
             ),
           ],
         )
