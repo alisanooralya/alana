@@ -81,6 +81,16 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar>
     final bar = NavigationBar(
       selectedIndex: widget.navigationShell.currentIndex,
       onDestinationSelected: _onTap,
+      labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+      labelTextStyle: WidgetStateProperty.resolveWith((states) {
+        final scheme = Theme.of(context).colorScheme;
+        final textTheme = Theme.of(context).textTheme;
+        final terpilih = states.contains(WidgetState.selected);
+        return (textTheme.labelMedium ?? const TextStyle()).copyWith(
+          color: terpilih ? scheme.onSurface : scheme.onSurfaceVariant,
+          fontWeight: terpilih ? FontWeight.bold : FontWeight.w500,
+        );
+      }),
       destinations: const [
         NavigationDestination(
           icon: Icon(Icons.home_outlined),
