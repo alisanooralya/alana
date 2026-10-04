@@ -90,6 +90,13 @@ String _dariPesan(String pesan) {
     if (t.contains('username')) return 'Username sudah dipakai.';
     return 'Data sudah terdaftar.';
   }
+  if (t.contains('profiles_username_check')) {
+    return 'Username tidak valid. Pakai 3–20 karakter huruf kecil, '
+        'angka, atau underscore.';
+  }
+  if (t.contains('violates check constraint')) {
+    return 'Data tidak memenuhi aturan server. Periksa kembali isianmu.';
+  }
   if (t.contains('user not found')) {
     return 'Akun tidak ditemukan. Periksa email kamu.';
   }

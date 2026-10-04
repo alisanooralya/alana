@@ -313,6 +313,10 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     try {
       await _unduh(request, entry);
     } catch (error) {
+      // State null = ganti akun terjadi di tengah unduhan. Jangan sentuh
+      // Hive maupun state lama: repository yang sudah di-capture masih
+      // menunjuk ke direktori akun sebelumnya. finally yang membersihkan.
+      if (state.valueOrNull == null) return;
       if (error is DownloadKoneksiPutus || error is DownloadWifiTurun) {
         final wifi = error is DownloadWifiTurun;
         final kini = state.valueOrNull ?? current;
@@ -353,6 +357,10 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     } finally {
       _pumping = false;
       _cancelToken = null;
+      // Dipanggil selalu: kalau provider sedang dibangun ulang karena ganti
+      // akun, ini yang membatalkan request dan mengosongkan antrean tanpa
+      // menulis ulang state milik akun lama.
+      _hentikanKarenaGantiAkun();
       await _pump();
     }
   }
@@ -392,7 +400,9 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
       errorMessage: '',
     );
     await repository.save(current);
-    _tulis(_denganEntry(state.valueOrNull!, current));
+    final setelahSimpan = state.valueOrNull;
+    if (setelahSimpan == null) return;
+    _tulis(_denganEntry(setelahSimpan, current));
 
     for (var index = 0; index < pages.length; index++) {
       final wifiOnly = ref.read(settingsRepositoryProvider).wifiOnlyDownloads;
@@ -429,7 +439,9 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
         fileSizeBytes: ukuranKumulatif + await _ukuranFile(coverPath),
       );
       await repository.save(current);
-      _tulis(_denganEntry(state.valueOrNull!, current));
+      final setelahHalaman = state.valueOrNull;
+      if (setelahHalaman == null) return;
+      _tulis(_denganEntry(setelahHalaman, current));
     }
 
     current = current.copyWith(
@@ -439,7 +451,8 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
       errorMessage: '',
     );
     await repository.save(current);
-    final value = state.valueOrNull!;
+    final value = state.valueOrNull;
+    if (value == null) return;
     final live = {...value.liveProgress}..remove(request.key);
     _tulis(
       _denganEntry(
@@ -501,6 +514,26 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
 
   void _tulis(DownloadState value) {
     state = AsyncData(value);
+  }
+
+  /// Dijalankan saat state berubah menjadi null atau account sudah berganti.
+  /// Membatalkan unduhan yang sedang berjalan supaya tidak ada penulisan
+  /// lagi ke direktori akun lama setelah pindah akun.
+  void _hentikanKarenaGantiAkun() {
+    final ini = state.valueOrNull;
+    _cancelToken?.cancel('ganti akun');
+    _cancelToken = null;
+    _pumping = false;
+    if (ini != null && (ini.activeKey != null || ini.queue.isNotEmpty)) {
+      state = AsyncData(
+        ini.copyWith(
+          activeKey: null,
+          clearActive: true,
+          queue: const [],
+          liveProgress: const {},
+        ),
+      );
+    }
   }
 
   String _pesanDownload(Object error) {

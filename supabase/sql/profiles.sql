@@ -22,21 +22,83 @@ drop policy if exists "insert profil sendiri" on public.profiles;
 create policy "insert profil sendiri" on public.profiles
   for insert to authenticated with check (auth.uid() = id);
 
--- Otomatis buat profil saat user baru mendaftar (email maupun Google)
+-- Trigger pembuatan profil.
+--
+-- raw_user_meta_data dikontrol penuh oleh klien: signUp bisa mengirim
+-- options.data.username apa saja. Sebelumnya nilai itu dipakai apa adanya,
+-- sehingga username di luar pola check constraint
+-- (^[a-z0-9_]{3,20}$) membuat trigger melempar. Karena trigger ini
+-- `after insert on auth.users`, seluruh transaksi signup ikut rollback:
+-- akun tidak pernah dibuat dan pesannya sampai ke user sebagai
+-- "Terjadi kesalahan. Coba lagi." tanpa penjelasan apa pun.
+--
+-- Sekarang username dinormalisasi dulu sebelum insert:
+--   1. lowercase
+--   2. buang semua karakter di luar [a-z0-9_]
+--   3. potong ke 20 karakter
+--   4. kalau hasil akhir kosong atau < 3 karakter, pakai username acak
+--
+-- Konsekuensi yang disengaja: username yang tadinya ditolak client-side kini
+-- tetap diterima server dengan bentuk yang sudah dibersihkan. Username yang
+-- duplicate masih ditolak constraint unique, dan itu memang perilaku yang benar.
+create or replace function public.normalisasi_username(p_teks text)
+returns text
+language sql
+immutable
+set search_path = ''
+as $$
+  select nullif(
+    left(
+      regexp_replace(lower(coalesce(p_teks, '')), '[^a-z0-9_]', '', 'g'),
+      20
+    ),
+    ''
+  );
+$$;
+
+revoke all on function public.normalisasi_username(text) from public;
+
+create or replace function public.username_acak()
+returns text
+language sql
+volatile
+set search_path = public
+as $$
+  select 'user_' || substr(md5(random()::text), 1, 8)
+    where not exists (
+      select 1 from public.profiles p where p.username = 'user_' || substr(md5(random()::text), 1, 8)
+    );
+$$;
+
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
 declare
   uname text;
 begin
-  uname := lower(coalesce(
-    new.raw_user_meta_data->>'username',
-    'user_' || substr(md5(random()::text), 1, 8)
-  ));
+  -- Coba username dari metadata lebih dulu; kalau tidak valid/tertaken,
+  -- jatuh ke nama acak. Using EXISTS (bukan count) supaya username acak
+  -- benar-benar dihitung ulang saat ada tabrakan, bukan selalu sama.
+  uname := public.normalisasi_username(new.raw_user_meta_data->>'username');
+
+  if uname is null or length(uname) < 3 then
+    uname := null;
+  elsif exists (select 1 from public.profiles p where p.username = uname) then
+    -- Diambil user: jangan dibersihkan (mungkin hanya typo spasi) dan jangan
+    -- diubah jadi tidak valid; jatuhkan ke nama acak.
+    uname := null;
+  end if;
+
+  if uname is null then
+    uname := public.username_acak();
+  end if;
+
   insert into public.profiles (id, username, display_name, avatar_url)
   values (
     new.id, uname,
-    coalesce(new.raw_user_meta_data->>'display_name',
-             new.raw_user_meta_data->>'full_name'),
+    left(coalesce(
+      nullif(btrim(new.raw_user_meta_data->>'display_name'), ''),
+      nullif(btrim(new.raw_user_meta_data->>'full_name'), '')
+    ), 50),
     new.raw_user_meta_data->>'avatar_url'
   );
   return new;
