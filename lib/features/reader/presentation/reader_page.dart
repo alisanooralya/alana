@@ -72,8 +72,6 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
   bool _riwayatSudahDisegarkan = false;
   bool _sedangGeres = false;
 
-  /// chapterId yang sudah ditandai sebagai dibaca. Bertahan selama halaman
-  /// ini terbuka, jadi penandaan tidak diulang pada setiap rebuild.
   String? _sudahTandai;
 
   ({String mangaId, String chapterId}) get _kunciOffline =>
@@ -331,9 +329,6 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
   @override
   Widget build(BuildContext context) {
     final uid = ref.watch(userIdProvider) ?? '';
-    // Hanya entry chapter yang sedang dibaca yang perlu diketahui di sini.
-    // Kalau provider-nya di-watch penuh, setiap potongan unduhan chapter
-    // lain akan membangun ulang seluruh halaman reader.
     final downloaded = ref.watch(
       downloadManagerProvider.select(
         (value) => value.valueOrNull?.entryFor(
@@ -348,9 +343,6 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     _uid = ref.watch(userIdProvider);
 
     void tandaiDibaca(AsyncValue<List<manga.Page>> next) {
-      // Setiap penandaan menulis ulang Hive dan memberi updatedAt baru, jadi
-      // entry pending terus dibuat ulang dan PendingBar tidak pernah kosong.
-      // Satu chapter cukup ditandai satu kali per kunjungan.
       if (_sudahTandai != widget.chapterId) return;
       final halaman = next.valueOrNull;
       if (halaman == null || halaman.isEmpty) return;
@@ -379,8 +371,6 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     if (pagesAsync.hasValue) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        // Tandai sekali saja, lalu catat chapter-nya supaya rebuild
-        // berikutnya tidak menulis ulang Hive.
         if (_sudahTandai == widget.chapterId) return;
         _sudahTandai = widget.chapterId;
         tandaiDibaca(pagesAsync);

@@ -69,8 +69,6 @@ class AccountPage extends ConsumerWidget {
     );
     if (terkonfirmasi != true || !context.mounted) return;
 
-    // uid harus diambil sebelum keluar(): setelah sesi hilang, repository
-    // tidak bisa tahu folder unduhan mana yang milik akun ini.
     final uid = repo.userAktif?.id ?? '';
 
     try {
@@ -83,16 +81,12 @@ class AccountPage extends ConsumerWidget {
       return;
     }
 
-    // Bersihkan data di perangkat sebelum logout, supaya uid masih ada.
     await _bersihkanLokal(uid);
 
     ref.read(pendingUsernameSetupProvider.notifier).state = false;
     await repo.keluar();
   }
 
-  /// Menghapus sisa data akun di perangkat: Hive box per-user, folder
-  /// unduhan, dan cache gambar. Cache gambar reader memakai cacheManager
-  /// sendiri, jadi DefaultCacheManager tidak ikut mengosongkannya.
   Future<void> _bersihkanLokal(String uid) async {
     if (uid.isEmpty) return;
 

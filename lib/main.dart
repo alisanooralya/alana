@@ -66,9 +66,6 @@ class _BootstrapState extends ConsumerState<Bootstrap> {
   }
 
   Future<void> _siapkan() async {
-    // Tiap tahap dibatasi waktu dan kegagalannya dicatat agar aplikasi
-    // selalu lanjut ke layar utama (mode degradasi), tidak macet di
-    // layar muat bila ada init yang menggantung atau melempar error.
     await _langkah(
       () => SupabaseSetup.init().timeout(const Duration(seconds: 20)),
     );

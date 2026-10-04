@@ -15,8 +15,6 @@ final sesiProvider = StreamProvider<AuthState?>((ref) async* {
     yield null;
     return;
   }
-  // Seed sinkron dari sesi saat ini supaya splash tidak menunggu event
-  // pertama stream yang mungkin sudah lewat sebelum subscribe.
   yield AuthState(
     AuthChangeEvent.initialSession,
     SupabaseSetup.instance.auth.currentSession,

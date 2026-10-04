@@ -22,9 +22,6 @@ class DownloadWifiTurun implements Exception {
   const DownloadWifiTurun();
 }
 
-/// Ditemba saat uid aktif berubah di tengah unduhan. Berbeda dari
-/// DownloadKoneksiPutus: ini bukan kegagalan jaringan, jadi tidak boleh
-/// ditulis sebagai status failed pada entry akun lama.
 class DownloadGantiAkun implements Exception {
   const DownloadGantiAkun();
 }
@@ -95,17 +92,9 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
   bool _pumping = false;
   CancelToken? _cancelToken;
 
-  /// Nilai progress terakhir per key unduhan, dipakai untuk membandingkan
-  /// dengan emission berikutnya.
   final Map<String, double> _progressTersimpan = {};
   DateTime? _progressTerakhirTulis;
 
-  // Dio memanggil onReceiveProgress setiap chunk, bisa ratusan kali per
-  // detik. Menulis state setiap panggilan memicu rebuild penuh di
-  // setiap layar yang sedang membaca provider ini, lalu masuk ke
-  // history_repository yang menulis ulang seluruh Hive box. Karena itu
-  // progress dibatasi: satu penulisan per [_jedaProgress], dan hanya
-  // kalau nilai progress benar-benar bergerak.
   static const Duration _jedaProgress = Duration(milliseconds: 400);
   static const double _minimalGeserProgress = 0.01;
 
@@ -128,9 +117,6 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
   @override
   Future<DownloadState> build() async {
     ref.onDispose(() => _dio.close(force: true));
-    // Ganti akun harus terasa seketika, bukan setelah chapter yang sedang
-    // diunduh selesai. Tanpa listener ini, directory akun lama masih ditulis
-    // sampai unduhan berjalan tamat.
     ref.listen<String?>(userIdProvider, (previous, next) {
       if (previous != null && previous != next) {
         _cancelToken?.cancel('ganti akun');
@@ -359,9 +345,6 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     try {
       await _unduh(request, entry);
     } catch (error) {
-      // Ganti akun di tengah unduhan: jangan sentuh Hive maupun state lama,
-      // karena repository yang di-capture masih menunjuk direktori akun
-      // sebelumnya. Penanganan ada di finally.
       if (error is DownloadGantiAkun) return;
       if (state.valueOrNull == null) return;
       if (error is DownloadKoneksiPutus || error is DownloadWifiTurun) {
@@ -403,9 +386,6 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
       }
     } finally {
       _pumping = false;
-      // Hanya saat uid benar-benar berganti. Kalau dijalankan setiap selesai
-      // unduhan, sisa antrean ikut terhapus dan chapter berikutnya tidak
-      // pernah ikut terunduh.
       if (!_pemilikMasihAktif(request.userId)) {
         _hentikanKarenaGantiAkun();
       }
@@ -416,9 +396,6 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
 
   Future<void> _unduh(DownloadRequest request, DownloadedChapter entry) async {
     final repository = ref.read(downloadRepositoryProvider);
-    // Pemilik dicapture sekali di awal. repository yang di-capture di atas
-    // masih menunjuk ke direktori akun lama, jadi setiap titik henti harus
-    // memverifikasi uid aktif sebelum menulis ke sana.
     final pemilik = repository.userId;
     if (pemilik.isEmpty) {
       throw const FormatException('Unduhan tidak punya pemilik akun.');
@@ -491,8 +468,6 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
             _tulisProgressDebounce(request.key, nilai);
           },
         );
-        // Dio sudah menulis sebagian byte ke `path` sebelum selesai,
-        // jadi file harus dihapus agar tidak tertinggal di folder akun lama.
         _pastikanPemilik(pemilik);
         ukuranKumulatif += await _ukuranFile(path);
       }
@@ -526,8 +501,6 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     );
   }
 
-  /// Melempar [DownloadGantiAkun] kalau uid aktif sudah bukan pemilik
-  /// unduhan ini. Dipanggil setelah tiap await yang menyentuh disk.
   void _pastikanPemilik(String pemilik) {
     if (state.valueOrNull == null) throw const DownloadGantiAkun();
     if ((ref.read(userIdProvider) ?? '') != pemilik) {
@@ -535,8 +508,6 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     }
   }
 
-  /// Tanpa efek samping, dipakai di finally untuk memutuskan apakah
-  /// state perlu dibersihkan.
   bool _pemilikMasihAktif(String pemilik) {
     if (pemilik.isEmpty) return false;
     return (ref.read(userIdProvider) ?? '') == pemilik;
@@ -596,9 +567,6 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     state = AsyncData(value);
   }
 
-  /// Dijalankan saat state berubah menjadi null atau account sudah berganti.
-  /// Membatalkan unduhan yang sedang berjalan supaya tidak ada penulisan
-  /// lagi ke direktori akun lama setelah pindah akun.
   void _hentikanKarenaGantiAkun() {
     final ini = state.valueOrNull;
     _cancelToken?.cancel('ganti akun');

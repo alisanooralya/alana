@@ -109,9 +109,6 @@ class AuthRepository {
     required String password,
   }) async {
     final nama = username.trim();
-    // rate-limit-login mewajibkan field `email` terisi, jadi username
-    // dikirim di sana. Penghitung `ip:<ip>` yang dibaca fungsi itu shared
-    // dengan jalur email, jadi batas MAX_GAGAL_IP juga berlaku di sini.
     await _cekBatasLogin(nama);
     try {
       final hasil = await _client.functions.invoke(
@@ -121,8 +118,6 @@ class AuthRepository {
       final data = hasil.data;
       final segar = data is Map ? data['refresh_token']?.toString() : null;
       if (hasil.status != 200 || segar == null || segar.isEmpty) {
-        // 401 dari fungsi = kredensial salah. Hanya ini yang dihitung sebagai
-        // percobaan gagal; penolakan 429 dari fungsi itu sendiri tidak.
         await _catatPercobaanLogin(nama, berhasil: false);
         throw AuthException(_pesanFunctionLogin(data));
       }

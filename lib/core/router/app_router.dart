@@ -65,7 +65,6 @@ final goRouterProvider = Provider<GoRouter>((ref) {
       final recovery = ref.read(passwordRecoveryProvider);
       final lokasi = state.matchedLocation;
       final customTarget = _targetDeepLink(state);
-      // /splash bukan tujuan menetap, jadi !masuk wajib ke /masuk.
       const rutePublik = {
         '/onboarding',
         '/masuk',

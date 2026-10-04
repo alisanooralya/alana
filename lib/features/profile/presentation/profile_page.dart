@@ -56,7 +56,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     try {
       await pilihDanUnggahAvatar(context, ref);
     } catch (error, stack) {
-      // Pengaman terakhir; error alur sudah ditangani di avatar_picker.
       ErrorLog.catat(error, stack);
     } finally {
       if (mounted) setState(() => _mengunggah = false);

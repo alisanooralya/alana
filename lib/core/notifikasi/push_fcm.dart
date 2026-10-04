@@ -29,10 +29,6 @@ class PushFcm {
 
   static const Duration _masaVerifikasiToken = Duration(hours: 6);
   static const String _kunciVerifikasi = 'fcm_verified_at';
-
-  // Stempel waktu saja tidak cukup: prefs bersama tidak tahu milik akun mana.
-  // Tanpa uid, akun baru yang login di dalam jendela 6 jam akan melihat
-  // "masih segar" dan melewatkan pendaftaran token-nya.
   static const String _kunciVerifikasiUid = 'fcm_verified_uid';
 
   Future<void> init() async {
@@ -111,9 +107,6 @@ class PushFcm {
     }
   }
 
-  // Hanya segar kalau cap waktu dan uid sama-sama milik akun yang sedang
-  // aktif. Kalau uid berbeda, perlakukan sebagai belum pernah diverifikasi
-  // supaya akun baru pasti mendaftarkan token-nya sendiri.
   bool _masihSegar(SharedPreferences prefs, String uidAktif) {
     if (prefs.getString(_kunciVerifikasiUid) != uidAktif) return false;
     final iso = prefs.getString(_kunciVerifikasi);

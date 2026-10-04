@@ -14,19 +14,11 @@ import 'package:alana/features/profile/presentation/profile_providers.dart';
 
 import '../../data/profile_repository.dart';
 
-/// Guard level-proses: cegah dua alur foto berjalan bersamaan dari
-/// pemanggil mana pun. Check-and-set sinkron, tanpa await di antaranya.
 bool _prosesAvatarBerjalan = false;
 
-/// Batas tunggu agar future yang tidak pernah selesai (mis. result
-/// native yatim) menjadi error terkendali, bukan hang selamanya.
 const _batasPilih = Duration(seconds: 120);
 const _batasCrop = Duration(seconds: 120);
 
-/// Alur pilih foto profil langsung: bottom-sheet sumber -> crop 1:1 ->
-/// upload ke Supabase Storage -> invalidate [profileProvider].
-/// Dipakai tombol "Pasang Foto" di [ProfilePage].
-/// Return true bila upload berhasil.
 Future<bool> pilihDanUnggahAvatar(BuildContext context, WidgetRef ref) async {
   if (_prosesAvatarBerjalan) return false;
   _prosesAvatarBerjalan = true;
@@ -41,8 +33,6 @@ Future<bool> _pilihDanUnggahAvatarInner(
   BuildContext context,
   WidgetRef ref,
 ) async {
-  // Baca dependency di awal; ref tidak aman dipakai setelah
-  // proses pick/crop yang panjang bila State sudah di-dispose.
   final uid = ref.read(userIdProvider);
   final repoProfil = ref.read(profileRepositoryProvider);
 
@@ -50,8 +40,6 @@ Future<bool> _pilihDanUnggahAvatarInner(
   var tahap = 'memilih foto';
 
   try {
-    // Kunci opsi segera setelah satu opsi ditekan agar tap kedua
-    // tidak memicu pop ganda pada route di bawah sheet.
     var opsiTerkunci = false;
     sumber = await showModalBottomSheet<ImageSource>(
       context: context,

@@ -3,13 +3,8 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:alana/core/diagnostics/error_log.dart';
 
-/// Hosts halaman share. Harus https: kalau tidak, penerima tidak punya
-/// aplikasi yang bisa membuka `alana://` sehingga link-nya jadi teks mati.
 const String _hostShare = 'https://alisanooralya.github.io/alana';
 
-/// Bentuk query string, bukan path bersih. GitHub Pages menyajikan path tanpa
-/// ekstensi lewat 404.html dengan status 404, dan crawler preview WhatsApp,
-/// Telegram, atau X hanya merender preview untuk status 200.
 String mangaShareUrl(String mangaId) {
   return '$_hostShare/manga/?id=${Uri.encodeQueryComponent(mangaId)}';
 }
