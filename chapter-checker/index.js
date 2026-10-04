@@ -227,9 +227,13 @@ async function checkAll(reason) {
 
   try {
     console.log(`[chapter-checker] Mulai pemeriksaan (${reason}).`);
+    // Filter `deleted_at is null` wajib: sejak soft delete, baris bookmark yang
+    // dihapus user tetap ada sebagai tombstone. Tanpa filter ini user yang
+    // sudah unbookmark tetap menerima notifikasi chapter untuk manga itu.
     const { data: rows, error } = await supabase
       .from('bookmarks')
-      .select('manga_id, user_id, title, cover_url');
+      .select('manga_id, user_id, title, cover_url')
+      .is('deleted_at', null);
     if (error) throw error;
 
     const groups = new Map();

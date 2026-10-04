@@ -108,17 +108,25 @@ class AuthRepository {
     required String username,
     required String password,
   }) async {
+    final nama = username.trim();
+    // rate-limit-login mewajibkan field `email` terisi, jadi username
+    // dikirim di sana. Penghitung `ip:<ip>` yang dibaca fungsi itu shared
+    // dengan jalur email, jadi batas MAX_GAGAL_IP juga berlaku di sini.
+    await _cekBatasLogin(nama);
     try {
       final hasil = await _client.functions.invoke(
         'login-with-username',
-        body: {'username': username.trim(), 'password': password},
+        body: {'username': nama, 'password': password},
       );
       final data = hasil.data;
       final segar = data is Map ? data['refresh_token']?.toString() : null;
       if (hasil.status != 200 || segar == null || segar.isEmpty) {
+        // 401 dari fungsi = kredensial salah. Hanya ini yang dihitung sebagai
+        // percobaan gagal; penolakan 429 dari fungsi itu sendiri tidak.
+        await _catatPercobaanLogin(nama, berhasil: false);
         throw AuthException(_pesanFunctionLogin(data));
       }
-      return await _client.auth
+      final sesi = await _client.auth
           .setSession(segar)
           .timeout(
             const Duration(seconds: 20),
@@ -126,10 +134,13 @@ class AuthRepository {
               'Sesi terlalu lama tidak terbantu. Periksa jaringan lalu coba lagi.',
             ),
           );
+      await _catatPercobaanLogin(nama, berhasil: true);
+      return sesi;
     } catch (error) {
       if (error is AuthException) rethrow;
       final teks = error.toString();
       if (teks.contains('Username atau password salah')) {
+        await _catatPercobaanLogin(nama, berhasil: false);
         throw const AuthException('Username atau password salah.');
       }
       throw AuthException(pesanAuthRamah(error));

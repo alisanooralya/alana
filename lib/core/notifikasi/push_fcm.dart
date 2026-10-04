@@ -30,6 +30,11 @@ class PushFcm {
   static const Duration _masaVerifikasiToken = Duration(hours: 6);
   static const String _kunciVerifikasi = 'fcm_verified_at';
 
+  // Stempel waktu saja tidak cukup: prefs bersama tidak tahu milik akun mana.
+  // Tanpa uid, akun baru yang login di dalam jendela 6 jam akan melihat
+  // "masih segar" dan melewatkan pendaftaran token-nya.
+  static const String _kunciVerifikasiUid = 'fcm_verified_uid';
+
   Future<void> init() async {
     if (_siap || _sertaMulai) return;
     _sertaMulai = true;
@@ -77,6 +82,7 @@ class PushFcm {
         await prefs.remove(DeviceTokenRepository.kunciLokal);
         await prefs.remove(DeviceTokenRepository.kunciDeviceId);
         await prefs.remove(_kunciVerifikasi);
+        await prefs.remove(_kunciVerifikasiUid);
         return;
       }
       _uid = uidAktif;
@@ -90,7 +96,7 @@ class PushFcm {
       final deviceTersimpan =
           prefs.getString(DeviceTokenRepository.kunciDeviceId) ?? '';
       final samaDenganLokal = token == tersimpan && deviceId == deviceTersimpan;
-      if (samaDenganLokal && _masihSegar(prefs)) return;
+      if (samaDenganLokal && _masihSegar(prefs, uidAktif)) return;
       if (tersimpan.isNotEmpty) {
         await repo.hapusLegacy(uid: uidAktif, token: tersimpan);
       }
@@ -99,12 +105,17 @@ class PushFcm {
       await prefs.setString(DeviceTokenRepository.kunciLokal, token);
       await prefs.setString(DeviceTokenRepository.kunciDeviceId, deviceId);
       await prefs.setString(_kunciVerifikasi, DateTime.now().toIso8601String());
+      await prefs.setString(_kunciVerifikasiUid, uidAktif);
     } catch (_) {
       // Abaikan: dicoba lagi pada pemanggilan berikutnya.
     }
   }
 
-  bool _masihSegar(SharedPreferences prefs) {
+  // Hanya segar kalau cap waktu dan uid sama-sama milik akun yang sedang
+  // aktif. Kalau uid berbeda, perlakukan sebagai belum pernah diverifikasi
+  // supaya akun baru pasti mendaftarkan token-nya sendiri.
+  bool _masihSegar(SharedPreferences prefs, String uidAktif) {
+    if (prefs.getString(_kunciVerifikasiUid) != uidAktif) return false;
     final iso = prefs.getString(_kunciVerifikasi);
     if (iso == null || iso.isEmpty) return false;
     final waktu = DateTime.tryParse(iso);
@@ -154,6 +165,7 @@ class PushFcm {
     await prefs.remove(DeviceTokenRepository.kunciLokal);
     await prefs.remove(DeviceTokenRepository.kunciDeviceId);
     await prefs.remove(_kunciVerifikasi);
+    await prefs.remove(_kunciVerifikasiUid);
   }
 
   Future<void> _foreground(RemoteMessage pesan) async {

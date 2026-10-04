@@ -34,13 +34,18 @@ function kunciDariJson(namaJson: string, namaLama: string): string {
 
 const gagal = () => json({ error: GAGAL_PESAN }, 401);
 
+// Bentuknya sama dengan ipDari() di rate-limit-login. Versi lama memakai
+// `?? 'unknown'` setelah .trim(), padahal .trim() tidak pernah null, jadi
+// fallback itu mati dan semua IP tak terdeteksi memakai kunci per-username.
 function ipDari(req: Request): string {
-  return (
-    req.headers.get('cf-connecting-ip') ??
-    req.headers.get('x-real-ip') ??
-    (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() ??
-    'unknown'
-  );
+  const teruskan = (req.headers.get('x-forwarded-for') ?? '')
+    .split(',')[0]
+    .trim();
+  const ip =
+    req.headers.get('cf-connecting-ip')?.trim() ||
+    req.headers.get('x-real-ip')?.trim() ||
+    teruskan;
+  return ip && ip.length > 0 ? ip : 'unknown';
 }
 
 Deno.serve(async (req: Request) => {
