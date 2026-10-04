@@ -1,7 +1,7 @@
 name: alana
 description: "Alana — Temukan Ceritamu."
 publish_to: "none"
-version: 1.0.7+093
+version: 1.0.8+33550336
 
 environment:
   sdk: ^3.13.4
