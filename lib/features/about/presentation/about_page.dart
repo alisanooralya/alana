@@ -65,7 +65,7 @@ class _IsiAbout extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         Text(
-          'Alana — aplikasi baca manhwa yang simpel, nyaman, dan praktis.'
+          'Alana — aplikasi baca manhwa yang simpel, nyaman, dan praktis. '
           'Temukan cerita favoritmu dan baca kapan saja.',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyLarge,
