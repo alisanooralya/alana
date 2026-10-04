@@ -32,7 +32,6 @@ class _IsiAbout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     final appName = packageInfo?.appName ?? 'Alana';
     final version = packageInfo?.version ?? '-';
     final buildNumber = packageInfo?.buildNumber ?? '-';
@@ -41,17 +40,13 @@ class _IsiAbout extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         Center(
-          child: Container(
-            width: 88,
-            height: 88,
-            decoration: BoxDecoration(
-              color: scheme.primaryContainer,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.menu_book_rounded,
-              size: 48,
-              color: scheme.onPrimaryContainer,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Image.asset(
+              'assets/images/splash_logo.png',
+              width: 88,
+              height: 88,
+              fit: BoxFit.cover,
             ),
           ),
         ),

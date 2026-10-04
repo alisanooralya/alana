@@ -48,7 +48,17 @@ class AuthScaffold extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   animasi(
-                    Icon(Icons.menu_book, size: 56, color: scheme.primary),
+                    Center(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(24),
+                        child: Image.asset(
+                          'assets/images/splash_logo.png',
+                          width: 88,
+                          height: 88,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
                     0,
                   ),
                   const SizedBox(height: 12),
