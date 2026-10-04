@@ -1,0 +1,130 @@
+/* Gaya halaman share manga. Terpisah dari style.css karena strukturnya
+   berbeda: kartu dengan sampul, bukan dokumen teks panjang. */
+
+:root {
+  --bg: #ffffff;
+  --teks: #1a1c1e;
+  --teks-lembut: #4a4f55;
+  --garis: #e2e5e9;
+  --kode-bg: #f4f5f7;
+  --aksen: #4a4a2f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181a;
+    --teks: #e6e8ea;
+    --teks-lembut: #a8aeb5;
+    --garis: #2c3034;
+    --kode-bg: #1f2225;
+    --aksen: #d8d0a0;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 1.5rem 1rem 3rem;
+  background: var(--bg);
+  color: var(--teks);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+  -webkit-text-size-adjust: 100%;
+}
+
+.wrap {
+  max-width: 34rem;
+  margin: 0 auto;
+}
+
+.petunjuk {
+  color: var(--teks-lembut);
+  font-size: 0.9rem;
+}
+
+.galat {
+  color: var(--teks);
+  border: 1px solid var(--garis);
+  border-radius: 10px;
+  padding: 1rem 1.15rem;
+  background: var(--kode-bg);
+}
+
+.kartu {
+  border: 1px solid var(--garis);
+  border-radius: 12px;
+  padding: 1.15rem;
+}
+
+.cover {
+  display: block;
+  width: 100%;
+  max-width: 13rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  background: var(--kode-bg);
+}
+
+h1 {
+  font-size: 1.4rem;
+  line-height: 1.3;
+  margin: 0 0 0.25rem;
+}
+
+.sub {
+  color: var(--teks-lembut);
+  font-size: 0.9rem;
+  margin: 0.15rem 0;
+}
+
+.nota {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 0.85rem 0;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--garis);
+  border-radius: 8px;
+  background: var(--kode-bg);
+  font-weight: 600;
+}
+
+.nota-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--teks-lembut);
+  font-weight: 500;
+}
+
+.sinopsis {
+  color: var(--teks-lembut);
+  white-space: pre-line;
+  margin: 0.85rem 0;
+}
+
+.tombol {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  background: var(--aksen);
+  color: var(--bg);
+  font-weight: 600;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  margin-top: 1rem;
+}
+
+@media (max-width: 26rem) {
+  body {
+    padding: 1rem 0.85rem 2rem;
+  }
+
+  h1 {
+    font-size: 1.2rem;
+  }
+}

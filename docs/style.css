@@ -1,0 +1,176 @@
+/* Gaya bersama untuk halaman legal Alana.
+   Sengaja tanpa build step: file statis yang dilayani langsung oleh
+   GitHub Pages, tanpa dependensi eksternal yang bisa rusak. */
+
+:root {
+  --bg: #ffffff;
+  --teks: #1a1c1e;
+  --teks-lembut: #4a4f55;
+  --garis: #e2e5e9;
+  --aksen: #4a4a2f;
+  --kode-bg: #f4f5f7;
+  --lebar: 44rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181a;
+    --teks: #e6e8ea;
+    --teks-lembut: #a8aeb5;
+    --garis: #2c3034;
+    --aksen: #d8d0a0;
+    --kode-bg: #1f2225;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 2rem 1.25rem 4rem;
+  background: var(--bg);
+  color: var(--teks);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 1rem;
+  line-height: 1.7;
+  -webkit-text-size-adjust: 100%;
+}
+
+main {
+  max-width: var(--lebar);
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 1.75rem;
+  line-height: 1.25;
+  margin: 0 0 0.35rem;
+}
+
+h2 {
+  font-size: 1.15rem;
+  margin: 2.5rem 0 0.6rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--garis);
+}
+
+h3 {
+  font-size: 1rem;
+  margin: 1.5rem 0 0.4rem;
+}
+
+p,
+li {
+  color: var(--teks-lembut);
+}
+
+strong {
+  color: var(--teks);
+}
+
+a {
+  color: var(--aksen);
+}
+
+ul {
+  padding-left: 1.25rem;
+}
+
+li {
+  margin: 0.35rem 0;
+}
+
+.meta {
+  color: var(--teks-lembut);
+  font-size: 0.9rem;
+  margin: 0 0 2rem;
+}
+
+.kartu {
+  border: 1px solid var(--garis);
+  border-radius: 10px;
+  padding: 1rem 1.15rem;
+  margin: 1.25rem 0;
+}
+
+.kartu p {
+  margin: 0.35rem 0;
+}
+
+.kartu-judul {
+  font-weight: 600;
+  color: var(--teks);
+}
+
+.langkah {
+  counter-reset: langkah;
+  list-style: none;
+  padding-left: 0;
+}
+
+.langkah li {
+  counter-increment: langkah;
+  position: relative;
+  padding-left: 2.25rem;
+  margin: 0.85rem 0;
+}
+
+.langkah li::before {
+  content: counter(langkah);
+  position: absolute;
+  left: 0;
+  top: 0.15rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--kode-bg);
+  border: 1px solid var(--garis);
+  color: var(--teks);
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: grid;
+  place-items: center;
+}
+
+.nav {
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--garis);
+  font-size: 0.9rem;
+}
+
+.nav a {
+  display: inline-block;
+  margin-right: 1.25rem;
+}
+
+footer {
+  max-width: var(--lebar);
+  margin: 3rem auto 0;
+  color: var(--teks-lembut);
+  font-size: 0.85rem;
+}
+
+footer a {
+  display: inline-block;
+  margin-right: 1.25rem;
+}
+
+code {
+  background: var(--kode-bg);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+@media (max-width: 30rem) {
+  body {
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  h1 {
+    font-size: 1.45rem;
+  }
+}

@@ -3,12 +3,21 @@ import 'package:share_plus/share_plus.dart';
 
 import 'package:alana/core/diagnostics/error_log.dart';
 
-import 'deep_link.dart';
+/// Hosts halaman share. Harus https: kalau tidak, penerima tidak punya
+/// aplikasi yang bisa membuka `alana://` sehingga link-nya jadi teks mati.
+const String _hostShare = 'https://alisanooralya.github.io/alana';
 
-String mangaShareUrl(String mangaId) => mangaDeepLink(mangaId);
+/// Bentuk query string, bukan path bersih. GitHub Pages menyajikan path tanpa
+/// ekstensi lewat 404.html dengan status 404, dan crawler preview WhatsApp,
+/// Telegram, atau X hanya merender preview untuk status 200.
+String mangaShareUrl(String mangaId) {
+  return '$_hostShare/manga/?id=${Uri.encodeQueryComponent(mangaId)}';
+}
 
 String chapterShareUrl(String mangaId, String chapterId) {
-  return chapterDeepLink(mangaId, chapterId);
+  final manga = Uri.encodeQueryComponent(mangaId);
+  final chapter = Uri.encodeQueryComponent(chapterId);
+  return '$_hostShare/manga/?id=$manga&chapter=$chapter';
 }
 
 Future<void> shareLink(BuildContext context, {required String text}) async {

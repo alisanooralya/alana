@@ -3,6 +3,10 @@ name: Build APK
 on:
   push:
     branches: ["main"]
+    # Dokumen legal tidak memengaruhi bytecode. Tanpa paths-ignore ini setiap
+    # commit docs/ membangun APK release lengkap dan menghabiskan kuota CI.
+    paths-ignore:
+      - "docs/**"
 
   workflow_dispatch:
     inputs:
@@ -16,6 +20,8 @@ on:
 
   pull_request:
     branches: ["main"]
+    paths-ignore:
+      - "docs/**"
 
 jobs:
   build:

@@ -1,4 +1,4 @@
-# Alana — Baca Manhwa
+# Alana — Temukan Ceritamu.
 
 Aplikasi Android untuk membaca manhwa (webtoon-style) dengan Flutter.
 Wajib login (Supabase Auth): email+password dan Google Sign-In.
@@ -111,3 +111,43 @@ di SQL Editor).
 | `rate-limit-login` | publik (`--no-verify-jwt`) | Rate limit login email+password: 5x gagal/15 mnt per email, 30x per IP |
 | `delete-account` | JWT (verify default) | Hapus akun + avatar milik pemanggil |
 | `login-with-username` | publik (`--no-verify-jwt`, `config.toml`) | Login username → token (anti-enumerasi, rate limit IP+username) |
+
+## Halaman legal dan share (GitHub Pages)
+
+Semua dokumen statis ada di `docs/`, dilayani GitHub Pages oleh workflow
+**Deploy Halaman Legal**. Aktifkan sekali di repo → **Settings → Pages →
+Source → `GitHub Actions`**. Workflow hanya jalan saat `docs/**` berubah, jadi
+tidak memicu build APK (`build-apk.yml` punya `paths-ignore: docs/**`).
+
+| URL | Isi |
+|---|---|
+| `https://alisanooralya.github.io/alana/` | Beranda |
+| `https://alisanooralya.github.io/alana/privacy/` | Kebijakan privasi |
+| `https://alisanooralya.github.io/alana/delete-account/` | Cara hapus akun |
+| `https://alisanooralya.github.io/alana/manga/?id=<mangaId>` | Halaman share manga |
+
+`_tautanPrivasi` dan `_tautanHapusAkun` di `about_page.dart` diisi dua URL
+legal di atas. Play Console mewajibkannya. `_tautanPengembang` diisi alamat
+email polos **tanpa** `mailto:`.
+
+### Share manga
+
+`lib/core/utils/share_content.dart` memakai URL `https`, bukan deep link
+`alana://`. Alasannya `alana://` hanya bisa dibuka aplikasi Alana sendiri,
+jadi begitu dikirim ke WhatsApp atau Telegram isinya jadi teks mati.
+
+Bentuk URL-nya query string, bukan path bersih. GitHub Pages menyajikan path
+tanpa ekstensi lewat `404.html` dengan status 404, sementara crawler preview
+WhatsApp, Telegram, dan X hanya merender preview untuk status 200. Path bersih
+`/manga/<id>` tetap bisa dibuka karena `404.html` memuat renderer yang sama,
+tapi statusnya 404 sehingga preview-nya tidak muncul.
+
+Metadata diambil dari `api.shngm.io` langsung di browser; API tersebut mengirim
+`Access-Control-Allow-Origin: *` jadi tidak butuh backend. Semua teks dari API
+ditulis lewat `textContent`, bukan `innerHTML`.
+
+**Batas yang diketahui:** halaman statis tidak bisa menyertakan judul dan
+sampul per-manga di tag Open Graph, karena crawler preview tidak menjalankan
+JavaScript. Preview akan menampilkan judul situs generik, bukan judul manga.
+Menghilangkannya butuh App Links, yaitu `assetlinks.json` plus intent filter
+`autoVerify` di `AndroidManifest.xml` — belum dikonfigurasi di repo ini.

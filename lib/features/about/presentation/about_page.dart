@@ -3,9 +3,10 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Alamat resmi aplikasi. Kosong berarti tautannya disembunyikan dari UI.
-const String _tautanPengembang = '';
-const String _tautanPrivasi = '';
-const String _tautanHapusAkun = '';
+const String _tautanPengembang = 'alisaadev@gmail.com';
+const String _tautanPrivasi = 'https://alisanooralya.github.io/alana/privacy/';
+const String _tautanHapusAkun =
+    'https://alisanooralya.github.io/alana/delete-account/';
 
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
@@ -69,9 +70,8 @@ class _IsiAbout extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         Text(
-          'Alana adalah aplikasi pembaca manhwa untuk membantu kamu '
-          'menemukan judul, menyimpan favorit, dan melanjutkan bacaan '
-          'dengan nyaman.',
+          'Alana — aplikasi baca manhwa yang simpel, nyaman, dan praktis.'
+          'Temukan cerita favoritmu dan baca kapan saja.',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyLarge,
         ),
@@ -83,7 +83,7 @@ class _IsiAbout extends StatelessWidget {
           icon: Icons.cloud_outlined,
           judul: 'Sumber data',
           deskripsi: 'API metadata dan chapter manhwa',
-          url: 'https://api.shngm.io',
+          url: 'https://11.shinigami.asia/',
         ),
         if (_tautanPengembang.isNotEmpty)
           _Tautan(
@@ -119,21 +119,6 @@ class _IsiAbout extends StatelessWidget {
           icon: const Icon(Icons.article_outlined),
           label: const Text('Lisensi Open Source'),
         ),
-        const SizedBox(height: 20),
-        Text('Paket utama', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 4),
-        const _TautanPaket(
-          nama: 'package_info_plus',
-          url: 'https://pub.dev/packages/package_info_plus',
-        ),
-        const _TautanPaket(
-          nama: 'url_launcher',
-          url: 'https://pub.dev/packages/url_launcher',
-        ),
-        const _TautanPaket(
-          nama: 'flutter_riverpod',
-          url: 'https://pub.dev/packages/flutter_riverpod',
-        ),
       ],
     );
   }
@@ -159,25 +144,6 @@ class _Tautan extends StatelessWidget {
       leading: Icon(icon),
       title: Text(judul),
       subtitle: Text(deskripsi),
-      trailing: const Icon(Icons.open_in_new),
-      onTap: () => _bukaTautan(context, url),
-    );
-  }
-}
-
-class _TautanPaket extends StatelessWidget {
-  const _TautanPaket({required this.nama, required this.url});
-
-  final String nama;
-  final String url;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      dense: true,
-      leading: const Icon(Icons.code),
-      title: Text(nama),
       trailing: const Icon(Icons.open_in_new),
       onTap: () => _bukaTautan(context, url),
     );

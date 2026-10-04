@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Alana</title>
+    <meta name="robots" content="noindex" />
+    <link rel="stylesheet" href="/alana/manga/manga.css" />
+  </head>
+  <body>
+    <!-- GitHub Pages hanya menyajikan 404.html untuk path yang tidak cocok
+         dengan file mana pun, dan status HTTP-nya tetap 404. Itu sebabnya
+         tautan yang dipublikasikan app memakai /manga/?id=... yang status 200,
+         bukan /manga/<id> yang statusnya 404. File ini tetap dipakai supaya
+         URL bersih tetap tampil saat dibuka manual, dengan renderer yang sama.
+    -->
+    <main class="wrap">
+      <p id="memuat" class="petunjuk">Memuat data manga…</p>
+      <p id="galat" class="galat" hidden></p>
+
+      <article id="kartu" class="kartu" hidden>
+        <img id="cover" class="cover" alt="" />
+        <h1 id="judul">-</h1>
+        <p id="sub" class="sub"></p>
+
+        <div id="nota-chapter" class="nota" hidden>
+          <span class="nota-label">Chapter</span>
+          <span id="chapter-nomor">-</span>
+          <span id="chapter-ringkas" class="sub"></span>
+        </div>
+
+        <p id="sinopsis" class="sinopsis"></p>
+
+        <a id="tombol" class="tombol" href="#">
+          <span id="tombol-label">Buka di Alana</span>
+        </a>
+        <p class="petunjuk">
+          Aplikasi belum terpasang? Buka Google Play, cari
+          <strong>Alana</strong>, lalu masuk dengan akun yang sama.
+        </p>
+      </article>
+    </main>
+
+    <script src="/alana/manga/manga.js"></script>
+  </body>
+</html>

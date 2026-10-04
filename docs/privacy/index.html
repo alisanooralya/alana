@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kebijakan Privasi — Alana</title>
+    <meta
+      name="description"
+      content="Data yang dikumpulkan aplikasi Alana, cara استخدامها, dan hak Anda sebagai pengguna."
+    />
+    <link rel="stylesheet" href="/alana/style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Kebijakan Privasi Alana</h1>
+      <p class="meta">Terakhir diperbarui: 4 Oktober 2026</p>
+
+      <p>
+        Kebijakan ini menjelaskan data apa yang dikumpulkan aplikasi Alana, untuk
+        apa, dan apa hak Anda atas data tersebut. Kami menulisnya plainly agar
+        tidak ada yang tersembunyi.
+      </p>
+
+      <h2>1. Ringkasan</h2>
+      <ul>
+        <li>Alana tidak memuat iklan.</li>
+        <li>
+          Alana tidak memakai SDK analitik, pelacak iklan, atau fingerprinting
+          perangkat.
+        </li>
+        <li>Kami tidak menjual data Anda kepada siapa pun.</li>
+        <li>
+          Data akun dan riwayat baca disimpan di server agar bisa disinkronkan
+          antar perangkat. Data itu tidak dibaca oleh perangkat lain kecuali
+          perangkat yang sedang masuk ke akun Anda.
+        </li>
+      </ul>
+
+      <h2>2. Data yang kami kumpulkan</h2>
+
+      <h3>2.1 Data akun</h3>
+      <p>Diisi oleh Anda saat mendaftar dan dapat diubah kapan saja di profil.</p>
+      <ul>
+        <li><strong>Alamat email</strong> — dipakai untuk masuk dan reset kata sandi.</li>
+        <li><strong>Username</strong> — nama publik Anda di dalam Alana.</li>
+        <li>
+          <strong>Nama tampilan</strong> — opsional, teks bebas yang Anda isi sendiri.
+        </li>
+        <li>
+          <strong>Foto profil</strong> — opsional, gambar yang Anda pilih dari
+          galeri perangkat.
+        </li>
+      </ul>
+
+      <h3>2.2 Aktivitas membaca</h3>
+      <p>
+        Dipakai untuk fitur "lanjutkan bacaan" dan untuk menyinkronkan posisi
+        bacaan Anda antar perangkat.
+      </p>
+      <ul>
+        <li>Daftar judul yang Anda simpan (bookmark).</li>
+        <li>Judul dan chapter yang terakhir Anda baca.</li>
+        <li>
+          Posisi gulir di dalam halaman chapter, waktu terakhir dibaca, dan
+          penanda sudah/tidak sudah dibaca.
+        </li>
+        <li>
+          Pengingat bacaan yang aktif untuk judul tertentu, beserta waktu
+          pengingat berikutnya.
+        </li>
+      </ul>
+      <p>
+        Riwayat baca tidak dibaca atau ditampilkan oleh pengguna lain. Satu
+        pengecualian: bila Anda mengirim laporan chapter, judul dan chapter yang
+        dilaporkan ikut disertakan agar bisa kami periksa.
+      </p>
+
+      <h3>2.3 Notifikasi</h3>
+      <ul>
+        <li>
+          <strong>Token push (FCM)</strong> — agar perangkat Anda menerima
+          notifikasi chapter baru dan pengingat bacaan.
+        </li>
+        <li>
+          <strong>ID perangkat</strong> — Android ID, dipakai agar token push
+          tetap terhubung ke akun yang benar setelah Anda berganti akun di
+          perangkat yang sama.
+        </li>
+      </ul>
+      <p>
+        Token push dan ID perangkat tidak pernah ditampilkan di dalam aplikasi
+        dan tidak dibagikan kepada pihak ketiga mana pun. Anda bisa
+        mencabutnya kapan saja dengan mematikan izin notifikasi atau dengan
+        logout.
+      </p>
+
+      <h3>2.4 Keamanan dan pencegahan penyalahgunaan</h3>
+      <p>
+        Alana membatasi jumlah percobaan login untuk melindungi akun Anda dari
+        brute force. Untuk itu kami menyimpan catatan percobaan login yang
+        berisi:
+      </p>
+      <ul>
+        <li>Alamat email atau username yang dicoba.</li>
+        <li>Alamat IP perangkat yang melakukan percobaan.</li>
+        <li>Waktu percobaan, dan apakah berhasil atau gagal.</li>
+      </ul>
+      <p>
+        Catatan ini berisi <strong>alamat IP</strong>, jadi ikut berada dalam
+        kategori data pribadi. Catatan yang berumur lebih dari 30 hari dihapus
+        otomatis.
+      </p>
+
+      <h3>2.5 Laporan konten</h3>
+      <p>
+        Bila Anda melaporkan chapter yang bermasalah, kami menyimpan judul,
+        chapter, alasan, dan catatan yang Anda tuliskan, beserta akun yang
+        mengirim laporan.
+      </p>
+
+      <h3>2.6 Data yang hanya tersimpan di perangkat Anda</h3>
+      <p>
+        Daftar di bawah ini hanya ada di penyimpanan lokal perangkat. Nilainya
+        tidak pernah dikirim ke server, dan terhapus bersama aplikasi ketika
+        Anda uninstall Alana.
+      </p>
+      <ul>
+        <li>Status apakah Anda sudah melewati layar Selamat datang.</li>
+        <li>Status apakah izin notifikasi sudah pernah diminta.</li>
+        <li>Pengaturan pengingat bacaan dan notifikasi chapter baru.</li>
+        <li>Daftar ID pengingat yang terjadwal di perangkat.</li>
+        <li>Salinan token push, ID perangkat, dan waktu verifikasi terakhir.</li>
+        <li>Cache gambar dan chapter yang sudah diunduh.</li>
+      </ul>
+
+      <h2>3. Bagaimana data digunakan</h2>
+      <p>Data Anda hanya dipakai untuk:</p>
+      <ul>
+        <li>Menyediakan fitur yang Anda minta: masuk, sinkronisasi, dan unduhan.</li>
+        <li>Mengirim notifikasi yang Anda izinkan.</li>
+        <li>Melindungi akun dari penyalahgunaan dan makin banyak permintaan.</li>
+        <li>Menelaah laporan konten.</li>
+      </ul>
+      <p>
+        Kami tidak memakai data Anda untuk iklan bertarget, dan tidak menjual
+        atau menyewakan data kepada pihak ketiga.
+      </p>
+
+      <h2>4. Penyedia pihak ketiga</h2>
+      <p>
+        Alana mengandalkan layanan berikut. Ketiganya memproses data hanya
+        sejauh yang diperlukan untuk menyediakan layanannya.
+      </p>
+      <ul>
+        <li>
+          <strong>Supabase</strong> — autentikasi, basis data, penyimpanan
+          foto profil, dan Edge Function. Alamat server:
+          <code>pbahrkftawrdiuswdzqq.supabase.co</code>.
+        </li>
+        <li>
+          <strong>Google</strong> — Firebase Cloud Messaging untuk mengirim
+          notifikasi, dan Google Sign-In bila Anda memilih masuk dengan Google.
+          Bila Anda memakai Google Sign-In, kami menerima identitas dan email
+          dari Google sesuai kebijakan Google.
+        </li>
+        <li>
+          <strong>Sumber metadata manhwa</strong> —
+          <code>api.shngm.io</code> untuk metadata dan daftar chapter, dan
+          <code>assets.shngm.id</code> untuk gambar cover dan halaman chapter.
+          Permintaan ke sana tidak membawa data akun Anda.
+        </li>
+      </ul>
+
+      <h2>5. Visibilitas data Anda</h2>
+      <p>
+        Sebagian data Anda memang terlihat oleh pengguna Alana lain. Kami
+        disclose ini dengan terbuka:
+      </p>
+      <ul>
+        <li>
+          <strong>Username dan nama tampilan</strong> dapat dibaca oleh setiap
+          pengguna Alana yang sudah masuk. Keduanya bersifat publik di dalam
+          aplikasi.
+        </li>
+        <li>
+          <strong>Foto profil</strong> disimpan di storage yang dapat diakses
+          siapa pun yang mengetahui tautan gambarnya.
+        </li>
+        <li>
+          Daftar bookmark dan riwayat baca Anda <strong>tidak</strong> dapat
+          dibaca oleh pengguna lain.
+        </li>
+      </ul>
+
+      <h2>6. Retensi data</h2>
+      <ul>
+        <li>
+          <strong>Data akun dan riwayat baca</strong> — disimpan selama akun
+          Anda aktif. Dihapus permanen saat Anda menghapus akun.
+        </li>
+        <li>
+          <strong>Token push dan ID perangkat</strong> — dihapus saat Anda
+          logout atau menghapus akun.
+        </li>
+        <li>
+          <strong>Catatan percobaan login</strong> — disimpan maksimal
+          <strong>30 hari</strong>, lalu dihapus otomatis.
+        </li>
+        <li>
+          <strong>Laporan konten</strong> — disimpan selama diperlukan untuk
+          menelaah laporan.
+        </li>
+        <li>
+          <strong>Cache chapter bersama</strong> — berisi metadata chapter
+          terbaru dan tidak memuat data pribadi.
+        </li>
+      </ul>
+
+      <h2>7. Keamanan</h2>
+      <p>
+        Kata sandi tidak pernah disimpan dalam bentuk yang bisa dibaca, baik di
+        server kami maupun di perangkat Anda. Server autentikasi menyimpannya
+        sebagai hash satu arah. Seluruh lalu lintas ke server Alana dienkripsi
+        dengan HTTPS. Akses basis data dibatasi per pengguna: tiap akun hanya
+        bisa membaca dan mengubah datanya sendiri.
+      </p>
+      <p>
+        Perlu kami sampaikan apa adanya: tidak ada aplikasi yang bebas dari
+        risiko kebocoran. Yang kami lakukan adalah memperkecil risikonya. Bila
+        terjadi kebocoran yang berdampak ke Anda, kami memperbaikinya dan
+        memberitahu lewat halaman ini.
+      </p>
+
+      <h2>8. Hak Anda</h2>
+      <p>
+        Anda berhak melihat, mengunduh, mengoreksi, dan menghapus data Anda.
+        Praktisnya di Alana:
+      </p>
+      <ul>
+        <li>
+          Melihat dan mengoreksi data: buka menu <strong>Profil</strong> →
+          <strong>Ubah profil</strong>.
+        </li>
+        <li>
+          Melihat data yang tersimpan: app menyimpan salinan bookmark dan riwayat
+          Anda di perangkat, dan Anda bisa memeriksanya langsung di aplikasi.
+        </li>
+        <li>
+          Menghapus seluruh data: lihat halaman
+          <a href="/alana/delete-account/">Hapus Akun</a>.
+        </li>
+      </ul>
+      <p>
+        Untuk permintaan lain — misalnya mendapat salinan data dalam format
+        tertentu — hubungi kami lewat alamat pada bagian
+        <a href="#kontak">Kontak</a>.
+      </p>
+
+      <h2>9. Anak-anak</h2>
+      <p>
+        Alana tidak ditujukan untuk anak di bawah 13 tahun. Kami tidak dengan
+        sengaja mengumpulkan data pribadi dari anak di bawah usia tersebut.
+        Bila Anda mengamini hal ini, hubungi kami agar datanya bisa dihapus.
+      </p>
+
+      <h2>10. Perubahan kebijakan ini</h2>
+      <p>
+        Bila kebijakan ini berubah, tanggal "terakhir diperbarui" di atas akan
+        diperbarui. Perubahan yang menyentuh data yang kami kumpulkan akan kami
+        diumumkan lewat halaman ini sebelum mulai berlaku.
+      </p>
+
+      <h2 id="kontak">11. Kontak</h2>
+      <p>
+        Untuk pertanyaan, permintaan data, atau keluhan, hubungi kami melalui
+        bagian <strong>Kontak developer</strong> pada halaman
+        <strong>Tentang Aplikasi</strong> di dalam Alana. Alamat yang tertera di
+        sana adalah kanal resmi kami.
+      </p>
+    </main>
+
+    <footer>
+      <a href="/alana/">Beranda</a>
+      <a href="/alana/delete-account/">Hapus Akun</a>
+    </footer>
+  </body>
+</html>
