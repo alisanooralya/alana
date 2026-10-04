@@ -72,6 +72,10 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
   bool _riwayatSudahDisegarkan = false;
   bool _sedangGeres = false;
 
+  /// chapterId yang sudah ditandai sebagai dibaca. Bertahan selama halaman
+  /// ini terbuka, jadi penandaan tidak diulang pada setiap rebuild.
+  String? _sudahTandai;
+
   ({String mangaId, String chapterId}) get _kunciOffline =>
       (mangaId: widget.mangaId, chapterId: widget.chapterId);
 
@@ -327,10 +331,15 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
   @override
   Widget build(BuildContext context) {
     final uid = ref.watch(userIdProvider) ?? '';
-    final downloadAsync = ref.watch(downloadManagerProvider);
-    final downloadState = downloadAsync.valueOrNull;
-    final downloaded = downloadState?.entryFor(
-      DownloadRepository.keyFor(uid, widget.mangaId, widget.chapterId),
+    // Hanya entry chapter yang sedang dibaca yang perlu diketahui di sini.
+    // Kalau provider-nya di-watch penuh, setiap potongan unduhan chapter
+    // lain akan membangun ulang seluruh halaman reader.
+    final downloaded = ref.watch(
+      downloadManagerProvider.select(
+        (value) => value.valueOrNull?.entryFor(
+          DownloadRepository.keyFor(uid, widget.mangaId, widget.chapterId),
+        ),
+      ),
     );
     final offline = downloaded?.status == DownloadStatus.completed;
     final AsyncValue<List<manga.Page>> pagesAsync = offline
@@ -339,7 +348,12 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     _uid = ref.watch(userIdProvider);
 
     void tandaiDibaca(AsyncValue<List<manga.Page>> next) {
-      if (next.valueOrNull == null || next.value!.isEmpty) return;
+      // Setiap penandaan menulis ulang Hive dan memberi updatedAt baru, jadi
+      // entry pending terus dibuat ulang dan PendingBar tidak pernah kosong.
+      // Satu chapter cukup ditandai satu kali per kunjungan.
+      if (_sudahTandai != widget.chapterId) return;
+      final halaman = next.valueOrNull;
+      if (halaman == null || halaman.isEmpty) return;
       ref
           .read(historyRepositoryProvider.notifier)
           .tandaiDibaca(
@@ -364,7 +378,12 @@ class _ReaderPageState extends ConsumerState<ReaderPage>
     }
     if (pagesAsync.hasValue) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) tandaiDibaca(pagesAsync);
+        if (!mounted) return;
+        // Tandai sekali saja, lalu catat chapter-nya supaya rebuild
+        // berikutnya tidak menulis ulang Hive.
+        if (_sudahTandai == widget.chapterId) return;
+        _sudahTandai = widget.chapterId;
+        tandaiDibaca(pagesAsync);
       });
     }
 

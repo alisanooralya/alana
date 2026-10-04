@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:alana/core/providers/konektivitas_provider.dart';
 import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/features/reader/data/reader_repository.dart';
+import 'package:alana/features/profile/presentation/profile_providers.dart';
 import 'package:alana/features/settings/data/settings_repository.dart';
 import 'package:alana/models/page.dart' as manga;
 
@@ -19,6 +20,13 @@ class DownloadKoneksiPutus implements Exception {
 
 class DownloadWifiTurun implements Exception {
   const DownloadWifiTurun();
+}
+
+/// Ditemba saat uid aktif berubah di tengah unduhan. Berbeda dari
+/// DownloadKoneksiPutus: ini bukan kegagalan jaringan, jadi tidak boleh
+/// ditulis sebagai status failed pada entry akun lama.
+class DownloadGantiAkun implements Exception {
+  const DownloadGantiAkun();
 }
 
 class DownloadRequest {
@@ -87,9 +95,47 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
   bool _pumping = false;
   CancelToken? _cancelToken;
 
+  /// Nilai progress terakhir per key unduhan, dipakai untuk membandingkan
+  /// dengan emission berikutnya.
+  final Map<String, double> _progressTersimpan = {};
+  DateTime? _progressTerakhirTulis;
+
+  // Dio memanggil onReceiveProgress setiap chunk, bisa ratusan kali per
+  // detik. Menulis state setiap panggilan memicu rebuild penuh di
+  // setiap layar yang sedang membaca provider ini, lalu masuk ke
+  // history_repository yang menulis ulang seluruh Hive box. Karena itu
+  // progress dibatasi: satu penulisan per [_jedaProgress], dan hanya
+  // kalau nilai progress benar-benar bergerak.
+  static const Duration _jedaProgress = Duration(milliseconds: 400);
+  static const double _minimalGeserProgress = 0.01;
+
+  void _tulisProgressDebounce(String key, double nilai) {
+    final waktu = DateTime.now();
+    final lalu = _progressTerakhirTulis;
+    final nilaiLalu = _progressTersimpan[key];
+    final cukupJeda = lalu == null || waktu.difference(lalu) >= _jedaProgress;
+    final cukupGeser =
+        nilaiLalu == null || (nilai - nilaiLalu).abs() >= _minimalGeserProgress;
+    if (!cukupJeda || !cukupGeser) return;
+
+    _progressTerakhirTulis = waktu;
+    _progressTersimpan[key] = nilai;
+    final value = state.valueOrNull;
+    if (value == null) return;
+    _tulis(value.copyWith(liveProgress: {...value.liveProgress, key: nilai}));
+  }
+
   @override
   Future<DownloadState> build() async {
     ref.onDispose(() => _dio.close(force: true));
+    // Ganti akun harus terasa seketika, bukan setelah chapter yang sedang
+    // diunduh selesai. Tanpa listener ini, directory akun lama masih ditulis
+    // sampai unduhan berjalan tamat.
+    ref.listen<String?>(userIdProvider, (previous, next) {
+      if (previous != null && previous != next) {
+        _cancelToken?.cancel('ganti akun');
+      }
+    });
     ref.listen(konektivitasProvider, (previous, next) {
       final value = state.valueOrNull;
       if (value == null) return;
@@ -313,9 +359,10 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     try {
       await _unduh(request, entry);
     } catch (error) {
-      // State null = ganti akun terjadi di tengah unduhan. Jangan sentuh
-      // Hive maupun state lama: repository yang sudah di-capture masih
-      // menunjuk ke direktori akun sebelumnya. finally yang membersihkan.
+      // Ganti akun di tengah unduhan: jangan sentuh Hive maupun state lama,
+      // karena repository yang di-capture masih menunjuk direktori akun
+      // sebelumnya. Penanganan ada di finally.
+      if (error is DownloadGantiAkun) return;
       if (state.valueOrNull == null) return;
       if (error is DownloadKoneksiPutus || error is DownloadWifiTurun) {
         final wifi = error is DownloadWifiTurun;
@@ -356,20 +403,30 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
       }
     } finally {
       _pumping = false;
+      // Hanya saat uid benar-benar berganti. Kalau dijalankan setiap selesai
+      // unduhan, sisa antrean ikut terhapus dan chapter berikutnya tidak
+      // pernah ikut terunduh.
+      if (!_pemilikMasihAktif(request.userId)) {
+        _hentikanKarenaGantiAkun();
+      }
       _cancelToken = null;
-      // Dipanggil selalu: kalau provider sedang dibangun ulang karena ganti
-      // akun, ini yang membatalkan request dan mengosongkan antrean tanpa
-      // menulis ulang state milik akun lama.
-      _hentikanKarenaGantiAkun();
       await _pump();
     }
   }
 
   Future<void> _unduh(DownloadRequest request, DownloadedChapter entry) async {
     final repository = ref.read(downloadRepositoryProvider);
+    // Pemilik dicapture sekali di awal. repository yang di-capture di atas
+    // masih menunjuk ke direktori akun lama, jadi setiap titik henti harus
+    // memverifikasi uid aktif sebelum menulis ke sana.
+    final pemilik = repository.userId;
+    if (pemilik.isEmpty) {
+      throw const FormatException('Unduhan tidak punya pemilik akun.');
+    }
     final pages = await ref
         .read(readerRepositoryProvider)
         .getPages(request.chapterId);
+    _pastikanPemilik(pemilik);
     if (pages.isEmpty) {
       throw const FormatException('Chapter tidak memiliki halaman.');
     }
@@ -378,15 +435,18 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
       request.mangaId,
       request.chapterId,
     );
+    _pastikanPemilik(pemilik);
     if (chapterDirectory == null) {
       throw const FormatException('Unduhan tidak punya pemilik akun.');
     }
     var coverPath = entry.coverLocalPath;
     if (coverPath.isEmpty && request.coverUrl.isNotEmpty) {
       final mangaDirectory = await repository.mangaDirectory(request.mangaId);
+      _pastikanPemilik(pemilik);
       if (mangaDirectory != null) {
         coverPath = '${mangaDirectory.path}/cover.jpg';
         await _unduhFile(request.coverUrl, coverPath);
+        _pastikanPemilik(pemilik);
       }
     }
 
@@ -405,6 +465,7 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
     _tulis(_denganEntry(setelahSimpan, current));
 
     for (var index = 0; index < pages.length; index++) {
+      _pastikanPemilik(pemilik);
       final wifiOnly = ref.read(settingsRepositoryProvider).wifiOnlyDownloads;
       if (wifiOnly &&
           !_wifiTersedia(ref.read(konektivitasProvider).valueOrNull)) {
@@ -423,15 +484,16 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
           page.imageUrl,
           path,
           onProgress: (received, total) {
-            final value = state.valueOrNull;
-            if (value == null || total <= 0) return;
-            final live = {...value.liveProgress};
-            live[request.key] = ((index + (received / total)) / pages.length)
+            if (total <= 0) return;
+            final nilai = ((index + (received / total)) / pages.length)
                 .clamp(0, 1)
                 .toDouble();
-            _tulis(value.copyWith(liveProgress: live));
+            _tulisProgressDebounce(request.key, nilai);
           },
         );
+        // Dio sudah menulis sebagian byte ke `path` sebelum selesai,
+        // jadi file harus dihapus agar tidak tertinggal di folder akun lama.
+        _pastikanPemilik(pemilik);
         ukuranKumulatif += await _ukuranFile(path);
       }
       current = current.copyWith(
@@ -442,8 +504,10 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
       final setelahHalaman = state.valueOrNull;
       if (setelahHalaman == null) return;
       _tulis(_denganEntry(setelahHalaman, current));
+      _progressTersimpan.remove(request.key);
     }
 
+    _pastikanPemilik(pemilik);
     current = current.copyWith(
       status: DownloadStatus.completed,
       downloadedPages: pages.length,
@@ -460,6 +524,22 @@ class DownloadManager extends AsyncNotifier<DownloadState> {
         current,
       ),
     );
+  }
+
+  /// Melempar [DownloadGantiAkun] kalau uid aktif sudah bukan pemilik
+  /// unduhan ini. Dipanggil setelah tiap await yang menyentuh disk.
+  void _pastikanPemilik(String pemilik) {
+    if (state.valueOrNull == null) throw const DownloadGantiAkun();
+    if ((ref.read(userIdProvider) ?? '') != pemilik) {
+      throw const DownloadGantiAkun();
+    }
+  }
+
+  /// Tanpa efek samping, dipakai di finally untuk memutuskan apakah
+  /// state perlu dibersihkan.
+  bool _pemilikMasihAktif(String pemilik) {
+    if (pemilik.isEmpty) return false;
+    return (ref.read(userIdProvider) ?? '') == pemilik;
   }
 
   Future<void> _unduhFile(

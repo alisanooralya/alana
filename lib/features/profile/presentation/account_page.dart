@@ -1,11 +1,17 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 
+import 'package:alana/core/storage/app_storage.dart';
 import 'package:alana/features/auth/data/auth_repository.dart';
 import 'package:alana/features/auth/data/auth_validators.dart';
 import 'package:alana/features/auth/presentation/auth_providers.dart';
 import 'package:alana/features/auth/presentation/widgets/auth_widgets.dart';
+import 'package:alana/features/downloads/data/download_repository.dart';
+import 'package:alana/features/reader/data/reader_net.dart';
 
 class AccountPage extends ConsumerWidget {
   const AccountPage({super.key});
@@ -63,6 +69,10 @@ class AccountPage extends ConsumerWidget {
     );
     if (terkonfirmasi != true || !context.mounted) return;
 
+    // uid harus diambil sebelum keluar(): setelah sesi hilang, repository
+    // tidak bisa tahu folder unduhan mana yang milik akun ini.
+    final uid = repo.userAktif?.id ?? '';
+
     try {
       await repo.hapusAkun();
     } catch (error) {
@@ -73,13 +83,37 @@ class AccountPage extends ConsumerWidget {
       return;
     }
 
+    // Bersihkan data di perangkat sebelum logout, supaya uid masih ada.
+    await _bersihkanLokal(uid);
+
+    ref.read(pendingUsernameSetupProvider.notifier).state = false;
+    await repo.keluar();
+  }
+
+  /// Menghapus sisa data akun di perangkat: Hive box per-user, folder
+  /// unduhan, dan cache gambar. Cache gambar reader memakai cacheManager
+  /// sendiri, jadi DefaultCacheManager tidak ikut mengosongkannya.
+  Future<void> _bersihkanLokal(String uid) async {
+    if (uid.isEmpty) return;
+
+    await AppStorage.hapusBoxUser(uid);
+    await kosongkanCacheGambarReader();
+
+    try {
+      final root = await getApplicationDocumentsDirectory();
+      final folder = Directory(
+        '${root.path}/downloads/${DownloadRepository.safeSegment(uid)}',
+      );
+      if (await folder.exists()) await folder.delete(recursive: true);
+    } catch (_) {
+      // Abaikan: data server sudah terhapus, sisa lokal tidak kritis.
+    }
+
     try {
       await DefaultCacheManager().emptyCache();
     } catch (_) {
-      // Abaikan: bukan kritis.
+      // Abaikan.
     }
-    ref.read(pendingUsernameSetupProvider.notifier).state = false;
-    await repo.keluar();
   }
 
   @override
