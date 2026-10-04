@@ -86,7 +86,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Baca manhwa favoritmu',
+                    'Temukan Ceritamu',
                     style: Theme.of(context).textTheme.bodyMedium
                         ?.copyWith(color: scheme.onSurfaceVariant),
                   ),
