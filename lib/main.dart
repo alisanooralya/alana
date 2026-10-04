@@ -62,29 +62,45 @@ class _BootstrapState extends ConsumerState<Bootstrap> {
     super.initState();
 
     unawaited(mulaiDeepLink(ref));
-    SupabaseSetup.init()
-        .then((_) => AppStorage.init())
-        .then((_) => LayananNotifikasi.init())
-        .then((_) {
-          if (mounted) {
-            setState(() => _status = _StatusSiap.siap);
-            _jadwalkanPengingat();
-            unawaited(ref.read(pushServiceProvider).init());
-            unawaited(
-              ref
-                  .read(pushServiceProvider)
-                  .sinkronToken(
-                    SupabaseSetup.siap
-                        ? SupabaseSetup.instance.auth.currentSession?.user.id
-                        : null,
-                  ),
-            );
-            unawaited(
-              ref.read(notificationPermissionProvider.notifier).refresh(),
-            );
-            unawaited(ref.read(downloadManagerProvider.future));
-          }
-        });
+    unawaited(_siapkan());
+  }
+
+  Future<void> _siapkan() async {
+    // Tiap tahap dibatasi waktu dan kegagalannya dicatat agar aplikasi
+    // selalu lanjut ke layar utama (mode degradasi), tidak macet di
+    // layar muat bila ada init yang menggantung atau melempar error.
+    await _langkah(
+      () => SupabaseSetup.init().timeout(const Duration(seconds: 20)),
+    );
+    await _langkah(
+      () => AppStorage.init().timeout(const Duration(seconds: 10)),
+    );
+    await _langkah(
+      () => LayananNotifikasi.init().timeout(const Duration(seconds: 10)),
+    );
+    if (!mounted) return;
+    setState(() => _status = _StatusSiap.siap);
+    _jadwalkanPengingat();
+    unawaited(ref.read(pushServiceProvider).init());
+    unawaited(
+      ref
+          .read(pushServiceProvider)
+          .sinkronToken(
+            SupabaseSetup.siap
+                ? SupabaseSetup.instance.auth.currentSession?.user.id
+                : null,
+          ),
+    );
+    unawaited(ref.read(notificationPermissionProvider.notifier).refresh());
+    unawaited(ref.read(downloadManagerProvider.future));
+  }
+
+  Future<void> _langkah(Future<void> Function() kerja) async {
+    try {
+      await kerja();
+    } catch (error, stack) {
+      ErrorLog.catat(error, stack);
+    }
   }
 
   Future<void> _jadwalkanPengingat() async {

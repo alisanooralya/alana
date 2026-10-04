@@ -10,9 +10,19 @@ final streamSesiProvider = Provider<Stream<AuthState?>>((ref) {
   return ref.watch(authRepositoryProvider).perubahanSesi;
 });
 
-final sesiProvider = StreamProvider<AuthState?>(
-  (ref) => ref.watch(streamSesiProvider),
-);
+final sesiProvider = StreamProvider<AuthState?>((ref) async* {
+  if (!SupabaseSetup.siap) {
+    yield null;
+    return;
+  }
+  // Seed sinkron dari sesi saat ini supaya splash tidak menunggu event
+  // pertama stream yang mungkin sudah lewat sebelum subscribe.
+  yield AuthState(
+    AuthChangeEvent.initialSession,
+    SupabaseSetup.instance.auth.currentSession,
+  );
+  yield* ref.watch(streamSesiProvider);
+});
 
 final sudahLoginProvider = Provider<bool>((ref) {
   if (!SupabaseSetup.siap) return false;
