@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 class AppTheme {
   const AppTheme._();
 
-  static const Color _primer = Color(0xFFCCC8FD);
-  static const Color _navy = Color(0xFF090818);
-  static const Color _putih = Color(0xFFFAF8FE);
+  // Palet dari ikon aplikasi (icon.png).
+  static const Color _primer = Color(0xFF94E1FE); // cyan ikon
+  static const Color _navy = Color(0xFF070D21); // latar ikon
+  static const Color _putih = Color(0xFFFCFBFC); // putih ikon
 
   static const Color _seedColor = _primer;
 
