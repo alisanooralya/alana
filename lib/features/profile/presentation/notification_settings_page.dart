@@ -12,44 +12,31 @@ class NotificationSettingsPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final scheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(title: const Text('Notifikasi')),
       body: ListView(
+        padding: const EdgeInsets.all(16),
         children: [
-          const _TilePengingat(),
-          const _TilePushBab(),
-          ListTile(
-            leading: const Icon(Icons.notifications_active_outlined),
-            title: const Text('Kirim notifikasi uji'),
-            subtitle: const Text(
-              'Tampilkan satu notifikasi sekarang untuk mencoba.',
+          Container(
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(16),
             ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () async {
-              final permission = await ref.read(
-                notificationPermissionProvider.future,
-              );
-              if (!context.mounted) return;
-              if (!permission.granted) {
-                if (permission.blocked) {
-                  await ref
-                      .read(notificationPermissionProvider.notifier)
-                      .openSettings();
-                  return;
-                }
-                final lanjut = await showNotificationPermissionDialog(
-                  context,
-                  title: 'Aktifkan notifikasi',
-                );
-                if (lanjut != true ||
-                    !await ref
-                        .read(notificationPermissionProvider.notifier)
-                        .request()) {
-                  return;
-                }
-              }
-              await ref.read(pengingatRepositoryProvider).kirimUji();
-            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const _TilePengingat(),
+                Divider(
+                  height: 1,
+                  indent: 16,
+                  endIndent: 16,
+                  color: scheme.outlineVariant,
+                ),
+                const _TilePushBab(),
+              ],
+            ),
           ),
         ],
       ),
