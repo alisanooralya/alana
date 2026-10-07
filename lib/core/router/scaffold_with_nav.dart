@@ -58,72 +58,6 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar>
     );
   }
 
-  // Bar kustom 60px; NavigationBar bawaan terkunci 80px.
-  static const _tinggiBar = 60.0;
-
-  static final _tujuan = [
-    (Icons.home_outlined, Icons.home, 'Beranda'),
-    (Icons.local_library_outlined, Icons.local_library, 'Pustaka'),
-    (Icons.person_outline, Icons.person, 'Profil'),
-  ];
-
-  Widget _bar() {
-    final scheme = Theme.of(context).colorScheme;
-    final gayaLabel = Theme.of(context).textTheme.labelMedium;
-    final saatIni = widget.navigationShell.currentIndex;
-    return Material(
-      color: scheme.surfaceContainer,
-      child: SizedBox(
-        height: _tinggiBar,
-        child: Row(
-          children: [
-            for (var i = 0; i < _tujuan.length; i++)
-              Expanded(
-                child: InkWell(
-                  onTap: () => _onTap(i),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 4,
-                        ),
-                        decoration: i == saatIni
-                            ? BoxDecoration(
-                                color: scheme.secondaryContainer,
-                                borderRadius: BorderRadius.circular(16),
-                              )
-                            : null,
-                        child: Icon(
-                          i == saatIni ? _tujuan[i].$2 : _tujuan[i].$1,
-                          color: i == saatIni
-                              ? scheme.onSecondaryContainer
-                              : scheme.onSurfaceVariant,
-                        ),
-                      ),
-                      if (i == saatIni)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2),
-                          child: Text(
-                            _tujuan[i].$3,
-                            style: (gayaLabel ?? const TextStyle()).copyWith(
-                              color: scheme.onSurface,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final pertama = ref.watch(shellPertamaProvider);
@@ -144,7 +78,37 @@ class _ScaffoldWithNavBarState extends ConsumerState<ScaffoldWithNavBar>
       });
     }
 
-    final bar = _bar();
+    final bar = NavigationBar(
+      selectedIndex: widget.navigationShell.currentIndex,
+      onDestinationSelected: _onTap,
+      labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
+      labelTextStyle: WidgetStateProperty.resolveWith((states) {
+        final scheme = Theme.of(context).colorScheme;
+        final textTheme = Theme.of(context).textTheme;
+        final terpilih = states.contains(WidgetState.selected);
+        return (textTheme.labelMedium ?? const TextStyle()).copyWith(
+          color: terpilih ? scheme.onSurface : scheme.onSurfaceVariant,
+          fontWeight: terpilih ? FontWeight.bold : FontWeight.w500,
+        );
+      }),
+      destinations: const [
+        NavigationDestination(
+          icon: Icon(Icons.home_outlined),
+          selectedIcon: Icon(Icons.home),
+          label: 'Beranda',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.local_library_outlined),
+          selectedIcon: Icon(Icons.local_library),
+          label: 'Pustaka',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.person_outline),
+          selectedIcon: Icon(Icons.person),
+          label: 'Profil',
+        ),
+      ],
+    );
 
     return Scaffold(
       body: widget.navigationShell,
