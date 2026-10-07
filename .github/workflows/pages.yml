@@ -1,8 +1,5 @@
 name: Deploy Halaman Legal
 
-# Menayani docs/ sebagai GitHub Pages. Satu-satunya file yang di-deploy adalah
-# dokumen statis, jadi repo tetap tanpa dependensi website.
-
 on:
   push:
     branches: ["main"]
@@ -16,8 +13,6 @@ permissions:
   pages: write
   id-token: write
 
-# Satu deployment Pages pada satu waktu. cancel-in-progress sengaja false:
-# Pages menolak deployment yang membatalkan dirinya sendiri.
 concurrency:
   group: "pages"
   cancel-in-progress: false

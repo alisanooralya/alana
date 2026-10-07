@@ -3,8 +3,6 @@ name: Build APK
 on:
   push:
     branches: ["main"]
-    # Dokumen legal tidak memengaruhi bytecode. Tanpa paths-ignore ini setiap
-    # commit docs/ membangun APK release lengkap dan menghabiskan kuota CI.
     paths-ignore:
       - "docs/**"
 
@@ -92,9 +90,9 @@ jobs:
           path: build/app/outputs/flutter-apk/*-release.apk
           retention-days: 3
 
-      - name: Upload mapping.txt sebagai artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mapping-txt
-          path: build/app/outputs/mapping/release/mapping.txt
-          retention-days: 3
+      # - name: Upload mapping.txt sebagai artifact
+        # uses: actions/upload-artifact@v4
+        # with:
+          # name: mapping-txt
+          # path: build/app/outputs/mapping/release/mapping.txt
+          # retention-days: 3
