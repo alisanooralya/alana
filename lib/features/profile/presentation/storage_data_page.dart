@@ -27,11 +27,9 @@ class StorageDataPage extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(16),
-            ),
+          Card(
+            margin: EdgeInsets.zero,
+            clipBehavior: Clip.antiAlias,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [

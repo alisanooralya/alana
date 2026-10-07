@@ -229,11 +229,9 @@ class _TombolAksi extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
     return Expanded(
-      child: Material(
-        color: scheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
+      child: Card(
+        margin: EdgeInsets.zero,
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,

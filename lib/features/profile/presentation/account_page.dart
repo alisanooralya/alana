@@ -169,11 +169,9 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     required VoidCallback onTap,
   }) {
     final scheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: scheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(16),
-      ),
+    return Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
       child: ListTile(
         leading: Icon(ikon, color: scheme.error),
         title: Text(judul, style: TextStyle(color: scheme.error)),
@@ -208,11 +206,9 @@ class _AccountPageState extends ConsumerState<AccountPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(16),
-            ),
+          Card(
+            margin: EdgeInsets.zero,
+            clipBehavior: Clip.antiAlias,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,

@@ -101,11 +101,9 @@ class _IsiAbout extends StatelessWidget {
           style: Theme.of(context).textTheme.bodyLarge,
         ),
         const SizedBox(height: 24),
-        Container(
-          decoration: BoxDecoration(
-            color: scheme.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(16),
-          ),
+        Card(
+          margin: EdgeInsets.zero,
+          clipBehavior: Clip.antiAlias,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,

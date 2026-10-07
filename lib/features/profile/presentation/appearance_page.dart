@@ -20,11 +20,9 @@ class AppearancePage extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(16),
-            ),
+          Card(
+            margin: EdgeInsets.zero,
+            clipBehavior: Clip.antiAlias,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -67,11 +65,9 @@ class AppearancePage extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Container(
-            decoration: BoxDecoration(
-              color: scheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(16),
-            ),
+          Card(
+            margin: EdgeInsets.zero,
+            clipBehavior: Clip.antiAlias,
             child: SwitchListTile(
               title: const Text('Layar tetap menyala'),
               subtitle: const Text(
