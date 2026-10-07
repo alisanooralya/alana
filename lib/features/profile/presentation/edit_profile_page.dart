@@ -32,6 +32,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   bool? _usernameTersedia;
   bool _menyimpan = false;
   String? _pesanError;
+  String? _uidSimpan;
+  String? _usernameSimpan;
 
   @override
   void initState() {
@@ -104,6 +106,67 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     }
   }
 
+  // Kartu input ala desain: label cyan + field tanpa border.
+  Widget _kartu({required String judul, required Widget anak}) {
+    final scheme = Theme.of(context).colorScheme;
+    final teks = Theme.of(context).textTheme;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            judul,
+            style: (teks.titleSmall ?? const TextStyle()).copyWith(
+              color: scheme.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          anak,
+        ],
+      ),
+    );
+  }
+
+  Widget _tombolBawah() {
+    final uid = _uidSimpan;
+    final usernameAwal = _usernameSimpan;
+    if (uid == null || usernameAwal == null) return const SizedBox.shrink();
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FilledButton(
+              onPressed: _menyimpan ? null : () => _simpan(uid, usernameAwal),
+              child: _menyimpan
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Simpan'),
+            ),
+            if (widget.baru)
+              TextButton(
+                onPressed: () {
+                  ref.read(pendingUsernameSetupProvider.notifier).state = false;
+                  context.go('/profil');
+                },
+                child: const Text('Nanti saja, ubah nanti'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   String? _statusUsername() {
     if (_cekUsername) return 'Memeriksa ketersediaan…';
     if (_usernameTersedia == true) return 'Username tersedia.';
@@ -118,6 +181,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Ubah Info')),
+      bottomNavigationBar: _tombolBawah(),
       body: profilAsync.when(
         loading: () => const LoadingSpinner(),
         error: (error, _) => Center(
@@ -133,6 +197,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
             _dimuat = true;
             _nama.text = profil.displayName;
             _username.text = profil.username;
+            _uidSimpan = uid;
+            _usernameSimpan = profil.username;
           }
           final statusUsername = _statusUsername();
 
@@ -150,34 +216,40 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   key: _formKey,
                   child: Column(
                     children: [
-                      TextFormField(
-                        controller: _nama,
-                        textInputAction: TextInputAction.next,
-                        maxLength: 50,
-                        validator: (value) {
-                          if ((value ?? '').trim().isEmpty) {
-                            return 'Nama tampilan wajib diisi.';
-                          }
-                          return null;
-                        },
-                        decoration: const InputDecoration(
-                          labelText: 'Nama tampilan',
-                          prefixIcon: Icon(Icons.badge_outlined),
-                          border: OutlineInputBorder(),
+                      _kartu(
+                        judul: 'Nama kamu',
+                        anak: TextFormField(
+                          controller: _nama,
+                          textInputAction: TextInputAction.next,
+                          maxLength: 50,
+                          validator: (value) {
+                            if ((value ?? '').trim().isEmpty) {
+                              return 'Nama tampilan wajib diisi.';
+                            }
+                            return null;
+                          },
+                          decoration: const InputDecoration(
+                            hintText: 'Nama tampilan',
+                            border: InputBorder.none,
+                            counterText: '',
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
-                        controller: _username,
-                        textInputAction: TextInputAction.done,
-                        onFieldSubmitted: (_) => _simpan(uid, profil.username),
-                        validator: (value) => validasiUsername(value ?? ''),
-                        decoration: InputDecoration(
-                          labelText: 'Username',
-                          prefixText: '@',
-                          helperText: statusUsername,
-                          prefixIcon: const Icon(Icons.alternate_email),
-                          border: const OutlineInputBorder(),
+                      _kartu(
+                        judul: 'Username kamu',
+                        anak: TextFormField(
+                          controller: _username,
+                          textInputAction: TextInputAction.done,
+                          onFieldSubmitted: (_) =>
+                              _simpan(uid, profil.username),
+                          validator: (value) => validasiUsername(value ?? ''),
+                          decoration: InputDecoration(
+                            hintText: 'username',
+                            prefixText: '@',
+                            helperText: statusUsername,
+                            border: InputBorder.none,
+                          ),
                         ),
                       ),
                     ],
@@ -186,30 +258,6 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                 if (_pesanError != null) ...[
                   const SizedBox(height: 12),
                   AuthErrorText(pesan: _pesanError!),
-                ],
-                const SizedBox(height: 16),
-                FilledButton(
-                  onPressed: _menyimpan
-                      ? null
-                      : () => _simpan(uid, profil.username),
-                  child: _menyimpan
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Simpan'),
-                ),
-                if (widget.baru) ...[
-                  const SizedBox(height: 8),
-                  TextButton(
-                    onPressed: () {
-                      ref.read(pendingUsernameSetupProvider.notifier).state =
-                          false;
-                      context.go('/profil');
-                    },
-                    child: const Text('Nanti saja, ubah nanti'),
-                  ),
                 ],
               ],
             ),
