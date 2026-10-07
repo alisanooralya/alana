@@ -144,7 +144,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     if (mounted) context.go('/masuk');
   }
 
-  // Baris kartu: ikon abu + judul + chevron yang memutar saat dibuka.
   Widget _baris({
     required IconData ikon,
     required String judul,
@@ -164,7 +163,6 @@ class _AccountPageState extends ConsumerState<AccountPage> {
     );
   }
 
-  // Kartu aksi merah satu baris tanpa chevron.
   Widget _kartuMerah({
     required IconData ikon,
     required String judul,
