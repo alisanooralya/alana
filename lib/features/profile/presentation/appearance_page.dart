@@ -11,36 +11,75 @@ class AppearancePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pengaturan = ref.watch(settingsRepositoryProvider);
     final repo = ref.read(settingsRepositoryProvider.notifier);
+    final scheme = Theme.of(context).colorScheme;
+    final teks = Theme.of(context).textTheme;
+    final modes = AppThemeMode.values;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Tampilan')),
       body: ListView(
+        padding: const EdgeInsets.all(16),
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: Text('Tema', style: Theme.of(context).textTheme.titleMedium),
-          ),
-          RadioGroup<AppThemeMode>(
-            groupValue: pengaturan.themeMode,
-            onChanged: (value) {
-              if (value != null) repo.aturTema(value);
-            },
+          Container(
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(16),
+            ),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final mode in AppThemeMode.values)
-                  RadioListTile<AppThemeMode>(
-                    title: Text(mode.label),
-                    value: mode,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: Text(
+                    'Tema',
+                    style: (teks.titleSmall ?? const TextStyle()).copyWith(
+                      color: scheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
+                ),
+                RadioGroup<AppThemeMode>(
+                  groupValue: pengaturan.themeMode,
+                  onChanged: (value) {
+                    if (value != null) repo.aturTema(value);
+                  },
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (var i = 0; i < modes.length; i++) ...[
+                        RadioListTile<AppThemeMode>(
+                          title: Text(modes[i].label),
+                          value: modes[i],
+                        ),
+                        if (i < modes.length - 1)
+                          Divider(
+                            height: 1,
+                            indent: 16,
+                            endIndent: 16,
+                            color: scheme.outlineVariant,
+                          ),
+                      ],
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-          const Divider(),
-          SwitchListTile(
-            title: const Text('Layar tetap menyala'),
-            subtitle: const Text('Mencegah layar mati sendiri selama membaca.'),
-            value: pengaturan.keepScreenOn,
-            onChanged: repo.aturKeepScreenOn,
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: SwitchListTile(
+              title: const Text('Layar tetap menyala'),
+              subtitle: const Text(
+                'Mencegah layar mati sendiri selama membaca.',
+              ),
+              value: pengaturan.keepScreenOn,
+              onChanged: repo.aturKeepScreenOn,
+            ),
           ),
         ],
       ),
