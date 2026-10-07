@@ -150,30 +150,65 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               ),
               const SizedBox(height: 8),
               Container(key: _kategoriKey),
-              _ItemKategori(
-                ikon: Icons.key_outlined,
-                label: 'Akun',
-                onTap: () => context.pushNamed('akun'),
-              ),
-              _ItemKategori(
-                ikon: Icons.palette_outlined,
-                label: 'Tampilan',
-                onTap: () => context.pushNamed('tampilan'),
-              ),
-              _ItemKategori(
-                ikon: Icons.notifications_none,
-                label: 'Notifikasi',
-                onTap: () => context.pushNamed('pengaturan-notifikasi'),
-              ),
-              _ItemKategori(
-                ikon: Icons.cached_outlined,
-                label: 'Penyimpanan & Data',
-                onTap: () => context.pushNamed('penyimpanan-data'),
-              ),
-              _ItemKategori(
-                ikon: Icons.help_outline,
-                label: 'Tentang Aplikasi',
-                onTap: () => context.pushNamed('tentang-aplikasi'),
+              Container(
+                decoration: BoxDecoration(
+                  color: scheme.surfaceContainerHigh,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _ItemKategori(
+                      ikon: Icons.key_outlined,
+                      label: 'Akun',
+                      onTap: () => context.pushNamed('akun'),
+                    ),
+                    Divider(
+                      height: 1,
+                      indent: 16,
+                      endIndent: 16,
+                      color: scheme.outlineVariant,
+                    ),
+                    _ItemKategori(
+                      ikon: Icons.palette_outlined,
+                      label: 'Tampilan',
+                      onTap: () => context.pushNamed('tampilan'),
+                    ),
+                    Divider(
+                      height: 1,
+                      indent: 16,
+                      endIndent: 16,
+                      color: scheme.outlineVariant,
+                    ),
+                    _ItemKategori(
+                      ikon: Icons.notifications_none,
+                      label: 'Notifikasi',
+                      onTap: () => context.pushNamed('pengaturan-notifikasi'),
+                    ),
+                    Divider(
+                      height: 1,
+                      indent: 16,
+                      endIndent: 16,
+                      color: scheme.outlineVariant,
+                    ),
+                    _ItemKategori(
+                      ikon: Icons.cached_outlined,
+                      label: 'Penyimpanan & Data',
+                      onTap: () => context.pushNamed('penyimpanan-data'),
+                    ),
+                    Divider(
+                      height: 1,
+                      indent: 16,
+                      endIndent: 16,
+                      color: scheme.outlineVariant,
+                    ),
+                    _ItemKategori(
+                      ikon: Icons.help_outline,
+                      label: 'Tentang Aplikasi',
+                      onTap: () => context.pushNamed('tentang-aplikasi'),
+                    ),
+                  ],
+                ),
               ),
             ],
           );
@@ -239,7 +274,7 @@ class _ItemKategori extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(vertical: 2),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
       leading: Icon(ikon, color: scheme.onSurfaceVariant, size: 26),
       title: Text(label, style: Theme.of(context).textTheme.titleMedium),
       onTap: onTap,
