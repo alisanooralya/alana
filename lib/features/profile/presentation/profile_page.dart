@@ -7,8 +7,6 @@ import 'package:alana/core/utils/pesan_error.dart';
 import 'package:alana/core/widgets/empty_view.dart';
 import 'package:alana/core/widgets/error_view.dart';
 import 'package:alana/core/widgets/loading_spinner.dart';
-import 'package:alana/features/auth/data/auth_repository.dart';
-import 'package:alana/features/auth/presentation/auth_providers.dart';
 
 import 'profile_providers.dart';
 import 'widgets/avatar_picker.dart';
@@ -60,29 +58,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     } finally {
       if (mounted) setState(() => _mengunggah = false);
     }
-  }
-
-  Future<void> _keluar() async {
-    final yakin = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Keluar akun?'),
-        content: const Text('Kamu harus masuk lagi untuk membaca.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Keluar'),
-          ),
-        ],
-      ),
-    );
-    if (yakin != true) return;
-    ref.read(pendingUsernameSetupProvider.notifier).state = false;
-    await ref.read(authRepositoryProvider).keluar();
   }
 
   @override
@@ -199,15 +174,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                 ikon: Icons.help_outline,
                 label: 'Tentang Aplikasi',
                 onTap: () => context.pushNamed('tentang-aplikasi'),
-              ),
-              const SizedBox(height: 12),
-              const Divider(height: 1),
-              const SizedBox(height: 4),
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(vertical: 2),
-                leading: Icon(Icons.logout, color: scheme.error),
-                title: Text('Keluar', style: TextStyle(color: scheme.error)),
-                onTap: _keluar,
               ),
             ],
           );
