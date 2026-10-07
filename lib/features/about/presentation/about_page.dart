@@ -34,6 +34,37 @@ class _IsiAbout extends StatelessWidget {
     final appName = packageInfo?.appName ?? 'Alana';
     final version = packageInfo?.version ?? '-';
     final buildNumber = packageInfo?.buildNumber ?? '-';
+    final scheme = Theme.of(context).colorScheme;
+    final teks = Theme.of(context).textTheme;
+    final tautan = [
+      _Tautan(
+        icon: Icons.cloud_outlined,
+        judul: 'Sumber data',
+        deskripsi: 'API metadata dan chapter manhwa',
+        url: 'https://11.shinigami.asia/',
+      ),
+      if (_tautanPengembang.isNotEmpty)
+        _Tautan(
+          icon: Icons.mail_outline,
+          judul: 'Kontak developer',
+          deskripsi: _tautanPengembang,
+          url: 'mailto:$_tautanPengembang',
+        ),
+      if (_tautanPrivasi.isNotEmpty)
+        _Tautan(
+          icon: Icons.privacy_tip_outlined,
+          judul: 'Kebijakan privasi',
+          deskripsi: 'Kebijakan privasi aplikasi Alana',
+          url: _tautanPrivasi,
+        ),
+      if (_tautanHapusAkun.isNotEmpty)
+        _Tautan(
+          icon: Icons.delete_outline,
+          judul: 'Hapus akun',
+          deskripsi: 'Cara menghapus akun di aplikasi ini',
+          url: _tautanHapusAkun,
+        ),
+    ];
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -70,37 +101,39 @@ class _IsiAbout extends StatelessWidget {
           style: Theme.of(context).textTheme.bodyLarge,
         ),
         const SizedBox(height: 24),
-        const Divider(),
-        Text('Tautan', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 4),
-        _Tautan(
-          icon: Icons.cloud_outlined,
-          judul: 'Sumber data',
-          deskripsi: 'API metadata dan chapter manhwa',
-          url: 'https://11.shinigami.asia/',
+        Container(
+          decoration: BoxDecoration(
+            color: scheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: Text(
+                  'Tautan',
+                  style: (teks.titleSmall ?? const TextStyle()).copyWith(
+                    color: scheme.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              for (var i = 0; i < tautan.length; i++) ...[
+                tautan[i],
+                if (i < tautan.length - 1)
+                  Divider(
+                    height: 1,
+                    indent: 16,
+                    endIndent: 16,
+                    color: scheme.outlineVariant,
+                  ),
+              ],
+            ],
+          ),
         ),
-        if (_tautanPengembang.isNotEmpty)
-          _Tautan(
-            icon: Icons.mail_outline,
-            judul: 'Kontak developer',
-            deskripsi: _tautanPengembang,
-            url: 'mailto:$_tautanPengembang',
-          ),
-        if (_tautanPrivasi.isNotEmpty)
-          _Tautan(
-            icon: Icons.privacy_tip_outlined,
-            judul: 'Kebijakan privasi',
-            deskripsi: 'Kebijakan privasi aplikasi Alana',
-            url: _tautanPrivasi,
-          ),
-        if (_tautanHapusAkun.isNotEmpty)
-          _Tautan(
-            icon: Icons.delete_outline,
-            judul: 'Hapus akun',
-            deskripsi: 'Cara menghapus akun di aplikasi ini',
-            url: _tautanHapusAkun,
-          ),
-        const Divider(),
+        const SizedBox(height: 12),
         OutlinedButton.icon(
           onPressed: () {
             showLicensePage(
@@ -134,7 +167,7 @@ class _Tautan extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      contentPadding: EdgeInsets.zero,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16),
       leading: Icon(icon),
       title: Text(judul),
       subtitle: Text(deskripsi),
