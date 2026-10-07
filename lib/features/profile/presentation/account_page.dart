@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:alana/core/storage/app_storage.dart';
@@ -13,10 +14,20 @@ import 'package:alana/features/auth/presentation/widgets/auth_widgets.dart';
 import 'package:alana/features/downloads/data/download_repository.dart';
 import 'package:alana/features/reader/data/reader_net.dart';
 
-class AccountPage extends ConsumerWidget {
+import 'profile_providers.dart';
+
+class AccountPage extends ConsumerStatefulWidget {
   const AccountPage({super.key});
 
-  Future<void> _hapusAkun(BuildContext context, WidgetRef ref) async {
+  @override
+  ConsumerState<AccountPage> createState() => _AccountPageState();
+}
+
+class _AccountPageState extends ConsumerState<AccountPage> {
+  bool _bukaSandi = false;
+  bool _bukaEmail = false;
+
+  Future<void> _hapusAkun() async {
     final repo = ref.read(authRepositoryProvider);
     final punyaEmail = ref.read(punyaEmailProvider);
     final email = repo.userAktif?.email ?? '';
@@ -44,7 +55,7 @@ class AccountPage extends ConsumerWidget {
         ],
       ),
     );
-    if (lanjut != true || !context.mounted) return;
+    if (lanjut != true || !mounted) return;
 
     final terkonfirmasi = await showDialog<bool>(
       context: context,
@@ -67,14 +78,14 @@ class AccountPage extends ConsumerWidget {
         },
       ),
     );
-    if (terkonfirmasi != true || !context.mounted) return;
+    if (terkonfirmasi != true || !mounted) return;
 
     final uid = repo.userAktif?.id ?? '';
 
     try {
       await repo.hapusAkun();
     } catch (error) {
-      if (!context.mounted) return;
+      if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(SnackBar(content: Text(pesanAuthRamah(error))));
@@ -110,46 +121,165 @@ class AccountPage extends ConsumerWidget {
     }
   }
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final punyaEmail = ref.watch(punyaEmailProvider);
+  Future<void> _keluar() async {
+    final yakin = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Keluar dari akun?'),
+        content: const Text('Kamu harus masuk lagi untuk sinkronisasi.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Keluar'),
+          ),
+        ],
+      ),
+    );
+    if (yakin != true) return;
+    await ref.read(authRepositoryProvider).keluar();
+    if (mounted) context.go('/masuk');
+  }
+
+  // Baris kartu: ikon abu + judul + chevron yang memutar saat dibuka.
+  Widget _baris({
+    required IconData ikon,
+    required String judul,
+    required bool buka,
+    required VoidCallback onTap,
+  }) {
     final scheme = Theme.of(context).colorScheme;
+    return ListTile(
+      leading: Icon(ikon, color: scheme.onSurfaceVariant),
+      title: Text(judul),
+      trailing: AnimatedRotation(
+        turns: buka ? 0.25 : 0,
+        duration: const Duration(milliseconds: 200),
+        child: Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
+      ),
+      onTap: onTap,
+    );
+  }
+
+  // Kartu aksi merah satu baris tanpa chevron.
+  Widget _kartuMerah({
+    required IconData ikon,
+    required String judul,
+    required VoidCallback onTap,
+  }) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: ListTile(
+        leading: Icon(ikon, color: scheme.error),
+        title: Text(judul, style: TextStyle(color: scheme.error)),
+        onTap: onTap,
+      ),
+    );
+  }
+
+  Widget _bukaan({required bool tampil, required Widget anak}) {
+    return AnimatedCrossFade(
+      firstChild: const SizedBox.shrink(),
+      secondChild: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: anak,
+      ),
+      crossFadeState: tampil
+          ? CrossFadeState.showSecond
+          : CrossFadeState.showFirst,
+      duration: const Duration(milliseconds: 200),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final punyaEmail = ref.watch(punyaEmailProvider);
+    final email = ref.watch(userEmailProvider) ?? '';
+    final scheme = Theme.of(context).colorScheme;
+    final teks = Theme.of(context).textTheme;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Akun')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Keamanan', style: Theme.of(context).textTheme.titleMedium),
-          const SizedBox(height: 8),
-          if (punyaEmail)
-            const _FormGantiPassword()
-          else
-            Card(
-              child: ListTile(
-                leading: Icon(
-                  Icons.info_outline,
-                  color: scheme.onSurfaceVariant,
+          Container(
+            decoration: BoxDecoration(
+              color: scheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                  child: Text(
+                    'Keamanan',
+                    style: (teks.titleSmall ?? const TextStyle()).copyWith(
+                      color: scheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-                title: const Text('Akun ini masuk lewat Google'),
-                subtitle: const Text('Password dikelola oleh Google.'),
-              ),
+                _baris(
+                  ikon: Icons.lock_outline,
+                  judul: 'Kata Sandi',
+                  buka: _bukaSandi,
+                  onTap: () => setState(() => _bukaSandi = !_bukaSandi),
+                ),
+                _bukaan(
+                  tampil: _bukaSandi,
+                  anak: punyaEmail
+                      ? const _FormGantiPassword()
+                      : Text(
+                          'Akun ini masuk lewat Google. '
+                          'Password dikelola oleh Google.',
+                          style: teks.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                ),
+                Divider(
+                  height: 1,
+                  indent: 16,
+                  endIndent: 16,
+                  color: scheme.outlineVariant,
+                ),
+                _baris(
+                  ikon: Icons.mail_outline,
+                  judul: 'Email',
+                  buka: _bukaEmail,
+                  onTap: () => setState(() => _bukaEmail = !_bukaEmail),
+                ),
+                _bukaan(
+                  tampil: _bukaEmail,
+                  anak: Text(
+                    email.isEmpty ? '-' : email,
+                    style: teks.bodyLarge,
+                  ),
+                ),
+              ],
             ),
-          const SizedBox(height: 24),
-          Text(
-            'Zona sensitif',
-            style: Theme.of(context).textTheme.titleMedium
-                ?.copyWith(color: scheme.error),
           ),
-          const SizedBox(height: 8),
-          Card(
-            color: scheme.errorContainer,
-            child: ListTile(
-              leading: Icon(Icons.delete_forever_outlined, color: scheme.error),
-              title: Text('Hapus Akun', style: TextStyle(color: scheme.error)),
-              subtitle: const Text('Hapus permanen dari server'),
-              onTap: () => _hapusAkun(context, ref),
-            ),
+          const SizedBox(height: 12),
+          _kartuMerah(
+            ikon: Icons.logout,
+            judul: 'Keluar dari Akun',
+            onTap: _keluar,
+          ),
+          const SizedBox(height: 12),
+          _kartuMerah(
+            ikon: Icons.delete_outline,
+            judul: 'Hapus Akun secara Permanen',
+            onTap: _hapusAkun,
           ),
         ],
       ),
