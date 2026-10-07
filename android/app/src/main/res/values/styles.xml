@@ -15,4 +15,15 @@
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
+    <!-- Tema editor crop avatar: navy aplikasi + margin status bar. -->
+    <style name="Ucrop.CropTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:fitsSystemWindows">true</item>
+        <item name="android:windowTranslucentStatus">false</item>
+        <item name="android:statusBarColor">#070D21</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="ucrop_color_toolbar">#070D21</item>
+        <item name="ucrop_color_statusbar">#070D21</item>
+        <item name="ucrop_color_toolbar_widget">#FCFBFC</item>
+        <item name="ucrop_color_widget_active">#94E1FE</item>
+    </style>
 </resources>
