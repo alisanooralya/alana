@@ -21,9 +21,5 @@
         <item name="android:windowTranslucentStatus">false</item>
         <item name="android:statusBarColor">#070D21</item>
         <item name="android:windowLightStatusBar">false</item>
-        <item name="ucrop_color_toolbar">#070D21</item>
-        <item name="ucrop_color_statusbar">#070D21</item>
-        <item name="ucrop_color_toolbar_widget">#FCFBFC</item>
-        <item name="ucrop_color_widget_active">#94E1FE</item>
     </style>
 </resources>
