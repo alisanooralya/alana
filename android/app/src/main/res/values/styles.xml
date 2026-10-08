@@ -15,11 +15,8 @@
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
-    <!-- Tema editor crop avatar: navy aplikasi + margin status bar. -->
-    <style name="Ucrop.CropTheme" parent="Theme.AppCompat.Light.NoActionBar">
-        <item name="android:fitsSystemWindows">true</item>
-        <item name="android:windowTranslucentStatus">false</item>
-        <item name="android:statusBarColor">#070D21</item>
-        <item name="android:windowLightStatusBar">false</item>
-    </style>
+    <!-- Tema activity crop avatar. Kosong sengaja: uCrop 2.2.11 sudah
+         menangani edge-to-edge sendiri, warna & ikon diatur dari
+         AndroidUiSettings di sisi Dart. -->
+    <style name="AlanaUCropTheme" parent="Theme.AppCompat.NoActionBar"/>
 </resources>
