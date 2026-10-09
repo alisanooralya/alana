@@ -12,6 +12,13 @@
 # paket penuh, bukan receiver per kelas.
 -keep class com.dexterous.flutterlocalnotifications.** { *; }
 
+# uCrop 2.2.11 memanggil okhttp3 hanya untuk mengunduh gambar dari URL
+# (BitmapLoadTask.downloadFile). POM uCrop di JitPack tidak memuat
+# dependency, jadi okhttp tidak masuk classpath dan R8 gagal di release.
+# Alana selalu memberi Uri file lokal, jadi jalur unduhan itu tak pernah
+# dijalankan: cukup jangan peringatkan, tanpa menambah ukuran APK.
+-dontwarn okhttp3.**
+
 # Metadata yang dibuang R8 dibutuhkan serialisasi reflektif (Gson) dan
 # resolusi callback. Flutter hanya menyediakannya sebagian lewat default
 # file, jadi bergantung pada itu rapuh.
